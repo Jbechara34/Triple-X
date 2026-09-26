@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monero P2Pool Dashboard — Terminal Monitor (v2)</title>
+<link rel="stylesheet" href="css/style.css" />
+<style>
+  /* ================= V2: "Terminal Monitor" =================
+     Dense, monospace, server-room aesthetic - everything in bracketed
+     panels like a self-hosted ops console (think htop / a NOC wallboard),
+     not a consumer wallet app. Single column, information density first. */
+  :root { --term-green: #3ddc84; --term-amber: #ffb020; }
+  body {
+    background: #050607;
+    color: #d7dbe0;
+    font-family: "SF Mono", "Cascadia Code", Consolas, monospace;
+  }
+  .v2-wrap { max-width: 920px; margin: 0 auto; padding: 18px; }
+  .v2-topbar {
+    display: flex; justify-content: space-between; align-items: baseline;
+    border-bottom: 1px dashed #2a2d33; padding-bottom: 10px; margin-bottom: 14px;
+  }
+  .v2-topbar .title { color: var(--term-green); font-weight: 700; }
+  .v2-switcher a { color: #6b7076; text-decoration: none; margin-left: 10px; font-size: 12px; }
+  .v2-switcher a.current { color: var(--term-green); }
+  .v2-panel {
+    border: 1px solid #2a2d33;
+    margin-bottom: 12px;
+    background: #0a0c0e;
+  }
+  .v2-panel .v2-panel-head {
+    padding: 5px 10px;
+    color: var(--term-green);
+    font-size: 12px;
+    border-bottom: 1px dashed #2a2d33;
+    display: flex;
+    justify-content: space-between;
+  }
+  .v2-panel .v2-panel-head .tag { color: #6b7076; }
+  .v2-panel-body { padding: 12px; font-size: 13px; }
+  .v2-row { display: flex; justify-content: space-between; padding: 3px 0; border-bottom: 1px dotted #1c1e21; }
+  .v2-row:last-child { border-bottom: none; }
+  .v2-row .k { color: #8b929a; }
+  .v2-row .v { color: #e8e8e8; font-weight: 600; }
+  .v2-row .v.good { color: var(--term-green); }
+  .v2-row .v.bad { color: #e05a5a; }
+  .v2-row .v.warn { color: var(--term-amber); }
+  .v2-bar-track { height: 6px; background: #1c1e21; border: 1px solid #2a2d33; margin-top: 6px; }
+  .v2-bar-fill { height: 100%; background: var(--term-green); width: 0%; transition: width 0.4s ease; }
+  .v2-cols { display: flex; gap: 12px; }
+  .v2-cols > div { flex: 1; }
+  .v2-mining-mini { width: 100%; height: 90px; }
+  table.v2-table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  table.v2-table th { text-align: left; color: #6b7076; padding: 3px 6px; border-bottom: 1px solid #2a2d33; }
+  table.v2-table td { padding: 3px 6px; border-bottom: 1px dotted #1c1e21; }
+  .pv-empty { color: #6b7076; }
+  .v2-blink { animation: v2blink 1.4s step-end infinite; }
+  @keyframes v2blink { 50% { opacity: 0.3; } }
+</style>
+</head>
+<body>
+<div class="v2-wrap">
+  <div class="v2-topbar">
+    <div class="title">$ monero-p2pool-dashboard --status <span class="v2-blink">_</span></div>
+    <div class="v2-switcher">
+      <a href="index.html">current</a>
+      <a href="ui-v1.html">v1</a>
+      <a href="ui-v2.html" class="current">v2</a>
+      <a href="ui-v3.html">v3</a>
+    </div>
+  </div>
+
+  <div class="v2-panel">
+    <div class="v2-panel-head"><span>[ MINING ]</span><span class="tag" id="mining-xmr-state">idle</span></div>
+    <div class="v2-panel-body">
+      <div class="mining-combined" id="mining-combined" style="border:none;padding:0;background:transparent;">
+        <svg class="mining-scene mining-scene-combined v2-mining-mini" viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="rock-gradient" x1="15%" y1="0%" x2="85%" y2="100%">
+              <stop offset="0%" stop-color="#565a63" /><stop offset="45%" stop-color="#33363c" /><stop offset="100%" stop-color="#1a1c20" />
+            </linearGradient>
+            <radialGradient id="scene-vignette" cx="50%" cy="55%" r="65%">
+              <stop offset="0%" stop-color="#3a3d44" stop-opacity="0.5" /><stop offset="55%" stop-color="#202226" stop-opacity="0.25" /><stop offset="100%" stop-color="#000000" stop-opacity="0" />
+            </radialGradient>
+          </defs>
+          <ellipse class="mining-scene-vignette" cx="110" cy="58" rx="112" ry="58" />
+          <g class="mining-dust">
+            <circle class="mining-dust-particle" cx="90" cy="50" r="0.9" style="--dx:3px; animation-delay:-0.4s; animation-duration:4.6s;" />
+            <circle class="mining-dust-particle" cx="130" cy="46" r="0.7" style="--dx:-4px; animation-delay:-2.1s; animation-duration:5.4s;" />
+            <circle class="mining-dust-particle" cx="108" cy="62" r="1.1" style="--dx:2px; animation-delay:-3.6s; animation-duration:6.1s;" />
+          </g>
+          <circle class="mining-logo-glow" id="logo-glow-xmr" cx="16" cy="14" r="15" />
+          <image href="img/monero-icon.png" x="4" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xmr" />
+          <circle class="mining-logo-glow logo-glow-xtm" id="logo-glow-xtm" cx="204" cy="14" r="15" />
+          <image href="img/tari-icon.png" x="192" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xtm" />
+          <ellipse class="mining-rock-shadow" cx="110" cy="90" rx="48" ry="6" />
+          <g class="mining-rock" id="mining-rock">
+            <polygon points="26,90 20,80 32,74 44,80 42,90 34,94" class="mining-pebble" />
+            <polygon points="176,90 182,80 170,74 158,80 160,90 168,94" class="mining-pebble" />
+            <polygon points="86,96 76,88 96,84 124,84 144,88 134,96 110,100" class="mining-pebble" />
+            <polygon points="56,84 42,62 66,44 110,38 154,44 178,62 164,84 110,90" class="mining-rock-main" />
+            <polygon points="66,44 110,38 128,50 88,58" class="mining-rock-facet mining-rock-facet-light" />
+            <polygon points="128,50 154,44 178,62 164,84 138,70" class="mining-rock-facet mining-rock-facet-dark" />
+            <g class="mining-embedded-coin embedded-coin-xmr" id="embedded-coin-xmr">
+              <circle cx="60" cy="74" r="9.5" class="mining-coin-socket" /><image href="img/monero-icon.png" x="52" y="66" width="16" height="16" />
+            </g>
+            <g class="mining-embedded-coin embedded-coin-xtm" id="embedded-coin-xtm">
+              <circle cx="160" cy="74" r="9.5" class="mining-coin-socket" /><image href="img/tari-icon.png" x="152" y="66" width="16" height="16" />
+            </g>
+          </g>
+          <g class="mining-half mining-half-xmr" id="mining-half-xmr">
+            <circle class="mining-impact-flash flash-xmr" cx="53" cy="71" r="14" />
+            <circle class="mining-spark spark-1" cx="53" cy="71" r="2.4" /><circle class="mining-spark spark-2" cx="53" cy="71" r="2" /><circle class="mining-spark spark-3" cx="53" cy="71" r="1.8" />
+            <image href="img/monero-icon.png" x="47" y="65" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+            <image href="img/monero-icon.png" x="47" y="65" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+            <image href="img/monero-icon.png" x="47" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+            <g class="mining-pickaxe mining-pickaxe-xmr"><rect x="28" y="55" width="4" height="28" rx="2" class="pickaxe-handle" /><path d="M14,83 Q30,79 46,83 Q30,91 14,83 Z" class="pickaxe-head" /></g>
+          </g>
+          <g class="mining-half mining-half-xtm" id="mining-half-xtm">
+            <circle class="mining-impact-flash flash-xtm" cx="167" cy="71" r="14" />
+            <circle class="mining-spark spark-1" cx="167" cy="71" r="2.4" /><circle class="mining-spark spark-2" cx="167" cy="71" r="2" /><circle class="mining-spark spark-3" cx="167" cy="71" r="1.8" />
+            <image href="img/tari-icon.png" x="161" y="65" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+            <image href="img/tari-icon.png" x="161" y="65" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+            <image href="img/tari-icon.png" x="161" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+            <g class="mining-pickaxe mining-pickaxe-xtm"><rect x="188" y="55" width="4" height="28" rx="2" class="pickaxe-handle" /><path d="M206,83 Q190,79 174,83 Q190,91 206,83 Z" class="pickaxe-head" /></g>
+          </g>
+        </svg>
+      </div>
+      <div class="v2-row"><span class="k">xtm.merge_mine</span><span class="v" id="mining-xtm-state">not_configured</span></div>
+    </div>
+  </div>
+
+  <div class="v2-cols">
+    <div class="v2-panel">
+      <div class="v2-panel-head"><span>[ MONEROD ]</span><span class="tag" id="pv-node-version">—</span></div>
+      <div class="v2-panel-body">
+        <div class="v2-row"><span class="k">sync.status</span><span class="v" id="pv-sync-value">—</span></div>
+        <div class="v2-row"><span class="k">sync.detail</span><span class="v" id="pv-sync-sub">—</span></div>
+        <div class="v2-bar-track"><div class="v2-bar-fill" id="pv-sync-bar"></div></div>
+        <div class="v2-row" style="margin-top:8px;"><span class="k">peers.out</span><span class="v" id="pv-peers-out">—</span></div>
+        <div class="v2-row"><span class="k">peers.in</span><span class="v" id="pv-peers-in">—</span></div>
+        <div class="v2-row"><span class="k">peers.known</span><span class="v" id="pv-peers-sub">—</span></div>
+      </div>
+    </div>
+    <div class="v2-panel">
+      <div class="v2-panel-head"><span>[ P2POOL ]</span><span class="tag" id="pv-pool-mode">—</span></div>
+      <div class="v2-panel-body">
+        <div class="v2-row"><span class="k">hashrate.1h</span><span class="v" id="pv-hashrate">—</span></div>
+        <div class="v2-row"><span class="k">connections</span><span class="v" id="pv-p2pool-connections">—</span></div>
+        <div class="v2-row"><span class="k">shares.found</span><span class="v good" id="pv-shares-found">—</span></div>
+        <div class="v2-row"><span class="k">shares.failed</span><span class="v bad" id="pv-shares-failed">—</span></div>
+        <div class="v2-row"><span class="k">best_share</span><span class="v" id="pv-diff">—</span></div>
+        <div class="v2-row"><span class="k">network_diff</span><span class="v" id="pv-diff-sub">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v2-panel">
+    <div class="v2-panel-head"><span>[ SIDECHAIN NETWORK ]</span><span class="tag">all miners</span></div>
+    <div class="v2-panel-body">
+      <div class="v2-cols">
+        <div class="v2-row"><span class="k">miners</span><span class="v" id="pv-net-miners">—</span></div>
+        <div class="v2-row"><span class="k">blocks_found</span><span class="v" id="pv-net-blocks">—</span></div>
+        <div class="v2-row"><span class="k">reward</span><span class="v" id="pv-net-reward">—</span></div>
+        <div class="v2-row"><span class="k">your_workers</span><span class="v" id="pv-workers-count">—</span></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="v2-panel">
+    <div class="v2-panel-head"><span>[ MINOTARI NODE ]</span><span class="tag" id="pv-tari-status">not_configured</span></div>
+    <div class="v2-panel-body">
+      <div class="v2-row"><span class="k">sync.status</span><span class="v" id="pv-minotari-label">not running</span></div>
+      <div class="v2-bar-track"><div class="v2-bar-fill" id="pv-minotari-bar" style="background:var(--term-amber);"></div></div>
+      <div class="v2-row" style="margin-top:8px;"><span class="k">xtm_blocks_found</span><span class="v" id="pv-tari-blocks">0</span></div>
+    </div>
+  </div>
+
+  <div class="v2-panel">
+    <div class="v2-panel-head"><span>[ RECENT BLOCKS ]</span></div>
+    <div class="v2-panel-body">
+      <table class="v2-table">
+        <thead><tr><th>height</th><th>detected</th><th>hash</th></tr></thead>
+        <tbody id="pv-blocks-body"><tr><td colspan="3" class="pv-empty">loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="v2-panel">
+    <div class="v2-panel-head"><span>[ MINER CONFIG ]</span></div>
+    <div class="v2-panel-body">
+      <div class="v2-row"><span class="k">pool_url</span><span class="v" id="pv-miner-url">—</span></div>
+      <div class="v2-row"><span class="k">payout_address</span><span class="v" id="pv-payout-address" style="font-size:11px;">—</span></div>
+    </div>
+  </div>
+</div>
+<script src="js/preview.js"></script>
+</body>
+</html>
