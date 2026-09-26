@@ -270,57 +270,132 @@ main {
 
 .mining-coin {
   flex: 1;
-  min-width: 220px;
+  min-width: 260px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 12px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 16px 20px;
-}
-
-.mining-coin-orbit {
-  position: relative;
-  width: 56px;
-  height: 56px;
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mining-coin-orbit::before {
-  content: "";
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-  border: 2px solid transparent;
-  border-top-color: var(--coin-color, var(--orange));
-  border-right-color: var(--coin-color, var(--orange));
-  animation: mining-spin 1.6s linear infinite;
-  opacity: 0.55;
-}
-
-.mining-coin-badge {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background: var(--panel-alt);
-  border: 1px solid var(--coin-color, var(--orange));
-  color: var(--coin-color, var(--orange));
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.02em;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  box-shadow: 0 0 12px color-mix(in srgb, var(--coin-color, var(--orange)) 55%, transparent);
-  animation: mining-pulse 1.8s ease-in-out infinite;
+  padding: 10px 20px 10px 10px;
+  overflow: hidden;
 }
 
 .mining-coin-xmr { --coin-color: var(--orange); }
 .mining-coin-xtm { --coin-color: var(--tari); }
+
+.mining-scene {
+  width: 120px;
+  height: 96px;
+  flex-shrink: 0;
+  overflow: visible;
+}
+
+.mining-coin-logo {
+  filter: drop-shadow(0 0 0 transparent);
+  transition: filter 0.3s ease;
+}
+
+.mining-rock-shadow {
+  fill: #000;
+  opacity: 0.35;
+  filter: blur(1px);
+}
+
+.mining-rock polygon {
+  fill: var(--panel-alt);
+  stroke: var(--border);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+
+.mining-rock .mining-rock-facet {
+  fill: color-mix(in srgb, var(--coin-color, var(--orange)) 12%, var(--panel-alt));
+  stroke: none;
+}
+
+.pickaxe-handle {
+  fill: #7a5230;
+}
+
+.pickaxe-head {
+  fill: #aab2bd;
+  stroke: #6b7280;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.mining-pickaxe {
+  transform-box: fill-box;
+  transform-origin: 88% 12%;
+  transform: rotate(-50deg);
+}
+
+.mining-spark {
+  fill: var(--coin-color, var(--orange));
+  opacity: 0;
+}
+
+/* Idle (default): everything holds still. */
+.mining-coin.is-idle .mining-coin-logo { opacity: 0.5; }
+.mining-coin.is-idle .mining-rock polygon { opacity: 0.6; }
+
+/* Active: pickaxe swings and hits the rock once per cycle, in sync with a
+   little shake and a burst of sparks; the logo pulses with a soft glow. */
+.mining-coin.is-active .mining-pickaxe {
+  animation: pickaxe-swing 1.4s ease-in-out infinite;
+}
+.mining-coin.is-active .mining-rock {
+  animation: rock-hit 1.4s ease-in-out infinite;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+.mining-coin.is-active .mining-coin-logo {
+  animation: mining-pulse 1.4s ease-in-out infinite;
+}
+.mining-coin.is-active .spark-1 { animation: spark-fly-1 1.4s ease-out infinite; }
+.mining-coin.is-active .spark-2 { animation: spark-fly-2 1.4s ease-out infinite; }
+.mining-coin.is-active .spark-3 { animation: spark-fly-3 1.4s ease-out infinite; }
+
+@keyframes pickaxe-swing {
+  0%, 32% { transform: rotate(-50deg); }
+  48% { transform: rotate(12deg); }
+  62%, 100% { transform: rotate(-50deg); }
+}
+
+@keyframes rock-hit {
+  0%, 45%, 62%, 100% { transform: translate(0, 0); }
+  48% { transform: translate(-1.5px, 1px); }
+  52% { transform: translate(1.5px, -1px); }
+  56% { transform: translate(-1px, 0.5px); }
+}
+
+@keyframes mining-pulse {
+  0%, 40% { filter: drop-shadow(0 0 0 transparent); transform: scale(1); }
+  48% { filter: drop-shadow(0 0 6px var(--coin-color, var(--orange))); transform: scale(1.12); }
+  62%, 100% { filter: drop-shadow(0 0 0 transparent); transform: scale(1); }
+}
+
+@keyframes spark-fly-1 {
+  0%, 46% { opacity: 0; transform: translate(0, 0) scale(1); }
+  50% { opacity: 1; }
+  68% { opacity: 0; transform: translate(16px, -12px) scale(0.3); }
+  100% { opacity: 0; }
+}
+
+@keyframes spark-fly-2 {
+  0%, 46% { opacity: 0; transform: translate(0, 0) scale(1); }
+  50% { opacity: 1; }
+  68% { opacity: 0; transform: translate(-14px, -9px) scale(0.3); }
+  100% { opacity: 0; }
+}
+
+@keyframes spark-fly-3 {
+  0%, 46% { opacity: 0; transform: translate(0, 0) scale(1); }
+  50% { opacity: 1; }
+  68% { opacity: 0; transform: translate(3px, -18px) scale(0.3); }
+  100% { opacity: 0; }
+}
 
 .mining-coin-label {
   font-size: 13px;
@@ -334,19 +409,7 @@ main {
   margin-top: 2px;
 }
 
-.mining-coin.is-active .mining-coin-orbit::before { opacity: 1; }
 .mining-coin.is-active .mining-coin-state { color: var(--coin-color, var(--orange)); }
-.mining-coin.is-idle .mining-coin-orbit::before { animation-play-state: paused; opacity: 0.2; }
-.mining-coin.is-idle .mining-coin-badge { animation-play-state: paused; box-shadow: none; opacity: 0.5; }
-
-@keyframes mining-spin {
-  to { transform: rotate(360deg); }
-}
-
-@keyframes mining-pulse {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.08); }
-}
 
 .badge-experimental {
   display: inline-block;
