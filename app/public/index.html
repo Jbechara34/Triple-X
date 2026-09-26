@@ -52,6 +52,11 @@
         <div class="progress-bar"><div id="sidebar-daemon-bar" class="progress-bar-fill" style="width:0%"></div></div>
         <div class="sync-count" id="sidebar-daemon-count"></div>
       </div>
+      <div class="sync-block" id="sidebar-minotari-block" style="display:none">
+        <div class="sync-label" id="sidebar-minotari-label">Minotari Node is not running</div>
+        <div class="progress-bar"><div id="sidebar-minotari-bar" class="progress-bar-fill mining-dot-xtm-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-minotari-count"></div>
+      </div>
       <div class="network-status">
         <span class="bolt">&#9889;</span>
         <div>
@@ -84,30 +89,30 @@
                  shoulder) - the head at the far/bottom end is what sweeps
                  down and strikes the rock, not the other way around. -->
             <g class="mining-half mining-half-xmr" id="mining-half-xmr">
-              <circle class="mining-spark spark-1" cx="80" cy="48" r="2.4" />
-              <circle class="mining-spark spark-2" cx="80" cy="48" r="2" />
-              <circle class="mining-spark spark-3" cx="80" cy="48" r="1.8" />
-              <image href="img/monero-icon.png" x="74" y="42" width="12" height="12" class="mining-coin-particle coin-particle-1" />
-              <image href="img/monero-icon.png" x="74" y="42" width="10" height="10" class="mining-coin-particle coin-particle-2" />
-              <image href="img/monero-icon.png" x="74" y="42" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <circle class="mining-spark spark-1" cx="52" cy="56" r="2.4" />
+              <circle class="mining-spark spark-2" cx="52" cy="56" r="2" />
+              <circle class="mining-spark spark-3" cx="52" cy="56" r="1.8" />
+              <image href="img/monero-icon.png" x="46" y="50" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/monero-icon.png" x="46" y="50" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/monero-icon.png" x="46" y="50" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xmr">
-                <rect x="68" y="10" width="4" height="42" rx="2" class="pickaxe-handle" />
-                <path d="M56 50 L84 50 L70 38 Z" class="pickaxe-head" />
+                <rect x="38" y="20" width="4" height="40" rx="2" class="pickaxe-handle" />
+                <path d="M26 58 L54 58 L40 46 Z" class="pickaxe-head" />
               </g>
             </g>
 
             <!-- Tari side: exact mirror of the Monero side (pivot at top of
                  handle, head sweeps down into the rock from the right). -->
             <g class="mining-half mining-half-xtm" id="mining-half-xtm">
-              <circle class="mining-spark spark-1" cx="140" cy="48" r="2.4" />
-              <circle class="mining-spark spark-2" cx="140" cy="48" r="2" />
-              <circle class="mining-spark spark-3" cx="140" cy="48" r="1.8" />
-              <image href="img/tari-icon.png" x="134" y="42" width="12" height="12" class="mining-coin-particle coin-particle-1" />
-              <image href="img/tari-icon.png" x="134" y="42" width="10" height="10" class="mining-coin-particle coin-particle-2" />
-              <image href="img/tari-icon.png" x="134" y="42" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <circle class="mining-spark spark-1" cx="168" cy="56" r="2.4" />
+              <circle class="mining-spark spark-2" cx="168" cy="56" r="2" />
+              <circle class="mining-spark spark-3" cx="168" cy="56" r="1.8" />
+              <image href="img/tari-icon.png" x="162" y="50" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/tari-icon.png" x="162" y="50" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/tari-icon.png" x="162" y="50" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xtm">
-                <rect x="148" y="10" width="4" height="42" rx="2" class="pickaxe-handle" />
-                <path d="M164 50 L136 50 L150 38 Z" class="pickaxe-head" />
+                <rect x="178" y="20" width="4" height="40" rx="2" class="pickaxe-handle" />
+                <path d="M194 58 L166 58 L180 46 Z" class="pickaxe-head" />
               </g>
             </g>
           </svg>

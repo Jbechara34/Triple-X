@@ -178,6 +178,20 @@ async function refreshMain() {
     : 'Not configured';
   xtmStateEl.classList.toggle('state-xtm-active', xtmActive);
 
+  // Sidebar Minotari Node bar (EXPERIMENTAL) - only shown once a Tari
+  // address is configured. No live block-height data yet (would need a
+  // gRPC client - see docker-compose.yml comments), so this is binary
+  // running/not-running rather than a real sync percentage like the two
+  // bars above it.
+  const minotariBlock = document.getElementById('sidebar-minotari-block');
+  const minotariLabel = document.getElementById('sidebar-minotari-label');
+  const minotariBar = document.getElementById('sidebar-minotari-bar');
+  minotariBlock.style.display = tariInfo.enabled ? '' : 'none';
+  if (tariInfo.enabled) {
+    minotariLabel.textContent = xtmActive ? 'Minotari Node is running' : 'Minotari Node is not running';
+    minotariBar.style.width = xtmActive ? '100%' : '0%';
+  }
+
   document.getElementById('mining-combined').classList.toggle('any-active', xmrActive || xtmActive);
 }
 

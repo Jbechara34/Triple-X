@@ -325,20 +325,21 @@ main {
   stroke-linejoin: round;
 }
 
-/* Pivot at the TOP of the handle (68-72,10) / (148-152,10) - an absolute
+/* Pivot at the TOP of the handle (38-42,20) / (178-182,20) - an absolute
    point in the SVG's own coordinate system (transform-box: view-box), not a
    percentage of the shape's own bounding box. That's what makes it swing
-   from the grip end instead of spinning around the head. */
+   from the grip end instead of spinning around the head. Positioned lower
+   and further out to the sides than the rock, not floating high above it. */
 .mining-pickaxe-xmr {
   transform-box: view-box;
-  transform-origin: 70px 10px;
-  transform: rotate(-115deg);
+  transform-origin: 40px 20px;
+  transform: rotate(-70deg);
 }
 
 .mining-pickaxe-xtm {
   transform-box: view-box;
-  transform-origin: 150px 10px;
-  transform: rotate(115deg);
+  transform-origin: 180px 20px;
+  transform: rotate(70deg);
 }
 
 .mining-spark {
@@ -394,15 +395,15 @@ main {
 .mining-half-xtm.is-active .coin-particle-3 { animation: coin-fly-3 1.4s ease-out 0.7s infinite; }
 
 @keyframes pickaxe-swing-xmr {
-  0%, 32% { transform: rotate(-115deg); }
-  48% { transform: rotate(-15deg); }
-  62%, 100% { transform: rotate(-115deg); }
+  0%, 32% { transform: rotate(-70deg); }
+  48% { transform: rotate(-20deg); }
+  62%, 100% { transform: rotate(-70deg); }
 }
 
 @keyframes pickaxe-swing-xtm {
-  0%, 32% { transform: rotate(115deg); }
-  48% { transform: rotate(15deg); }
-  62%, 100% { transform: rotate(115deg); }
+  0%, 32% { transform: rotate(70deg); }
+  48% { transform: rotate(20deg); }
+  62%, 100% { transform: rotate(70deg); }
 }
 
 /* Two shakes per cycle - one for each side's impact (Monero at ~48%, Tari's
@@ -578,6 +579,10 @@ h1.page-title {
   height: 100%;
   background: linear-gradient(90deg, var(--orange-dim), var(--orange));
   transition: width 0.4s ease;
+}
+
+.mining-dot-xtm-fill {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--tari) 60%, black), var(--tari));
 }
 
 /* Tables ------------------------------------------------------------------ */
