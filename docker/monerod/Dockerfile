@@ -37,9 +37,23 @@ RUN git clone --branch "${MONERO_REF}" --depth 1 "${MONERO_REPO}" monero && \
     git submodule sync && git submodule update --init --force --recursive --depth 1
 
 WORKDIR /build/monero
+# NOT `make release` - that target's cmake invocation never sets ARCH, and
+# Monero's CMakeLists.txt defaults ARCH to "native" on Linux (see the
+# set_default_arch() function there), which bakes in -march=<build machine's
+# exact CPU>. That's fine on the GitHub Actions runner that compiles this,
+# but the resulting binary hits SIGILL (exit code 132) the instant it runs
+# on any CPU lacking one of those specific instructions - confirmed via the
+# user's actual container status ("Restarting (132)"). Build the same way
+# the official release-static-linux-x86_64 target does instead: ARCH
+# explicitly set to the portable "x86-64" baseline, so the binary runs on
+# any x86-64 CPU regardless of what compiled it.
+#
 # `nproc` builds can exhaust RAM on small boxes (e.g. 4GB Raspberry Pi-class
-# hardware). If the build OOM-kills, retry with `make -j2` or lower.
-RUN make release -j"$(nproc)"
+# hardware). If the build OOM-kills, retry with `-j2` or lower.
+RUN mkdir -p build/release && \
+    cd build/release && \
+    cmake -D ARCH=x86-64 -D BUILD_64=ON -D CMAKE_BUILD_TYPE=Release ../.. && \
+    make -j"$(nproc)"
 
 # The exact output path has moved around across Monero versions
 # (build/release/bin vs build/Linux/<tag>/release/bin) - find it instead of
