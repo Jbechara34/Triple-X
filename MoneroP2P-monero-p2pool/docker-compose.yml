@@ -21,12 +21,12 @@ services:
       APP_PORT: 3000
 
   web:
-    # Pinned to the Dev2 build's exact digest (not :latest) so the platform
+    # Pinned to the Dev4 build's exact digest (not :latest) so the platform
     # is forced to pull this specific image instead of reusing whatever it
     # already has cached under a floating tag. Update this digest (see
     # ../.github/workflows/publish-images.yml) every time a new version is
     # published.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-app@sha256:973cb46b8ec13f26f49b153907f41fc319e941749e8207bf5791520dff69fcd2
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-app@sha256:68fec82112a2bf4c0ad915e90d74f56d7c3f6de0edbe9755f183e954781588c4
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -53,8 +53,8 @@ services:
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
 
   monerod:
-    # Pinned to the Dev2 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod@sha256:d9029b5a7134ff00b79c0690541a171cab4734d3196037d2d23cff7c089c9313
+    # Pinned to the Dev4 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod@sha256:b1b7d62834e863cf08c4fa4b5c4941c5c49cdb738e2cfcf88f2c1bde34b1fa2a
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -80,8 +80,8 @@ services:
       - ${APP_DATA_DIR}/monerod-logs:/var/log/monerod
 
   p2pool:
-    # Pinned to the Dev2 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool@sha256:67022ede1b138862bfab49c96db3aa9b0cf1d70ef432dcec900fd1f9b4309d4d
+    # Pinned to the Dev4 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool@sha256:1fc01bd5d9bd8c31b22bed317c6d3e257f2e36a0ab64c93d1a170d880ab7c5d3
     restart: on-failure
     stop_grace_period: 1m
     environment:
