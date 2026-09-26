@@ -43,12 +43,14 @@
 
     <div class="sidebar-footer">
       <div class="sync-block">
-        <div class="sync-label">Node is synchronized</div>
+        <div class="sync-label" id="sidebar-sync-label">Node is not running</div>
         <div class="progress-bar"><div id="sidebar-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-sync-count"></div>
       </div>
       <div class="sync-block">
-        <div class="sync-label" id="sidebar-daemon-label">P2Pool is running</div>
+        <div class="sync-label" id="sidebar-daemon-label">P2Pool is not running</div>
         <div class="progress-bar"><div id="sidebar-daemon-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-daemon-count"></div>
       </div>
       <div class="network-status">
         <span class="bolt">&#9889;</span>

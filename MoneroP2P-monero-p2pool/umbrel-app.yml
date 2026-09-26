@@ -4,7 +4,7 @@ manifestVersion: 1
 id: MoneroP2P-monero-p2pool
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Monero Node + P2Pool
-version: "Dev3"
+version: "Dev4"
 tagline: Run a Monero node and mine P2Pool with a Monero-GUI-styled dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -30,8 +30,8 @@ defaultPassword: ""
 submitter: Jbechara34
 submission: https://github.com/Jbechara34/monero-p2pool-dashboard
 releaseNotes: >-
-  Dev3 (development build): Logs tab is now a live tail (Server-Sent
-  Events), updating the instant monerod/P2Pool write a new line, like
-  `tail -f`. The dashboard backend also no longer crashes and restart-loops
-  on an unexpected error - it logs and keeps running instead. Includes
-  Dev2's monerod/P2Pool startup fix and Dev1's Logs tab + UI redesign.
+  Dev4 (development build): sidebar's "Node"/"P2Pool" status lines now
+  reflect real state (not running / syncing / synchronized) instead of
+  static text, with a live block-height progress count under each bar.
+  Includes Dev3's live-tail Logs tab + crash hardening, Dev2's
+  monerod/P2Pool startup fix, and Dev1's Logs tab + UI redesign.

@@ -87,6 +87,13 @@ app.get('/api/status', async (req, res) => {
       bestShare: bestShareDifficulty,
       network: networkDifficulty,
     },
+    p2pool: {
+      running: stratumOk,
+      // p2pool's own view of the Monero chain height, via its connection to
+      // monerod - compared against monerod's own height/target below, this
+      // is what lets the sidebar show P2Pool's sync progress.
+      height: p2pool.network.height,
+    },
     poolMode: settings.poolMode,
   });
 });

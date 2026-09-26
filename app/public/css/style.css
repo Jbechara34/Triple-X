@@ -221,6 +221,12 @@ nav.tabs button.active .chev { color: var(--orange); }
   margin-bottom: 6px;
 }
 
+.sync-block .sync-count {
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 4px;
+}
+
 .network-status {
   display: flex;
   align-items: center;

@@ -118,20 +118,42 @@ async function refreshMain() {
 
   // Sidebar summary (mirrors the main tab's key numbers)
   document.getElementById('sidebar-hashrate').textContent = fmtHashrate(data.hashrate?.hashrate1h);
-  if (!sync.error) {
-    const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
-    document.getElementById('sidebar-sync-bar').style.width = `${pct}%`;
+
+  const sidebarSyncLabel = document.getElementById('sidebar-sync-label');
+  const sidebarSyncBar = document.getElementById('sidebar-sync-bar');
+  const sidebarSyncCount = document.getElementById('sidebar-sync-count');
+  if (sync.error) {
+    sidebarSyncLabel.textContent = 'Node is not running';
+    sidebarSyncBar.style.width = '0%';
+    sidebarSyncCount.textContent = '';
   } else {
-    document.getElementById('sidebar-sync-bar').style.width = '0%';
+    const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
+    sidebarSyncLabel.textContent = sync.synchronized ? 'Node is synchronized' : 'Node is syncing…';
+    sidebarSyncBar.style.width = `${pct}%`;
+    sidebarSyncCount.textContent = `${sync.height ?? '—'} / ${sync.targetHeight ?? '—'} blocks`;
   }
+
   const daemonBar = document.getElementById('sidebar-daemon-bar');
   const daemonLabel = document.getElementById('sidebar-daemon-label');
-  if (checklist.stratumRunning) {
-    daemonBar.style.width = '100%';
-    daemonLabel.textContent = 'P2Pool is running';
-  } else {
-    daemonBar.style.width = '0%';
+  const daemonCount = document.getElementById('sidebar-daemon-count');
+  const p2poolInfo = data.p2pool || {};
+  const nodeTarget = sync.targetHeight;
+  if (!p2poolInfo.running) {
     daemonLabel.textContent = 'P2Pool is not running';
+    daemonBar.style.width = '0%';
+    daemonCount.textContent = '';
+  } else if (p2poolInfo.height != null && nodeTarget) {
+    // p2pool's own view of the chain height vs monerod's - lets us show real
+    // sync progress instead of just an up/down indicator.
+    const pct = Math.min(100, (p2poolInfo.height / nodeTarget) * 100);
+    const isSynced = p2poolInfo.height >= nodeTarget - 1; // small tolerance
+    daemonLabel.textContent = isSynced ? 'P2Pool is synchronized' : 'P2Pool is syncing…';
+    daemonBar.style.width = `${pct}%`;
+    daemonCount.textContent = `${p2poolInfo.height} / ${nodeTarget} blocks`;
+  } else {
+    daemonLabel.textContent = 'P2Pool is running';
+    daemonBar.style.width = '100%';
+    daemonCount.textContent = '';
   }
 }
 
