@@ -65,11 +65,16 @@
 <body>
   <div class="v1-topbar">
     <div class="v1-brand"><span class="dot"></span> Monero P2Pool Dashboard</div>
-    <div class="v1-switcher">
-      <a href="index.html">Current UI</a>
-      <a href="ui-v1.html" class="current">v1 Command Center</a>
-      <a href="ui-v2.html">v2 Terminal</a>
-      <a href="ui-v3.html">v3 Refined</a>
+    <div style="display:flex;align-items:center;gap:14px;">
+      <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
+      <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
+      <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
+      <div class="v1-switcher">
+        <a href="index.html">Current UI</a>
+        <a href="ui-v1.html" class="current">v1 Command Center</a>
+        <a href="ui-v2.html">v2 Terminal</a>
+        <a href="ui-v3.html">v3 Refined</a>
+      </div>
     </div>
   </div>
 
@@ -217,9 +222,102 @@
       </div>
       <div class="v1-half">
         <div class="v1-label">Miner Configuration</div>
-        <div class="field"><label>Pool URL</label><input type="text" readonly id="pv-miner-url" value="—" /></div>
-        <div class="field"><label>Payout Address</label><input type="text" readonly id="pv-payout-address" value="—" /></div>
+        <div class="field">
+          <label>Pool URL</label>
+          <div class="copy-row"><input type="text" readonly id="pv-miner-url" value="—" /><button class="icon-btn" data-copy="#pv-miner-url">Copy</button></div>
+        </div>
+        <div class="field">
+          <label>Payout Address</label>
+          <div class="copy-row"><input type="text" readonly id="pv-payout-address" value="—" /><button class="icon-btn" data-copy="#pv-payout-address">Copy</button></div>
+        </div>
         <div class="v1-sub">Pool mode: <span id="pv-pool-mode">—</span></div>
+      </div>
+
+      <!-- Hash rate breakdown -->
+      <div class="v1-full">
+        <div class="v1-label">Hash Rate Breakdown</div>
+        <table class="v1-table">
+          <thead><tr><th>1m</th><th>15m</th><th>1h</th><th>6h</th><th>24h</th><th>7d</th></tr></thead>
+          <tbody><tr>
+            <td id="pv-hr-1m">—</td><td id="pv-hr-15m">—</td><td id="pv-hr-1h">—</td>
+            <td id="pv-hr-6h">—</td><td id="pv-hr-24h">—</td><td id="pv-hr-7d">—</td>
+          </tr></tbody>
+        </table>
+        <div class="v1-stat-row" style="margin-top:10px;">
+          <div><div class="v1-sub">Best Share — Since Block</div><div class="v1-big" style="font-size:16px" id="pv-best-since">—</div></div>
+          <div><div class="v1-sub">Best Share — All Time</div><div class="v1-big" style="font-size:16px" id="pv-best-alltime">—</div></div>
+        </div>
+      </div>
+
+      <!-- Worker details -->
+      <div class="v1-half">
+        <div class="v1-label">Worker Details</div>
+        <table class="v1-table">
+          <thead><tr><th>Worker</th><th>Shares</th><th>Last Seen</th></tr></thead>
+          <tbody id="pv-workers-body"><tr><td colspan="3" class="pv-empty">No workers connected yet.</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- P2Pool Observer (only shown when enabled in Settings) -->
+      <div class="v1-half" id="pv-observer-card" style="display:none">
+        <div class="v1-label">P2Pool Observer <span class="badge-experimental">3rd-party</span></div>
+        <div class="v1-stat-row">
+          <div><div class="v1-big" style="font-size:18px" id="pv-observer-miners">—</div><div class="v1-sub">Miners (network)</div></div>
+          <div><div class="v1-big" style="font-size:18px" id="pv-observer-shares">—</div><div class="v1-sub">Your lifetime shares</div></div>
+          <div><div class="v1-big" style="font-size:14px" id="pv-observer-last-share">—</div><div class="v1-sub">Your last share</div></div>
+        </div>
+        <div class="v1-sub" style="margin-top:8px;" id="pv-observer-versions">—</div>
+        <a id="pv-observer-link" href="#" target="_blank" rel="noopener" class="v1-sub">View full history on p2pool.observer</a>
+      </div>
+
+      <!-- XTM blocks -->
+      <div class="v1-full">
+        <div class="v1-label">XTM Blocks Found <span class="badge-experimental">beta</span></div>
+        <table class="v1-table">
+          <thead><tr><th>Height</th><th>Detected</th><th>Log Line</th></tr></thead>
+          <tbody id="pv-tari-blocks-body"><tr><td colspan="3" class="pv-empty">No XTM blocks found yet.</td></tr></tbody>
+        </table>
+        <div class="v1-sub" style="margin-top:6px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
+      </div>
+
+      <!-- Settings -->
+      <div class="v1-full">
+        <div class="v1-label">Settings</div>
+        <div class="v1-stat-row" style="align-items:flex-start;">
+          <div class="field" style="flex:1;">
+            <label>Monero Wallet Address</label>
+            <input type="text" id="pv-settings-wallet" placeholder="4..." />
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Pool Type</label>
+            <select id="pv-settings-pool-mode">
+              <option value="standard">Standard</option>
+              <option value="mini">Mini</option>
+              <option value="nano">Nano</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Tari Wallet Address (optional) <span class="badge-experimental">beta</span></label>
+          <input type="text" id="pv-settings-tari-address" placeholder="Leave blank to mine XMR only" />
+        </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-observer-enabled" /> Enable network-wide stats from p2pool.observer</label>
+          <div class="hint warn">Sends your payout address to the public P2Pool Observer service over clearnet. Off by default.</div>
+        </div>
+        <button class="primary" id="pv-settings-save">Save Settings</button>
+        <div class="hint" id="pv-settings-status"></div>
+      </div>
+
+      <!-- Logs -->
+      <div class="v1-full">
+        <div class="v1-label">Logs (live)</div>
+        <div class="v1-label" style="margin-top:10px;">monerod</div>
+        <pre class="log-box" id="pv-logs-monerod" style="max-height:120px;">—</pre>
+        <div class="v1-label" style="margin-top:10px;">p2pool</div>
+        <pre class="log-box" id="pv-logs-p2pool" style="max-height:120px;">—</pre>
+        <div class="v1-label" style="margin-top:10px;">minotari <span class="badge-experimental">beta</span></div>
+        <pre class="log-box" id="pv-logs-minotari" style="max-height:120px;">—</pre>
       </div>
     </div>
   </div>

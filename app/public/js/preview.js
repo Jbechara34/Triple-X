@@ -147,8 +147,231 @@ async function refreshAll() {
       : '<tr><td colspan="3" class="pv-empty">No blocks found yet — normal, this can take a while.</td></tr>';
   }
 
+  // Hash rate breakdown table (1m/15m/1h/6h/24h/7d - see lib/p2poolApi.js for
+  // which columns p2pool's local API actually reports today).
+  const hr = pool.hashrate || {};
+  setText('pv-hr-1m', fmtHashrate(hr.hashrate1m));
+  setText('pv-hr-15m', fmtHashrate(hr.hashrate15m));
+  setText('pv-hr-1h', fmtHashrate(hr.hashrate1h));
+  setText('pv-hr-6h', fmtHashrate(hr.hashrate6h));
+  setText('pv-hr-24h', fmtHashrate(hr.hashrate24h));
+  setText('pv-hr-7d', fmtHashrate(hr.hashrate7d));
+  setText('pv-best-since', fmtDifficulty(pool.bestShare?.sinceBlock));
+  setText('pv-best-alltime', fmtDifficulty(pool.bestShare?.allTime));
+
+  // Worker Details
+  const workersBody = document.getElementById('pv-workers-body');
+  if (workersBody) {
+    workersBody.innerHTML = (pool.workers || []).length
+      ? pool.workers
+          .map((w) => `<tr><td>${escapeHtml(w.name)}</td><td>${w.shares}</td><td>${fmtTime(w.lastSeen)}</td></tr>`)
+          .join('')
+      : '<tr><td colspan="3" class="pv-empty">No workers connected yet.</td></tr>';
+  }
+
+  // Tari payout address + XTM blocks table
+  setText('pv-tari-address', pool.tari?.payoutAddress || '—');
+  let tariBlocksData = null;
+  try {
+    tariBlocksData = await getJSON('/api/blocks?coin=xtm');
+  } catch (err) { /* non-fatal */ }
+  const tariBlocksBody = document.getElementById('pv-tari-blocks-body');
+  if (tariBlocksBody && tariBlocksData) {
+    tariBlocksBody.innerHTML = (tariBlocksData.blocks || []).length
+      ? tariBlocksData.blocks
+          .map((b) => `<tr><td>${b.height ?? '—'}</td><td>${fmtTime(b.detectedAt)}</td><td class="mono" style="font-size:11px">${escapeHtml(b.raw || '—')}</td></tr>`)
+          .join('')
+      : '<tr><td colspan="3" class="pv-empty">No XTM blocks found yet, or Tari merge-mining isn\'t configured.</td></tr>';
+  }
+
+  // Optional P2Pool Observer card (see lib/p2poolObserver.js) - only shown
+  // when the user opted in from Settings.
+  const observerCard = document.getElementById('pv-observer-card');
+  if (observerCard) {
+    const observer = pool.observer;
+    if (observer && !observer.error) {
+      observerCard.style.display = '';
+      setText('pv-observer-miners', observer.globalMiners ?? '—');
+      setText('pv-observer-shares', observer.yourShares?.totalShares ?? '—');
+      setText('pv-observer-last-share', observer.yourShares?.lastShareAt ? fmtTime(observer.yourShares.lastShareAt) : '—');
+      setText('pv-observer-versions', `P2Pool ${observer.p2poolVersion || '—'} · Monero ${observer.moneroVersion || '—'}`);
+      const link = document.getElementById('pv-observer-link');
+      if (link) link.href = observer.explorerUrl || '#';
+    } else {
+      observerCard.style.display = 'none';
+    }
+  }
+
   renderMiningScene(!!status.p2pool?.running, !!tari.enabled);
 }
 
+function escapeHtml(str) {
+  return String(str).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+// ---------------------------------------------------------------------------
+// Settings (load once, save on click) - present only on variants that include
+// the settings form; every lookup is guarded so others just skip this.
+// ---------------------------------------------------------------------------
+async function loadSettingsForm() {
+  const walletEl = document.getElementById('pv-settings-wallet');
+  if (!walletEl) return; // this variant has no settings form
+  let data;
+  try {
+    data = await getJSON('/api/settings');
+  } catch (err) {
+    return;
+  }
+  walletEl.value = data.walletAddress || '';
+  const poolModeEl = document.getElementById('pv-settings-pool-mode');
+  if (poolModeEl) poolModeEl.value = data.poolMode || 'standard';
+  const tariEl = document.getElementById('pv-settings-tari-address');
+  if (tariEl) tariEl.value = data.tariAddress || '';
+  const observerEl = document.getElementById('pv-settings-observer-enabled');
+  if (observerEl) observerEl.checked = !!data.observerEnabled;
+}
+
+function wireSettingsSave() {
+  const btn = document.getElementById('pv-settings-save');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const status = document.getElementById('pv-settings-status');
+    btn.disabled = true;
+    if (status) status.textContent = 'Saving…';
+    try {
+      const res = await fetch('/api/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          walletAddress: document.getElementById('pv-settings-wallet').value.trim(),
+          poolMode: document.getElementById('pv-settings-pool-mode')?.value,
+          tariAddress: document.getElementById('pv-settings-tari-address')?.value.trim() || '',
+          observerEnabled: !!document.getElementById('pv-settings-observer-enabled')?.checked,
+        }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Save failed');
+      if (status) status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';
+      refreshAll();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// ---------------------------------------------------------------------------
+// Copy-to-clipboard buttons (data-copy="#some-input")
+// ---------------------------------------------------------------------------
+document.body.addEventListener('click', (e) => {
+  const btn = e.target.closest('[data-copy]');
+  if (!btn) return;
+  const input = document.querySelector(btn.dataset.copy);
+  if (!input) return;
+  navigator.clipboard.writeText(input.value).then(
+    () => {
+      const original = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => { btn.textContent = original; }, 1500);
+    },
+    () => { /* clipboard permission denied - nothing useful to do */ }
+  );
+});
+
+// ---------------------------------------------------------------------------
+// Logs - live tail via Server-Sent Events, present only on variants with a
+// logs section.
+// ---------------------------------------------------------------------------
+const MAX_CLIENT_LOG_LINES = 500;
+
+function appendLogLines(el, lines) {
+  const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  const isPlaceholder = !el.dataset.hasContent;
+  const existing = isPlaceholder ? [] : el.textContent.split('\n');
+  const combined = existing.concat(lines).slice(-MAX_CLIENT_LOG_LINES);
+  el.textContent = combined.join('\n');
+  el.dataset.hasContent = '1';
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+function openLogStream(source, el) {
+  el.dataset.hasContent = '';
+  const es = new EventSource(`/api/logs/stream?source=${encodeURIComponent(source)}`);
+  es.addEventListener('init', (e) => {
+    const result = JSON.parse(e.data);
+    if (result.error && (!result.lines || !result.lines.length)) {
+      el.textContent = result.error;
+      return;
+    }
+    el.textContent = (result.lines || []).join('\n') || 'No log output yet.';
+    el.dataset.hasContent = result.lines && result.lines.length ? '1' : '';
+    el.scrollTop = el.scrollHeight;
+  });
+  es.addEventListener('append', (e) => appendLogLines(el, JSON.parse(e.data)));
+  return es;
+}
+
+function startLogStreamsIfPresent() {
+  const monerod = document.getElementById('pv-logs-monerod');
+  if (!monerod) return; // this variant has no logs section
+  openLogStream('monerod', monerod);
+  openLogStream('p2pool', document.getElementById('pv-logs-p2pool'));
+  openLogStream('minotari', document.getElementById('pv-logs-minotari'));
+}
+
+// ---------------------------------------------------------------------------
+// Theme (light/dark) + color palette toggles - present only on variants with
+// these titlebar buttons.
+// ---------------------------------------------------------------------------
+function wireThemeControls() {
+  const THEME_KEY = 'p2pool-dashboard-theme';
+  const themeBtn = document.getElementById('tb-theme');
+  if (themeBtn) {
+    const applyTheme = (theme) => document.documentElement.classList.toggle('light', theme === 'light');
+    try { applyTheme(localStorage.getItem(THEME_KEY) || 'dark'); } catch (err) { applyTheme('dark'); }
+    themeBtn.addEventListener('click', () => {
+      const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+      applyTheme(next);
+      try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* ignore */ }
+    });
+  }
+
+  const PALETTE_KEY = 'p2pool-dashboard-palette';
+  const PALETTES = [
+    { id: 'classic', label: 'Monero Classic' },
+    { id: 'tari', label: 'Tari Nebula' },
+    { id: 'molten', label: 'Molten Cave' },
+  ];
+  const paletteBtn = document.getElementById('tb-palette');
+  if (paletteBtn) {
+    let current = 'classic';
+    const apply = (id) => {
+      if (id === 'classic') document.documentElement.removeAttribute('data-theme');
+      else document.documentElement.setAttribute('data-theme', id);
+      paletteBtn.title = `Color theme: ${PALETTES.find((p) => p.id === id)?.label || id} (click to cycle)`;
+    };
+    try { current = localStorage.getItem(PALETTE_KEY) || 'classic'; } catch (err) { /* ignore */ }
+    apply(current);
+    paletteBtn.addEventListener('click', () => {
+      const idx = PALETTES.findIndex((p) => p.id === current);
+      current = PALETTES[(idx + 1) % PALETTES.length].id;
+      apply(current);
+      try { localStorage.setItem(PALETTE_KEY, current); } catch (err) { /* ignore */ }
+    });
+  }
+
+  const explorerLink = document.getElementById('tb-explorer');
+  if (explorerLink) {
+    getJSON('/api/blocks').then((data) => {
+      if (data.explorerBaseUrl) explorerLink.href = data.explorerBaseUrl;
+    }).catch(() => {});
+  }
+}
+
+wireThemeControls();
+wireSettingsSave();
+loadSettingsForm();
+startLogStreamsIfPresent();
 refreshAll();
 setInterval(refreshAll, 10000);
