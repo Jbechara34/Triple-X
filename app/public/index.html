@@ -37,6 +37,7 @@
       <button data-tab="main" class="active">Main<span class="chev">&#8250;</span></button>
       <button data-tab="pool">Pool<span class="chev">&#8250;</span></button>
       <button data-tab="blocks">Blocks<span class="chev">&#8250;</span></button>
+      <button data-tab="logs">Logs<span class="chev">&#8250;</span></button>
       <button data-tab="settings">Settings<span class="chev">&#8250;</span></button>
     </nav>
 
@@ -186,6 +187,21 @@
           <tbody id="blocks-body"><tr><td colspan="4" class="empty-state">No blocks found yet. This can take a long time depending on total P2Pool network hashrate — that's normal.</td></tr></tbody>
         </table>
         <div class="hint" id="blocks-address-hint"></div>
+      </div>
+    </section>
+
+    <!-- LOGS TAB ============================================================ -->
+    <section id="tab-logs" class="tab-panel" style="display:none">
+      <h1 class="page-title">Logs</h1>
+      <div class="grid">
+        <div class="card full-width">
+          <h2>Monerod Log</h2>
+          <pre class="log-box" id="logs-monerod">—</pre>
+        </div>
+        <div class="card full-width">
+          <h2>P2Pool Log</h2>
+          <pre class="log-box" id="logs-p2pool">—</pre>
+        </div>
       </div>
     </section>
 

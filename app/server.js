@@ -7,6 +7,7 @@ const config = require('./lib/config');
 const moneroRpc = require('./lib/moneroRpc');
 const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
+const logs = require('./lib/logs');
 
 const app = express();
 app.use(express.json());
@@ -20,6 +21,10 @@ const PORT = process.env.PORT || 3000;
 const EXPLORER_BASE_URL = process.env.EXPLORER_BASE_URL || 'https://xmrchain.net';
 
 const STRATUM_PORT = process.env.P2POOL_STRATUM_PORT || '3333';
+
+// Written by monerod itself (--log-file, see docker-compose.yml) into a
+// volume shared read-only with this container - see README.md "Logs tab".
+const MONEROD_LOG_FILE = process.env.MONEROD_LOG_FILE || '/data/monerod-logs/monerod.log';
 
 // ---------------------------------------------------------------------------
 // Status / readiness (Main tab)
@@ -142,6 +147,17 @@ app.get('/api/blocks', (req, res) => {
       : null,
   }));
   res.json({ blocks: list, explorerBaseUrl: EXPLORER_BASE_URL });
+});
+
+// ---------------------------------------------------------------------------
+// Logs tab
+// ---------------------------------------------------------------------------
+app.get('/api/logs', async (req, res) => {
+  const [monerod, p2pool] = await Promise.all([
+    logs.tailFile(MONEROD_LOG_FILE),
+    logs.tailFile(blocks.LOG_FILE),
+  ]);
+  res.json({ monerod, p2pool });
 });
 
 // ---------------------------------------------------------------------------

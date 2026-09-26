@@ -28,6 +28,7 @@ services:
       - ${APP_DATA_DIR}/config:/data/config
       - ${APP_DATA_DIR}/p2pool-api:/data/p2pool-api:ro
       - ${APP_DATA_DIR}/p2pool-logs:/data/p2pool-logs:ro
+      - ${APP_DATA_DIR}/monerod-logs:/data/monerod-logs:ro
       - ${APP_DATA_DIR}/state:/data/state
     environment:
       PORT: "3000"
@@ -44,6 +45,7 @@ services:
       STATE_DIR: /data/state
       P2POOL_STRATUM_PORT: "3333"
       EXPLORER_BASE_URL: "https://xmrchain.net"
+      MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
 
   monerod:
     image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod:latest
@@ -64,10 +66,12 @@ services:
       - "--rpc-bind-port=18081"
       - "--confirm-external-bind"
       - "--non-interactive"
+      - "--log-file=/var/log/monerod/monerod.log"
     ports:
       - "18080:18080" # Monero p2p - forward this on your router for better connectivity
     volumes:
       - ${APP_DATA_DIR}/monerod:/home/monero/.bitmonero
+      - ${APP_DATA_DIR}/monerod-logs:/var/log/monerod
 
   p2pool:
     image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool:latest

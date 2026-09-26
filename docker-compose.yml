@@ -33,6 +33,7 @@ services:
       - "--rpc-bind-port=18081"
       - "--confirm-external-bind"
       - "--non-interactive"
+      - "--log-file=/var/log/monerod/monerod.log"
     ports:
       - "18080:18080" # Monero p2p - forward this on your router for better connectivity
     expose:
@@ -40,6 +41,7 @@ services:
       - "18083" # ZMQ - internal only
     volumes:
       - monerod-data:/home/monero/.bitmonero
+      - monerod-logs:/var/log/monerod
     networks:
       - internal
 
@@ -93,12 +95,14 @@ services:
       STATE_DIR: /data/state
       P2POOL_STRATUM_PORT: "3333"
       EXPLORER_BASE_URL: "https://xmrchain.net"
+      MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
     ports:
       - "3000:3000" # the dashboard itself - this is the app's main UI port
     volumes:
       - shared-config:/data/config
       - p2pool-api:/data/p2pool-api:ro
       - p2pool-logs:/data/p2pool-logs:ro
+      - monerod-logs:/data/monerod-logs:ro
       - app-state:/data/state
     networks:
       - internal
@@ -109,6 +113,7 @@ networks:
 
 volumes:
   monerod-data:
+  monerod-logs:
   p2pool-data:
   p2pool-api:
   p2pool-logs:

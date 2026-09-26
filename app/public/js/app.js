@@ -10,6 +10,7 @@ const tabPanels = {
   main: document.getElementById('tab-main'),
   pool: document.getElementById('tab-pool'),
   blocks: document.getElementById('tab-blocks'),
+  logs: document.getElementById('tab-logs'),
   settings: document.getElementById('tab-settings'),
 };
 
@@ -218,6 +219,31 @@ async function refreshBlocks() {
 }
 
 // ---------------------------------------------------------------------------
+// Logs tab
+// ---------------------------------------------------------------------------
+function renderLogBox(el, result) {
+  if (!result) return;
+  if (result.error && (!result.lines || !result.lines.length)) {
+    el.textContent = result.error;
+    return;
+  }
+  el.textContent = result.lines.join('\n') || 'No log output yet.';
+  el.scrollTop = el.scrollHeight;
+}
+
+async function refreshLogs() {
+  let data;
+  try {
+    data = await getJSON('/api/logs');
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+  renderLogBox(document.getElementById('logs-monerod'), data.monerod);
+  renderLogBox(document.getElementById('logs-p2pool'), data.p2pool);
+}
+
+// ---------------------------------------------------------------------------
 // Settings tab
 // ---------------------------------------------------------------------------
 async function loadSettings() {
@@ -273,6 +299,7 @@ function refreshActiveTab() {
   if (active === 'main') refreshMain();
   if (active === 'pool') refreshPool();
   if (active === 'blocks') refreshBlocks();
+  if (active === 'logs') refreshLogs();
 }
 
 // ---------------------------------------------------------------------------

@@ -60,6 +60,14 @@ COPY --from=builder /out/monerod /usr/local/bin/monerod
 # predictable 1000:1000 regardless of base-image changes).
 RUN if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi && \
     useradd -r -u 1000 -m -d /home/monero -s /usr/sbin/nologin monero
+
+# Pre-create and own the log directory here (not just at runtime) so that
+# when docker-compose.yml mounts a volume at this path, Docker seeds it with
+# monero:monero ownership instead of the root:root a fresh volume would
+# otherwise get - monerod runs as the unprivileged "monero" user below and
+# needs to write monerod.log here (see --log-file in docker-compose.yml).
+RUN mkdir -p /var/log/monerod && chown monero:monero /var/log/monerod
+
 USER monero
 WORKDIR /home/monero
 
