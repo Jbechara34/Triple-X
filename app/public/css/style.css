@@ -342,12 +342,23 @@ main {
   transform: rotate(20deg);
 }
 
+/* A visible coin pile sitting in the rock at all times, not hidden ore -
+   each side's cluster just glints (brief scale/brightness pulse) when
+   that side's pickaxe lands. --coin-color is set here directly (not
+   inherited from mining-half-xmr/xtm - this group is their sibling, not
+   their descendant). */
 .mining-embedded-coin {
-  opacity: 0.18;
-  filter: grayscale(1) brightness(0.6);
-  transition: opacity 0.3s ease, filter 0.3s ease;
+  opacity: 0.9;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
   transform-box: fill-box;
   transform-origin: 50% 50%;
+}
+
+.embedded-coin-xmr { --coin-color: var(--orange); }
+.embedded-coin-xtm { --coin-color: var(--tari); }
+
+.mining-embedded-coin image {
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
 }
 
 .mining-spark {
@@ -423,10 +434,9 @@ main {
 }
 
 @keyframes embedded-coin-reveal {
-  0%, 44% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
-  48% { opacity: 1; filter: grayscale(0) brightness(1.15); transform: scale(1.25); }
-  60% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
-  100% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
+  0%, 44% { transform: scale(1); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)) brightness(1); }
+  48% { transform: scale(1.15); filter: drop-shadow(0 0 4px var(--coin-color, var(--orange))) brightness(1.4); }
+  60%, 100% { transform: scale(1); filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5)) brightness(1); }
 }
 
 /* Two shakes per cycle - one for each side's impact (Monero at ~48%, Tari's

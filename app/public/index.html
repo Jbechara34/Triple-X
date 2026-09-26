@@ -82,11 +82,20 @@
             <g class="mining-rock" id="mining-rock">
               <polygon points="56,84 42,62 66,44 110,38 154,44 178,62 164,84 110,90" />
               <polygon points="66,44 110,38 98,60 70,62" class="mining-rock-facet" />
-              <!-- Embedded ore - dim/desaturated until each side's pickaxe
-                   hits, then briefly flashes to full color before the coin
-                   flies out. -->
-              <image href="img/monero-icon.png" x="46" y="64" width="11" height="11" class="mining-embedded-coin embedded-coin-xmr" id="embedded-coin-xmr" />
-              <image href="img/tari-icon.png" x="163" y="64" width="11" height="11" class="mining-embedded-coin embedded-coin-xtm" id="embedded-coin-xtm" />
+              <!-- A visible pile of coins sitting in/around the rock (both
+                   XMR and XTM), like the reference image - not hidden ore.
+                   Each side's cluster glints (brief scale/brightness pulse)
+                   right as that side's pickaxe lands. -->
+              <g class="mining-embedded-coin embedded-coin-xmr" id="embedded-coin-xmr">
+                <image href="img/monero-icon.png" x="52" y="66" width="16" height="16" />
+                <image href="img/monero-icon.png" x="66" y="74" width="13" height="13" />
+                <image href="img/tari-icon.png" x="42" y="76" width="12" height="12" />
+              </g>
+              <g class="mining-embedded-coin embedded-coin-xtm" id="embedded-coin-xtm">
+                <image href="img/tari-icon.png" x="152" y="66" width="16" height="16" />
+                <image href="img/tari-icon.png" x="138" y="74" width="13" height="13" />
+                <image href="img/monero-icon.png" x="164" y="76" width="12" height="12" />
+              </g>
             </g>
 
             <!-- Monero side: pickaxe rests right beside the rock's left edge
@@ -102,7 +111,7 @@
               <image href="img/monero-icon.png" x="47" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xmr">
                 <rect x="28" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
-                <path d="M18 81 L40 81 L29 71 Z" class="pickaxe-head" />
+                <path d="M14 80 L24 76 L36 76 L46 80 L36 84 L24 84 Z" class="pickaxe-head" />
               </g>
             </g>
 
@@ -117,7 +126,7 @@
               <image href="img/tari-icon.png" x="161" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xtm">
                 <rect x="188" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
-                <path d="M202 81 L180 81 L191 71 Z" class="pickaxe-head" />
+                <path d="M206 80 L196 76 L184 76 L174 80 L184 84 L196 84 Z" class="pickaxe-head" />
               </g>
             </g>
           </svg>
