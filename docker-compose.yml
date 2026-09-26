@@ -1,0 +1,116 @@
+version: "3.8"
+
+# Monero node + P2Pool + web dashboard, all built from source.
+#
+#   monerod  - Monero full node (Step 1 in the original spec)
+#   p2pool   - P2Pool node, mode/wallet controlled from the dashboard's
+#              Settings tab (Step 2 in the original spec)
+#   app      - the dashboard itself (backend API + web UI)
+#
+# See README.md for first-run instructions, port forwarding, and how to swap
+# monerod's Dockerfile for the prebuilt-binary variant if you don't want to
+# wait for a from-source build.
+
+services:
+  monerod:
+    build:
+      context: ./docker/monerod
+      dockerfile: Dockerfile
+    container_name: monero-p2pool-dashboard_monerod
+    restart: unless-stopped
+    command:
+      - "--zmq-pub=tcp://0.0.0.0:18083"
+      - "--out-peers=32"
+      - "--in-peers=64"
+      - "--add-priority-node=p2pmd.xmrvsbeast.com:18080"
+      - "--add-priority-node=nodes.hashvault.pro:18080"
+      - "--enforce-dns-checkpointing"
+      - "--enable-dns-blocklist"
+      - "--prune-blockchain"
+      - "--p2p-bind-ip=0.0.0.0"
+      - "--p2p-bind-port=18080"
+      - "--rpc-bind-ip=0.0.0.0"
+      - "--rpc-bind-port=18081"
+      - "--confirm-external-bind"
+      - "--non-interactive"
+    ports:
+      - "18080:18080" # Monero p2p - forward this on your router for better connectivity
+    expose:
+      - "18081" # RPC - internal only, do not expose to the internet
+      - "18083" # ZMQ - internal only
+    volumes:
+      - monerod-data:/home/monero/.bitmonero
+    networks:
+      - internal
+
+  p2pool:
+    build:
+      context: ./docker/p2pool
+      dockerfile: Dockerfile
+    container_name: monero-p2pool-dashboard_p2pool
+    restart: unless-stopped
+    depends_on:
+      - monerod
+    environment:
+      MONEROD_HOST: monerod
+      MONEROD_RPC_PORT: "18081"
+      MONEROD_ZMQ_PORT: "18083"
+      CONFIG_FILE: /data/config/settings.json
+      DATA_API_DIR: /data/p2pool-api
+      LOG_DIR: /data/p2pool-logs
+      # Extra p2pool flags, space-separated, appended as-is. Example:
+      # P2POOL_EXTRA_ARGS: "--out-peers 10 --in-peers 10"
+      P2POOL_EXTRA_ARGS: ""
+    ports:
+      - "3333:3333"   # stratum - point your miner here
+      - "37889:37889" # P2Pool p2p (standard)
+      - "37888:37888" # P2Pool p2p (mini)
+      - "37890:37890" # P2Pool p2p (nano)
+    volumes:
+      - p2pool-data:/home/p2pool/.p2pool
+      - shared-config:/data/config
+      - p2pool-api:/data/p2pool-api
+      - p2pool-logs:/data/p2pool-logs
+    networks:
+      - internal
+
+  app:
+    build:
+      context: ./app
+      dockerfile: Dockerfile
+    container_name: monero-p2pool-dashboard_app
+    restart: unless-stopped
+    depends_on:
+      - monerod
+      - p2pool
+    environment:
+      PORT: "3000"
+      MONEROD_HOST: monerod
+      MONEROD_RPC_PORT: "18081"
+      CONFIG_DIR: /data/config
+      P2POOL_DATA_API_DIR: /data/p2pool-api
+      P2POOL_LOG_FILE: /data/p2pool-logs/p2pool.log
+      STATE_DIR: /data/state
+      P2POOL_STRATUM_PORT: "3333"
+      EXPLORER_BASE_URL: "https://xmrchain.net"
+    ports:
+      - "3000:3000" # the dashboard itself - this is the app's main UI port
+    volumes:
+      - shared-config:/data/config
+      - p2pool-api:/data/p2pool-api:ro
+      - p2pool-logs:/data/p2pool-logs:ro
+      - app-state:/data/state
+    networks:
+      - internal
+
+networks:
+  internal:
+    driver: bridge
+
+volumes:
+  monerod-data:
+  p2pool-data:
+  p2pool-api:
+  p2pool-logs:
+  shared-config:
+  app-state:

@@ -1,0 +1,34 @@
+manifestVersion: 1
+# Must be "<your store id from umbrel-app-store.yml>-monero-p2pool" - this
+# folder name must match it exactly.
+id: MoneroP2P-monero-p2pool
+category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
+name: Monero Node + P2Pool
+version: "1.0.0"
+tagline: Run a Monero node and mine P2Pool with a Monero-GUI-styled dashboard
+description: >-
+  Runs a full Monero node (monerod) and a P2Pool node side by side, with a
+  web dashboard for status, pool stats, blocks found, and settings.
+  Choose P2Pool Standard, Mini, or Nano from the Settings tab, point any
+  RandomX miner (e.g. XMRig) at the stratum port shown on the Pool tab, and
+  payouts go straight to your own wallet address - no third-party pool,
+  no custodian, 0% fee.
+developer: Jbechara34
+website: https://github.com/Jbechara34/monero-p2pool-dashboard
+dependencies: []
+repo: https://github.com/Jbechara34/monero-p2pool-dashboard
+support: https://github.com/Jbechara34/monero-p2pool-dashboard/issues
+port: 3000
+# Add real screenshots here before publishing - these are placeholders.
+gallery:
+  - 1.jpg
+  - 2.jpg
+  - 3.jpg
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Jbechara34
+submission: https://github.com/Jbechara34/monero-p2pool-dashboard
+releaseNotes: >-
+  Initial release: Main/Pool/Blocks/Settings dashboard, monerod + P2Pool
+  built from source, live pool-mode switching (Standard/Mini/Nano).

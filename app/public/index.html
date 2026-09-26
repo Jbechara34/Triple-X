@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monero P2Pool Dashboard</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-dot"></div>
+      <div class="brand-text">Monero Node<small>+ P2Pool Dashboard</small></div>
+    </div>
+    <nav class="tabs">
+      <button data-tab="main" class="active">Main</button>
+      <button data-tab="pool">Pool</button>
+      <button data-tab="blocks">Blocks</button>
+      <button data-tab="settings">Settings</button>
+    </nav>
+    <div class="sidebar-footer">Refreshes every 15s</div>
+  </aside>
+
+  <main>
+    <!-- MAIN TAB ============================================================ -->
+    <section id="tab-main" class="tab-panel">
+      <h1 class="page-title">Node Status</h1>
+      <div class="grid">
+        <div class="card">
+          <h2>Blockchain Sync</h2>
+          <div id="main-sync-value" class="big-value">—</div>
+          <div id="main-sync-sub" class="sub-value">—</div>
+          <div class="progress-bar"><div id="main-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+        <div class="card">
+          <h2>Hash Rate (1h avg)</h2>
+          <div id="main-hashrate" class="big-value">—</div>
+          <div class="sub-value">Reported by your local P2Pool stratum</div>
+        </div>
+        <div class="card">
+          <h2>Best Share vs Network Difficulty</h2>
+          <div id="main-diff" class="big-value">—</div>
+          <div id="main-diff-sub" class="sub-value">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Readiness Checklist</h2>
+        <ul class="checklist" id="main-checklist">
+          <li><span class="status-dot" data-check="nodeRpc"></span> Node RPC reachable</li>
+          <li><span class="status-dot" data-check="payoutAddressConfigured"></span> Payout address configured</li>
+          <li><span class="status-dot" data-check="blockchainSynced"></span> Blockchain fully synchronized</li>
+          <li><span class="status-dot" data-check="stratumRunning"></span> P2Pool stratum running</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- POOL TAB ============================================================ -->
+    <section id="tab-pool" class="tab-panel" style="display:none">
+      <h1 class="page-title">Pool</h1>
+
+      <div class="card">
+        <h2>Viewing Pool</h2>
+        <div class="field" style="max-width:280px">
+          <select id="pool-mode-select">
+            <option value="standard">P2Pool (Standard)</option>
+            <option value="mini">P2Pool Mini</option>
+            <option value="nano">P2Pool Nano</option>
+          </select>
+        </div>
+        <div id="pool-mode-note" class="hint warn"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card"><h2>Workers Connected</h2><div id="pool-workers-count" class="big-value">—</div></div>
+        <div class="card"><h2>Last Share (Any Worker)</h2><div id="pool-last-share" class="big-value" style="font-size:16px">—</div></div>
+        <div class="card">
+          <h2>Network Difficulty</h2>
+          <div id="pool-net-diff" class="big-value" style="font-size:20px">—</div>
+          <div id="pool-net-sub" class="sub-value">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Current Hash Rate</h2>
+        <table>
+          <thead><tr><th>1m</th><th>5m</th><th>15m</th><th>1h</th><th>6h</th><th>24h</th><th>7d</th></tr></thead>
+          <tbody><tr id="pool-hashrate-row">
+            <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+          </tr></tbody>
+        </table>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Best Share — Since Block</h2>
+          <div id="pool-best-since" class="big-value" style="font-size:20px">—</div>
+        </div>
+        <div class="card">
+          <h2>Best Share — All Time</h2>
+          <div id="pool-best-alltime" class="big-value" style="font-size:20px">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Worker Details</h2>
+        <table>
+          <thead><tr><th>Worker</th><th>Shares</th><th>Last Seen</th></tr></thead>
+          <tbody id="pool-workers-body"><tr><td colspan="3" class="empty-state">No workers connected yet.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card full-width">
+        <h2>Miner Configuration</h2>
+        <div class="field">
+          <label>Pool URL</label>
+          <div class="copy-row">
+            <input type="text" id="pool-miner-url" readonly value="—" />
+            <button class="icon-btn" data-copy="#pool-miner-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Payout Address</label>
+          <div class="copy-row">
+            <input type="text" id="pool-payout-address" readonly value="Not configured" />
+            <button class="icon-btn" data-copy="#pool-payout-address">Copy</button>
+          </div>
+        </div>
+        <div class="instructions">
+          <strong>How to connect a miner:</strong>
+          <ul>
+            <li>Point your miner at the pool URL above (e.g. XMRig <code>-o &lt;URL&gt;</code>).</li>
+            <li>Use any <strong>custom name</strong> you like as the worker username — it identifies this rig on the Pool/Blocks tabs.</li>
+            <li>The <strong>password is not checked</strong> — leave it blank or use <code>x</code>.</li>
+            <li>Example: <code>./xmrig -o &lt;URL&gt; -u my-rig-name -p x</code></li>
+          </ul>
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCKS TAB ========================================================== -->
+    <section id="tab-blocks" class="tab-panel" style="display:none">
+      <h1 class="page-title">Blocks Found</h1>
+      <div class="card full-width">
+        <h2>History</h2>
+        <table>
+          <thead><tr><th>Height</th><th>Detected</th><th>Block Hash</th><th>Verify</th></tr></thead>
+          <tbody id="blocks-body"><tr><td colspan="4" class="empty-state">No blocks found yet. This can take a long time depending on total P2Pool network hashrate — that's normal.</td></tr></tbody>
+        </table>
+        <div class="hint" id="blocks-address-hint"></div>
+      </div>
+    </section>
+
+    <!-- SETTINGS TAB ======================================================== -->
+    <section id="tab-settings" class="tab-panel" style="display:none">
+      <h1 class="page-title">Settings</h1>
+      <div class="card full-width" style="max-width:520px">
+        <h2>Node Settings</h2>
+
+        <h2 style="margin-top:4px">Payout Settings</h2>
+        <div class="field">
+          <label>Monero Wallet Address (mines here by default)</label>
+          <input type="text" id="settings-wallet" placeholder="4..." />
+          <div class="hint">Primary address only (starts with 4). Subaddresses are not supported by P2Pool.</div>
+        </div>
+
+        <h2 style="margin-top:20px">P2Pool Settings</h2>
+        <div class="field">
+          <label>Pool Type</label>
+          <select id="settings-pool-mode">
+            <option value="standard">Standard</option>
+            <option value="mini">Mini</option>
+            <option value="nano">Nano</option>
+          </select>
+          <div class="hint">Changing this restarts the P2Pool process automatically (see entrypoint.sh) — no need to restart containers by hand.</div>
+        </div>
+
+        <button class="primary" id="settings-save">Save Settings</button>
+        <div class="hint" id="settings-status"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="js/app.js"></script>
+</body>
+</html>

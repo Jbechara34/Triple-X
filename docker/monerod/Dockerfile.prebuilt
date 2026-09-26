@@ -1,0 +1,53 @@
+# Alternative to ./Dockerfile: instead of compiling monerod from source (which
+# can take well over an hour), this downloads the official Monero CLI release
+# tarball from getmonero.org and verifies it against the project's
+# GPG-signed hashes.txt before extracting it. Same binary the from-source
+# build produces, ready in seconds.
+#
+# To use this instead of the source build, point docker-compose.yml's
+# monerod service at this file:
+#   build:
+#     context: ./docker/monerod
+#     dockerfile: Dockerfile.prebuilt
+#     args:
+#       MONERO_VERSION: v0.18.5.1   # check https://www.getmonero.org/downloads/ for the current version
+#
+# This still ships as source-controlled config (no binary is committed to
+# git) - it just moves *where* the binary gets built, same as any downstream
+# packager (e.g. distro maintainers) verifying upstream releases instead of
+# recompiling them.
+
+FROM ubuntu:24.04 AS fetch
+ARG MONERO_VERSION=v0.18.5.1
+RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates bzip2 gnupg && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /fetch
+RUN curl -fsSLO "https://downloads.getmonero.org/cli/monero-linux-x64-${MONERO_VERSION}.tar.bz2" && \
+    curl -fsSLO "https://getmonero.org/downloads/hashes.txt" && \
+    grep "monero-linux-x64-${MONERO_VERSION}.tar.bz2" hashes.txt > checksum.txt && \
+    sha256sum -c checksum.txt && \
+    tar xjf "monero-linux-x64-${MONERO_VERSION}.tar.bz2" && \
+    mv monero-x86_64-linux-gnu-*/monerod /fetch/monerod
+# NOTE: hashes.txt is GPG-signed upstream; for full verification also import
+# the Monero release signing key and check the detached signature - see
+# https://www.getmonero.org/resources/user-guides/verification-two-factor-linux.html
+# This Dockerfile does the SHA256 check, which catches corruption/mismatch,
+# but not a compromised hashes.txt itself.
+
+FROM ubuntu:24.04
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates libzmq5 libunbound8 libsodium23 libunwind8 \
+    libpgm-5.3t64 tini \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=fetch /fetch/monerod /usr/local/bin/monerod
+
+RUN useradd -r -u 1000 -m -d /home/monero -s /usr/sbin/nologin monero
+USER monero
+WORKDIR /home/monero
+
+EXPOSE 18080 18081 18083
+VOLUME ["/home/monero/.bitmonero"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "monerod"]
+CMD ["--help"]

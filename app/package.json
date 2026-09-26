@@ -1,0 +1,17 @@
+{
+  "name": "monero-p2pool-dashboard",
+  "version": "1.0.0",
+  "description": "Self-hosted dashboard for running a Monero node + P2Pool (Standard/Mini/Nano) on Umbrel / Start9, with a Monero-GUI-styled web UI.",
+  "license": "MIT",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

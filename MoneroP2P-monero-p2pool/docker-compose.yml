@@ -1,0 +1,87 @@
+version: "3.7"
+
+# This is the Umbrel/5tratumOS-flavored compose file - it follows the
+# platform's conventions (app_proxy, ${APP_DATA_DIR} bind mounts, prebuilt
+# images instead of `build:`) rather than the plain-Docker one at the repo
+# root. See ../README.md "Umbrel / 5tratumOS community app store install"
+# for the full picture, including how images get built and published.
+#
+# BEFORE PUBLISHING: replace `your-github-username` below with wherever you
+# actually push the three images (see ../.github/workflows/publish-images.yml),
+# and pin each `image:` to a `@sha256:<digest>` once you have one - Umbrel's
+# own apps all do this so an update can't silently change what's running.
+
+services:
+  app_proxy:
+    environment:
+      # "<app-id>_<service-name>_1" - the trailing "_1" is required by
+      # Umbrel's proxy convention, even though this app only ever runs one
+      # replica of each service.
+      APP_HOST: MoneroP2P-monero-p2pool_web_1
+      APP_PORT: 3000
+
+  web:
+    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-app:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    volumes:
+      - ${APP_DATA_DIR}/config:/data/config
+      - ${APP_DATA_DIR}/p2pool-api:/data/p2pool-api:ro
+      - ${APP_DATA_DIR}/p2pool-logs:/data/p2pool-logs:ro
+      - ${APP_DATA_DIR}/state:/data/state
+    environment:
+      PORT: "3000"
+      MONEROD_HOST: MoneroP2P-monero-p2pool_monerod_1
+      MONEROD_RPC_PORT: "18081"
+      CONFIG_DIR: /data/config
+      P2POOL_DATA_API_DIR: /data/p2pool-api
+      P2POOL_LOG_FILE: /data/p2pool-logs/p2pool.log
+      STATE_DIR: /data/state
+      P2POOL_STRATUM_PORT: "3333"
+      EXPLORER_BASE_URL: "https://xmrchain.net"
+
+  monerod:
+    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-monerod:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    command:
+      - "--zmq-pub=tcp://0.0.0.0:18083"
+      - "--out-peers=32"
+      - "--in-peers=64"
+      - "--add-priority-node=p2pmd.xmrvsbeast.com:18080"
+      - "--add-priority-node=nodes.hashvault.pro:18080"
+      - "--enforce-dns-checkpointing"
+      - "--enable-dns-blocklist"
+      - "--prune-blockchain"
+      - "--p2p-bind-ip=0.0.0.0"
+      - "--p2p-bind-port=18080"
+      - "--rpc-bind-ip=0.0.0.0"
+      - "--rpc-bind-port=18081"
+      - "--confirm-external-bind"
+      - "--non-interactive"
+    ports:
+      - "18080:18080" # Monero p2p - forward this on your router for better connectivity
+    volumes:
+      - ${APP_DATA_DIR}/monerod:/home/monero/.bitmonero
+
+  p2pool:
+    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-p2pool:latest
+    restart: on-failure
+    stop_grace_period: 1m
+    environment:
+      MONEROD_HOST: MoneroP2P-monero-p2pool_monerod_1
+      MONEROD_RPC_PORT: "18081"
+      MONEROD_ZMQ_PORT: "18083"
+      CONFIG_FILE: /data/config/settings.json
+      DATA_API_DIR: /data/p2pool-api
+      LOG_DIR: /data/p2pool-logs
+    ports:
+      - "3333:3333"   # stratum - point your miner here
+      - "37889:37889" # P2Pool p2p (standard)
+      - "37888:37888" # P2Pool p2p (mini)
+      - "37890:37890" # P2Pool p2p (nano)
+    volumes:
+      - ${APP_DATA_DIR}/p2pool:/home/p2pool/.p2pool
+      - ${APP_DATA_DIR}/config:/data/config
+      - ${APP_DATA_DIR}/p2pool-api:/data/p2pool-api
+      - ${APP_DATA_DIR}/p2pool-logs:/data/p2pool-logs

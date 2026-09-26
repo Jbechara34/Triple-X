@@ -1,0 +1,81 @@
+name: Publish images
+
+# Builds and pushes the three images the Umbrel/5tratumOS app-store compose
+# file (yourstore-monero-p2pool/docker-compose.yml) pulls by tag - that
+# compose file uses `image:`, not `build:`, per Umbrel's app-store
+# convention, so these need to exist in a registry before the app installs.
+#
+# NOTE on architectures: this only builds linux/amd64. The `monerod` service
+# compiles Monero from source (docker/monerod/Dockerfile), and doing that
+# under QEMU arm64 emulation in CI realistically runs for many hours and
+# risks exceeding GitHub Actions' job time limits. If you need an arm64
+# image (e.g. for Raspberry Pi 5tratumOS/Umbrel installs), the practical
+# options are: (a) add a self-hosted arm64 runner, or (b) switch monerod's
+# published image to build from docker/monerod/Dockerfile.prebuilt instead,
+# which just downloads+verifies the official release tarball and is fast
+# regardless of architecture - check that getmonero.org publishes an arm64
+# tarball under a similar naming pattern before relying on this, the
+# Dockerfile.prebuilt comments explain what to check.
+
+on:
+  push:
+    tags: ["v*.*.*"]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: app
+            context: ./app
+            dockerfile: Dockerfile
+          - name: p2pool
+            context: ./docker/p2pool
+            dockerfile: Dockerfile
+          - name: monerod
+            context: ./docker/monerod
+            dockerfile: Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Determine image name
+        id: meta
+        run: echo "image=${REGISTRY}/${{ github.repository_owner }}/monero-p2pool-dashboard-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+        env:
+          REGISTRY: ${{ env.REGISTRY }}
+
+      - name: Build and push ${{ matrix.name }}
+        timeout-minutes: ${{ matrix.name == 'monerod' && 180 || 30 }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.meta.outputs.image }}:latest
+            ${{ steps.meta.outputs.image }}:${{ github.ref_name }}
+
+      # After this job finishes, grab the pushed digest from the GHCR
+      # package page (or `docker buildx imagetools inspect <tag>`) and pin
+      # yourstore-monero-p2pool/docker-compose.yml's `image:` lines to
+      # `@sha256:<digest>`, matching how Umbrel's own apps do it.

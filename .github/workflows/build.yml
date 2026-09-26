@@ -1,0 +1,40 @@
+name: Build images
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: app
+            context: ./app
+            dockerfile: Dockerfile
+          - name: p2pool
+            context: ./docker/p2pool
+            dockerfile: Dockerfile
+          - name: monerod
+            context: ./docker/monerod
+            dockerfile: Dockerfile
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      # monerod's from-source build is slow - cap it so CI fails fast instead
+      # of burning hours of runner time; local builds have no such limit.
+      - name: Build ${{ matrix.name }}
+        timeout-minutes: ${{ matrix.name == 'monerod' && 90 || 30 }}
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          push: false
+          tags: monero-p2pool-dashboard/${{ matrix.name }}:ci
