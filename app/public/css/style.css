@@ -272,17 +272,18 @@ main {
   flex: 1;
   display: flex;
   align-items: center;
-  gap: 20px;
+  gap: 28px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 24px 10px 10px;
+  padding: 16px 32px 16px 16px;
   overflow: hidden;
 }
 
 .mining-scene-combined {
-  width: 220px;
-  height: 100px;
+  width: 100%;
+  max-width: 480px;
+  height: 220px;
   flex-shrink: 0;
   overflow: visible;
 }
@@ -341,6 +342,13 @@ main {
   opacity: 0;
 }
 
+.mining-coin-particle {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.5));
+}
+
 /* Idle (default): that side's pickaxe/logo hold still. The rock only shakes
    when at least one side is actually mining it. */
 .mining-half.is-idle .mining-coin-logo { opacity: 0.5; }
@@ -373,6 +381,13 @@ main {
 .mining-half-xtm.is-active .spark-1 { animation: spark-fly-1 1.4s ease-out 0.7s infinite; }
 .mining-half-xtm.is-active .spark-2 { animation: spark-fly-2 1.4s ease-out 0.7s infinite; }
 .mining-half-xtm.is-active .spark-3 { animation: spark-fly-3 1.4s ease-out 0.7s infinite; }
+
+.mining-half-xmr.is-active .coin-particle-1 { animation: coin-fly-1 1.4s ease-out infinite; }
+.mining-half-xmr.is-active .coin-particle-2 { animation: coin-fly-2 1.4s ease-out infinite; }
+.mining-half-xmr.is-active .coin-particle-3 { animation: coin-fly-3 1.4s ease-out infinite; }
+.mining-half-xtm.is-active .coin-particle-1 { animation: coin-fly-1 1.4s ease-out 0.7s infinite; }
+.mining-half-xtm.is-active .coin-particle-2 { animation: coin-fly-2 1.4s ease-out 0.7s infinite; }
+.mining-half-xtm.is-active .coin-particle-3 { animation: coin-fly-3 1.4s ease-out 0.7s infinite; }
 
 @keyframes pickaxe-swing-xmr {
   0%, 32% { transform: rotate(-50deg); }
@@ -422,6 +437,29 @@ main {
   50% { opacity: 1; }
   68% { opacity: 0; transform: translate(3px, -18px) scale(0.3); }
   100% { opacity: 0; }
+}
+
+/* Coins knocked loose on impact - bigger arc, a spin, and a longer hang
+   time than the sparks so they read as actual coins, not just debris. */
+@keyframes coin-fly-1 {
+  0%, 47% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  52% { opacity: 1; transform: translate(-6px, -10px) scale(1) rotate(-40deg); }
+  75% { opacity: 1; transform: translate(-34px, -42px) scale(0.9) rotate(-220deg); }
+  100% { opacity: 0; transform: translate(-44px, -20px) scale(0.6) rotate(-320deg); }
+}
+
+@keyframes coin-fly-2 {
+  0%, 47% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  52% { opacity: 1; transform: translate(6px, -10px) scale(1) rotate(40deg); }
+  75% { opacity: 1; transform: translate(30px, -46px) scale(0.9) rotate(240deg); }
+  100% { opacity: 0; transform: translate(40px, -22px) scale(0.6) rotate(340deg); }
+}
+
+@keyframes coin-fly-3 {
+  0%, 47% { opacity: 0; transform: translate(0, 0) scale(0.3) rotate(0deg); }
+  52% { opacity: 1; transform: translate(0, -14px) scale(1) rotate(10deg); }
+  75% { opacity: 1; transform: translate(4px, -54px) scale(0.9) rotate(160deg); }
+  100% { opacity: 0; transform: translate(8px, -28px) scale(0.6) rotate(260deg); }
 }
 
 .mining-combined-info {
