@@ -21,7 +21,7 @@ services:
       APP_PORT: 3000
 
   web:
-    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-app:latest
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-app:latest
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -41,7 +41,7 @@ services:
       EXPLORER_BASE_URL: "https://xmrchain.net"
 
   monerod:
-    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-monerod:latest
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod:latest
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -65,7 +65,7 @@ services:
       - ${APP_DATA_DIR}/monerod:/home/monero/.bitmonero
 
   p2pool:
-    image: ghcr.io/Jbechara34/monero-p2pool-dashboard-p2pool:latest
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool:latest
     restart: on-failure
     stop_grace_period: 1m
     environment:

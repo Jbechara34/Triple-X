@@ -59,9 +59,10 @@ jobs:
 
       - name: Determine image name
         id: meta
-        run: echo "image=${REGISTRY}/${{ github.repository_owner }}/monero-p2pool-dashboard-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=${REGISTRY}/${OWNER,,}/monero-p2pool-dashboard-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
         env:
           REGISTRY: ${{ env.REGISTRY }}
+          OWNER: ${{ github.repository_owner }}
 
       - name: Build and push ${{ matrix.name }}
         timeout-minutes: ${{ matrix.name == 'monerod' && 180 || 30 }}
