@@ -1,0 +1,512 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Monero P2Pool Dashboard</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="titlebar">
+  <div class="titlebar-brand">
+    <span class="titlebar-dot"></span>
+    <span class="titlebar-title">Monero P2Pool Dashboard</span>
+  </div>
+  <div class="titlebar-actions">
+    <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
+    <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
+    <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
+  </div>
+</div>
+<div id="app">
+  <aside class="sidebar">
+    <div class="account-card">
+      <div class="account-top">
+        <div class="account-avatar">M</div>
+        <div>
+          <div class="account-kicker">Node #0</div>
+          <div class="account-name">This Node</div>
+        </div>
+      </div>
+      <div class="account-balance">
+        <span class="account-balance-unit">HR</span>
+        <span id="sidebar-hashrate">0.00 H/s</span>
+      </div>
+    </div>
+
+    <nav class="tabs">
+      <button data-tab="main" class="active">Main<span class="chev">&#8250;</span></button>
+      <button data-tab="pool">Pool<span class="chev">&#8250;</span></button>
+      <button data-tab="blocks">Blocks<span class="chev">&#8250;</span></button>
+      <button data-tab="logs">Logs<span class="chev">&#8250;</span></button>
+      <button data-tab="settings">Settings<span class="chev">&#8250;</span></button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="sync-block">
+        <div class="sync-label" id="sidebar-sync-label">Node is not running</div>
+        <div class="progress-bar"><div id="sidebar-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-sync-count"></div>
+      </div>
+      <div class="sync-block">
+        <div class="sync-label" id="sidebar-daemon-label">P2Pool is not running</div>
+        <div class="progress-bar"><div id="sidebar-daemon-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-daemon-count"></div>
+      </div>
+      <div class="sync-block" id="sidebar-minotari-block">
+        <div class="sync-label" id="sidebar-minotari-label">Minotari Node is not running</div>
+        <div class="progress-bar"><div id="sidebar-minotari-bar" class="progress-bar-fill mining-dot-xtm-fill" style="width:0%"></div></div>
+        <div class="sync-count" id="sidebar-minotari-count"></div>
+      </div>
+      <div class="network-status">
+        <span class="bolt">&#9889;</span>
+        <div>
+          <div class="ns-label">Pool mode</div>
+          <div class="ns-value" id="sidebar-pool-mode">Standard</div>
+        </div>
+      </div>
+      <div class="sidebar-node-id" id="sidebar-node-id">—</div>
+    </div>
+  </aside>
+
+  <main>
+    <!-- MAIN TAB ============================================================ -->
+    <section id="tab-main" class="tab-panel">
+      <h1 class="page-title">Node Status</h1>
+
+      <div class="mining-strip">
+        <div class="mining-combined" id="mining-combined">
+          <svg class="mining-scene mining-scene-combined" viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="rock-gradient" x1="15%" y1="0%" x2="85%" y2="100%">
+                <stop offset="0%" stop-color="#565a63" />
+                <stop offset="45%" stop-color="#33363c" />
+                <stop offset="100%" stop-color="#1a1c20" />
+              </linearGradient>
+              <radialGradient id="scene-vignette" cx="50%" cy="55%" r="65%">
+                <stop offset="0%" stop-color="#3a3d44" stop-opacity="0.5" />
+                <stop offset="55%" stop-color="#202226" stop-opacity="0.25" />
+                <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+              </radialGradient>
+            </defs>
+
+            <!-- Ambient cave backdrop - purely atmospheric, sits behind
+                 everything else so the rock reads as being inside a mined-out
+                 chamber instead of floating on a flat panel background. -->
+            <ellipse class="mining-scene-vignette" cx="110" cy="58" rx="112" ry="58" />
+
+            <!-- Slow-drifting dust motes - always animating (independent of
+                 mining state) so the scene feels alive even when idle. -->
+            <g class="mining-dust">
+              <circle class="mining-dust-particle" cx="90" cy="50" r="0.9" style="--dx:3px; animation-delay:-0.4s; animation-duration:4.6s;" />
+              <circle class="mining-dust-particle" cx="130" cy="46" r="0.7" style="--dx:-4px; animation-delay:-2.1s; animation-duration:5.4s;" />
+              <circle class="mining-dust-particle" cx="108" cy="62" r="1.1" style="--dx:2px; animation-delay:-3.6s; animation-duration:6.1s;" />
+              <circle class="mining-dust-particle" cx="70" cy="66" r="0.8" style="--dx:-3px; animation-delay:-1.2s; animation-duration:5s;" />
+              <circle class="mining-dust-particle" cx="150" cy="68" r="0.9" style="--dx:4px; animation-delay:-2.8s; animation-duration:4.8s;" />
+            </g>
+
+            <circle class="mining-logo-glow" id="logo-glow-xmr" cx="16" cy="14" r="15" />
+            <image href="img/monero-icon.png" x="4" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xmr" />
+            <circle class="mining-logo-glow logo-glow-xtm" id="logo-glow-xtm" cx="204" cy="14" r="15" />
+            <image href="img/tari-icon.png" x="192" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xtm" />
+
+            <ellipse class="mining-rock-shadow" cx="110" cy="90" rx="48" ry="6" />
+            <g class="mining-rock" id="mining-rock">
+              <!-- A low-poly cluster of separate angular chunks (per the
+                   reference image) instead of one smooth boulder - gives
+                   the coins real facet surfaces to sit "in". -->
+              <polygon points="26,90 20,80 32,74 44,80 42,90 34,94" class="mining-pebble" />
+              <polygon points="20,80 32,74 30,78 22,84" class="mining-pebble-facet-light" />
+              <polygon points="176,90 182,80 170,74 158,80 160,90 168,94" class="mining-pebble" />
+              <polygon points="182,80 170,74 172,78 180,84" class="mining-pebble-facet-light" />
+              <polygon points="86,96 76,88 96,84 124,84 144,88 134,96 110,100" class="mining-pebble" />
+              <polygon points="76,88 96,84 92,90 82,92" class="mining-pebble-facet-light" />
+              <polygon points="56,84 42,62 66,44 110,38 154,44 178,62 164,84 110,90" class="mining-rock-main" />
+              <!-- Lit facet (upper-left, catching the light) and a shadow
+                   facet (lower-right) for a faceted, 3D-ish look instead of
+                   one flat fill. -->
+              <polygon points="66,44 110,38 128,50 88,58" class="mining-rock-facet mining-rock-facet-light" />
+              <polygon points="128,50 154,44 178,62 164,84 138,70" class="mining-rock-facet mining-rock-facet-dark" />
+              <path d="M88,58 L76,72 M128,50 L118,64 L132,76" class="mining-rock-crack" />
+              <!-- A visible pile of coins sitting in/around the rock (both
+                   XMR and XTM), like the reference image - not hidden ore.
+                   Each side's cluster glints (brief scale/brightness pulse)
+                   right as that side's pickaxe lands. -->
+              <g class="mining-embedded-coin embedded-coin-xmr" id="embedded-coin-xmr">
+                <circle cx="60" cy="74" r="9.5" class="mining-coin-socket" />
+                <circle cx="72.5" cy="80.5" r="8" class="mining-coin-socket" />
+                <circle cx="48" cy="82" r="7.5" class="mining-coin-socket" />
+                <image href="img/monero-icon.png" x="52" y="66" width="16" height="16" />
+                <image href="img/monero-icon.png" x="66" y="74" width="13" height="13" />
+                <image href="img/tari-icon.png" x="42" y="76" width="12" height="12" />
+              </g>
+              <g class="mining-embedded-coin embedded-coin-xtm" id="embedded-coin-xtm">
+                <circle cx="160" cy="74" r="9.5" class="mining-coin-socket" />
+                <circle cx="144.5" cy="80.5" r="8" class="mining-coin-socket" />
+                <circle cx="170" cy="82" r="7.5" class="mining-coin-socket" />
+                <image href="img/tari-icon.png" x="152" y="66" width="16" height="16" />
+                <image href="img/tari-icon.png" x="138" y="74" width="13" height="13" />
+                <image href="img/monero-icon.png" x="164" y="76" width="12" height="12" />
+              </g>
+            </g>
+
+            <!-- Monero side: pickaxe rests right beside the rock's left edge
+                 and swings in toward it. Pivot is at the TOP of the handle
+                 (where hands would grip it) - the head at the far/bottom end
+                 is what sweeps down and strikes the rock. -->
+            <g class="mining-half mining-half-xmr" id="mining-half-xmr">
+              <circle class="mining-impact-flash flash-xmr" cx="53" cy="71" r="14" />
+              <circle class="mining-spark spark-1" cx="53" cy="71" r="2.4" />
+              <circle class="mining-spark spark-2" cx="53" cy="71" r="2" />
+              <circle class="mining-spark spark-3" cx="53" cy="71" r="1.8" />
+              <image href="img/monero-icon.png" x="47" y="65" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/monero-icon.png" x="47" y="65" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/monero-icon.png" x="47" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <g class="mining-pickaxe mining-pickaxe-xmr">
+                <rect x="28" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
+                <path d="M14,83 Q30,79 46,83 Q30,91 14,83 Z" class="pickaxe-head" />
+              </g>
+            </g>
+
+            <!-- Tari side: exact mirror of the Monero side, resting beside
+                 the rock's right edge. -->
+            <g class="mining-half mining-half-xtm" id="mining-half-xtm">
+              <circle class="mining-impact-flash flash-xtm" cx="167" cy="71" r="14" />
+              <circle class="mining-spark spark-1" cx="167" cy="71" r="2.4" />
+              <circle class="mining-spark spark-2" cx="167" cy="71" r="2" />
+              <circle class="mining-spark spark-3" cx="167" cy="71" r="1.8" />
+              <image href="img/tari-icon.png" x="161" y="65" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/tari-icon.png" x="161" y="65" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/tari-icon.png" x="161" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <g class="mining-pickaxe mining-pickaxe-xtm">
+                <rect x="188" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
+                <path d="M206,83 Q190,79 174,83 Q190,91 206,83 Z" class="pickaxe-head" />
+              </g>
+            </g>
+          </svg>
+          <div class="mining-combined-info">
+            <div class="mining-coin-row">
+              <span class="mining-coin-dot mining-dot-xmr"></span>
+              <span class="mining-coin-label">Monero</span>
+              <span class="mining-coin-state" id="mining-xmr-state">Idle</span>
+            </div>
+            <div class="mining-coin-row">
+              <span class="mining-coin-dot mining-dot-xtm"></span>
+              <span class="mining-coin-label">Tari <span class="badge-experimental">beta</span></span>
+              <span class="mining-coin-state" id="mining-xtm-state">Not configured</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Blockchain Sync</h2>
+          <div id="main-sync-value" class="big-value">—</div>
+          <div id="main-sync-sub" class="sub-value">—</div>
+          <div class="progress-bar"><div id="main-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+        <div class="card">
+          <h2>Hash Rate (1h avg)</h2>
+          <div id="main-hashrate" class="big-value">—</div>
+          <div class="sub-value">Reported by your local P2Pool stratum</div>
+        </div>
+        <div class="card">
+          <h2>Best Share vs Network Difficulty</h2>
+          <div id="main-diff" class="big-value">—</div>
+          <div id="main-diff-sub" class="sub-value">—</div>
+        </div>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Network Peers</h2>
+          <div class="stat-split">
+            <div class="stat-split-item">
+              <div class="stat-split-value" id="main-peers-out">—</div>
+              <div class="stat-split-label">Outgoing</div>
+            </div>
+            <div class="stat-split-item">
+              <div class="stat-split-value" id="main-peers-in">—</div>
+              <div class="stat-split-label">Incoming</div>
+            </div>
+          </div>
+          <div class="sub-value" id="main-peers-sub">—</div>
+        </div>
+        <div class="card">
+          <h2>P2Pool Connections</h2>
+          <div class="big-value" id="main-p2pool-connections">—</div>
+          <div class="sub-value" id="main-p2pool-connections-sub">Miners connected to this node's stratum</div>
+        </div>
+        <div class="card">
+          <h2>Shares</h2>
+          <div class="stat-split">
+            <div class="stat-split-item">
+              <div class="stat-split-value stat-good" id="main-shares-found">—</div>
+              <div class="stat-split-label">Found</div>
+            </div>
+            <div class="stat-split-item">
+              <div class="stat-split-value stat-bad" id="main-shares-failed">—</div>
+              <div class="stat-split-label">Failed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Readiness Checklist</h2>
+        <ul class="checklist" id="main-checklist">
+          <li><span class="status-dot" data-check="nodeRpc"></span> Node RPC reachable</li>
+          <li><span class="status-dot" data-check="payoutAddressConfigured"></span> Payout address configured</li>
+          <li><span class="status-dot" data-check="blockchainSynced"></span> Blockchain fully synchronized</li>
+          <li><span class="status-dot" data-check="stratumRunning"></span> P2Pool stratum running</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- POOL TAB ============================================================ -->
+    <section id="tab-pool" class="tab-panel" style="display:none">
+      <h1 class="page-title">Pool</h1>
+
+      <div class="card">
+        <h2>Viewing Pool</h2>
+        <div class="field" style="max-width:280px">
+          <select id="pool-mode-select">
+            <option value="standard">P2Pool (Standard)</option>
+            <option value="mini">P2Pool Mini</option>
+            <option value="nano">P2Pool Nano</option>
+          </select>
+        </div>
+        <div id="pool-mode-note" class="hint warn"></div>
+      </div>
+
+      <div class="grid">
+        <div class="card"><h2>Workers Connected</h2><div id="pool-workers-count" class="big-value">—</div></div>
+        <div class="card"><h2>Last Share (Any Worker)</h2><div id="pool-last-share" class="big-value" style="font-size:16px">—</div></div>
+        <div class="card">
+          <h2>Network Difficulty</h2>
+          <div id="pool-net-diff" class="big-value" style="font-size:20px">—</div>
+          <div id="pool-net-sub" class="sub-value">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>P2Pool Network (Sidechain-Wide)</h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Miners on this Sidechain</div>
+            <div id="pool-network-miners" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Blocks Found (All Miners)</div>
+            <div id="pool-network-blocks" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Block Reward</div>
+            <div id="pool-network-reward" class="big-value" style="font-size:20px">—</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Current Hash Rate</h2>
+        <table>
+          <thead><tr><th>1m</th><th>5m</th><th>15m</th><th>1h</th><th>6h</th><th>24h</th><th>7d</th></tr></thead>
+          <tbody><tr id="pool-hashrate-row">
+            <td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td>
+          </tr></tbody>
+        </table>
+      </div>
+
+      <div class="grid">
+        <div class="card">
+          <h2>Best Share — Since Block</h2>
+          <div id="pool-best-since" class="big-value" style="font-size:20px">—</div>
+        </div>
+        <div class="card">
+          <h2>Best Share — All Time</h2>
+          <div id="pool-best-alltime" class="big-value" style="font-size:20px">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Worker Details</h2>
+        <table>
+          <thead><tr><th>Worker</th><th>Shares</th><th>Last Seen</th></tr></thead>
+          <tbody id="pool-workers-body"><tr><td colspan="3" class="empty-state">No workers connected yet.</td></tr></tbody>
+        </table>
+      </div>
+
+      <div class="card full-width">
+        <h2>Miner Configuration</h2>
+        <div class="field">
+          <label>Pool URL</label>
+          <div class="copy-row">
+            <input type="text" id="pool-miner-url" readonly value="—" />
+            <button class="icon-btn" data-copy="#pool-miner-url">Copy</button>
+          </div>
+        </div>
+        <div class="field">
+          <label>Payout Address</label>
+          <div class="copy-row">
+            <input type="text" id="pool-payout-address" readonly value="Not configured" />
+            <button class="icon-btn" data-copy="#pool-payout-address">Copy</button>
+          </div>
+        </div>
+        <div class="instructions">
+          <strong>How to connect a miner:</strong>
+          <ul>
+            <li>Point your miner at the pool URL above (e.g. XMRig <code>-o &lt;URL&gt;</code>).</li>
+            <li>Use any <strong>custom name</strong> you like as the worker username — it identifies this rig on the Pool/Blocks tabs.</li>
+            <li>The <strong>password is not checked</strong> — leave it blank or use <code>x</code>.</li>
+            <li>Example: <code>./xmrig -o &lt;URL&gt; -u my-rig-name -p x</code></li>
+          </ul>
+        </div>
+      </div>
+
+      <div class="card full-width" id="pool-observer-card" style="display:none">
+        <h2>P2Pool Observer <span class="badge-experimental">3rd-party</span></h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Miners (Whole Network)</div>
+            <div id="observer-global-miners" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Your Lifetime Shares</div>
+            <div id="observer-your-shares" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Your Last Share</div>
+            <div id="observer-last-share" class="big-value" style="font-size:16px">—</div>
+          </div>
+        </div>
+        <div class="hint">
+          Recommended versions - P2Pool <span id="observer-p2pool-version">—</span> · Monero <span id="observer-monero-version">—</span>.
+          <a id="observer-explorer-link" href="#" target="_blank" rel="noopener">View full history on p2pool.observer</a>.
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Status</div>
+            <div id="pool-tari-status" class="big-value" style="font-size:20px">Not configured</div>
+          </div>
+          <div>
+            <div class="sub-value">Payout Address</div>
+            <div id="pool-tari-address" class="mono" style="font-size:13px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">XTM Blocks Found</div>
+            <div id="pool-tari-blocks" class="big-value" style="font-size:20px">0</div>
+          </div>
+        </div>
+        <div class="hint">
+          Set a Tari wallet address in Settings to merge-mine XTM with the same hashrate as your XMR mining — no
+          extra cost. See the Blocks tab for XTM blocks found.
+        </div>
+      </div>
+    </section>
+
+    <!-- BLOCKS TAB ========================================================== -->
+    <section id="tab-blocks" class="tab-panel" style="display:none">
+      <h1 class="page-title">Blocks Found</h1>
+      <div class="card full-width">
+        <h2>XMR Blocks Found</h2>
+        <table>
+          <thead><tr><th>Height</th><th>Detected</th><th>Block Hash</th><th>Verify</th></tr></thead>
+          <tbody id="blocks-body"><tr><td colspan="4" class="empty-state">No blocks found yet. This can take a long time depending on total P2Pool network hashrate — that's normal.</td></tr></tbody>
+        </table>
+        <div class="hint" id="blocks-address-hint"></div>
+      </div>
+
+      <div class="card full-width">
+        <h2>XTM Blocks Found <span class="badge-experimental">beta</span></h2>
+        <table>
+          <thead><tr><th>Height</th><th>Detected</th><th>Log Line</th></tr></thead>
+          <tbody id="tari-blocks-body"><tr><td colspan="3" class="empty-state">No XTM blocks found yet, or Tari merge-mining isn't configured (see Settings).</td></tr></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- LOGS TAB ============================================================ -->
+    <section id="tab-logs" class="tab-panel" style="display:none">
+      <h1 class="page-title">Logs</h1>
+      <div class="grid">
+        <div class="card full-width">
+          <h2>Monerod Log</h2>
+          <pre class="log-box" id="logs-monerod">—</pre>
+        </div>
+        <div class="card full-width">
+          <h2>P2Pool Log</h2>
+          <pre class="log-box" id="logs-p2pool">—</pre>
+        </div>
+        <div class="card full-width">
+          <h2>Minotari Node Log <span class="badge-experimental">beta</span></h2>
+          <pre class="log-box" id="logs-minotari">—</pre>
+        </div>
+      </div>
+    </section>
+
+    <!-- SETTINGS TAB ======================================================== -->
+    <section id="tab-settings" class="tab-panel" style="display:none">
+      <h1 class="page-title">Settings</h1>
+      <div class="card full-width" style="max-width:520px">
+        <h2>Node Settings</h2>
+
+        <h2 style="margin-top:4px">Payout Settings</h2>
+        <div class="field">
+          <label>Monero Wallet Address (mines here by default)</label>
+          <input type="text" id="settings-wallet" placeholder="4..." />
+          <div class="hint">Primary address only (starts with 4). Subaddresses are not supported by P2Pool.</div>
+        </div>
+
+        <h2 style="margin-top:20px">P2Pool Settings</h2>
+        <div class="field">
+          <label>Pool Type</label>
+          <select id="settings-pool-mode">
+            <option value="standard">Standard</option>
+            <option value="mini">Mini</option>
+            <option value="nano">Nano</option>
+          </select>
+          <div class="hint">Changing this restarts the P2Pool process automatically (see entrypoint.sh) — no need to restart containers by hand.</div>
+        </div>
+
+        <h2 style="margin-top:20px">Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></h2>
+        <div class="field">
+          <label>Tari Wallet Address (optional)</label>
+          <input type="text" id="settings-tari-address" placeholder="Leave blank to mine XMR only" />
+          <div class="hint">
+            Mines XTM alongside XMR with the same hashrate, at no extra cost. Requires the bundled Minotari
+            node + wallet containers to be running — see the Logs tab. Experimental: not yet verified against a
+            live node.
+          </div>
+        </div>
+
+        <h2 style="margin-top:20px">P2Pool Observer <span class="badge-experimental">3rd-party</span></h2>
+        <div class="field">
+          <label class="checkbox-label">
+            <input type="checkbox" id="settings-observer-enabled" />
+            Enable network-wide stats from p2pool.observer
+          </label>
+          <div class="hint warn">
+            Privacy note: turning this on sends your payout address to the public, community-run
+            <a href="https://git.gammaspectra.live/P2Pool/observer" target="_blank" rel="noopener">P2Pool Observer</a>
+            service over clearnet, so it can look up your lifetime share history. It is not affiliated with this
+            dashboard. Leave this off if you'd rather not share your address externally - everything else in this
+            app works fine without it.
+          </div>
+        </div>
+
+        <button class="primary" id="settings-save">Save Settings</button>
+        <div class="hint" id="settings-status"></div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+<script src="js/app.js"></script>
+</body>
+</html>
