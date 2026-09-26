@@ -4,7 +4,7 @@ manifestVersion: 1
 id: MoneroP2P-monero-p2pool
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Monero Node + P2Pool
-version: "Dev5"
+version: "Dev6"
 tagline: Run a Monero node and mine P2Pool with a Monero-GUI-styled dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -30,10 +30,11 @@ defaultPassword: ""
 submitter: Jbechara34
 submission: https://github.com/Jbechara34/monero-p2pool-dashboard
 releaseNotes: >-
-  Dev5 (development build): fixes monerod crash-looping with "error while
-  loading shared libraries: libboost_chrono.so.1.83.0" - it was built
-  dynamically linked but the runtime image only installed a hand-picked
-  subset of libraries. The build now copies every shared library the
-  binary actually needs instead of guessing package names. Includes Dev4's
-  live sidebar sync status, Dev3's live-tail Logs tab, Dev2's P2Pool
-  startup fix, and Dev1's Logs tab + UI redesign.
+  Dev6 (development build): fixes P2Pool crash-looping on startup - same
+  missing-shared-library bug class as Dev5's monerod fix (libsodium,
+  libpgm, libnorm, libgss were never installed in the runtime image).
+  P2Pool's own crash output is now also mirrored to the container's
+  regular log stream, not just the Logs tab, for easier debugging.
+  Includes Dev5's monerod fix, Dev4's live sidebar sync status, Dev3's
+  live-tail Logs tab, Dev2's P2Pool startup fix, and Dev1's Logs tab + UI
+  redesign.

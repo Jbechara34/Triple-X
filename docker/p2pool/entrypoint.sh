@@ -31,6 +31,16 @@ P2P_BIND="${P2P_BIND:-0.0.0.0}"
 
 mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" 2>/dev/null || true
 
+# p2pool's own output only ever goes to $LOG_FILE below (start_child), never
+# to this container's stdout - so `docker logs`/the platform's log viewer
+# showed nothing useful when p2pool crashed on startup. Mirror the log file
+# to stdout too, decoupled from p2pool's own process so it doesn't affect
+# the PID tracking / restart logic below. `-n0` skips existing content (the
+# dashboard's Logs tab already shows that), `-F` waits for/follows the file
+# even if it doesn't exist yet or gets rotated.
+touch "$LOG_FILE"
+tail -n0 -F "$LOG_FILE" &
+
 CHILD_PID=""
 LAST_SIGNATURE=""
 

@@ -26,14 +26,28 @@ RUN git clone --branch "${P2POOL_REF}" --depth 1 "${P2POOL_REPO}" . && \
     git submodule update --init --recursive --depth 1 && \
     mkdir build && cd build && cmake .. && make -j"$(nproc)"
 
+# p2pool links dynamically against libuv/zmq/sodium/curl/etc (not a static
+# build), but the final stage below used to hand-list only a subset of the
+# runtime packages that provide those .so files - it missed libsodium,
+# libpgm, libnorm and libgss entirely, so p2pool crashed on startup with a
+# missing-shared-library error (the same class of bug that hit monerod's
+# Dockerfile - see its comment for the full explanation). Instead of
+# guessing package names, copy every shared library the binary actually
+# resolves to. Both stages share the same base image, so these are
+# guaranteed ABI-compatible.
+RUN mkdir -p /out/lib && \
+    ldd /usr/src/p2pool/build/p2pool | awk '{ if ($3 ~ /^\//) print $3 }' | sort -u | xargs -r cp -Lv -t /out/lib/
+
 FROM debian:12-slim
 COPY --from=builder /usr/src/p2pool/build/p2pool /usr/local/bin/p2pool
+COPY --from=builder /out/lib/ /usr/local/lib/
 
 RUN set -e && \
     apt-get update -q -y --no-install-recommends && \
     DEBIAN_FRONTEND=noninteractive apt-get install -q -y --no-install-recommends \
-        libzmq5 libuv1 libcurl4 tini jq && \
-    apt-get clean && rm -rf /var/lib/apt/lists/*
+        ca-certificates tini jq && \
+    apt-get clean && rm -rf /var/lib/apt/lists/* && \
+    ldconfig
 
 RUN groupadd -r p2pool -g 1000 && \
     useradd -u 1000 -r -g p2pool -s /usr/sbin/nologin -c "p2pool user" p2pool && \
