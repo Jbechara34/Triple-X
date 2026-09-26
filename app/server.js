@@ -21,6 +21,7 @@ const moneroRpc = require('./lib/moneroRpc');
 const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
 const tariBlocks = require('./lib/tariBlocks');
+const minotariRpc = require('./lib/minotariRpc');
 const logs = require('./lib/logs');
 
 const app = express();
@@ -59,6 +60,16 @@ app.get('/api/status', async (req, res) => {
   }
 
   const p2pool = await p2poolApi.getAll();
+
+  // EXPERIMENTAL - minotari_node's own gRPC sync progress, independent of
+  // whether p2pool has merge-mining enabled, so the sidebar bar can show
+  // "Not running" / "Synchronizing" / "Synchronized" for the node itself.
+  let minotariSync = null;
+  try {
+    minotariSync = await minotariRpc.getSyncProgress();
+  } catch {
+    minotariSync = null;
+  }
 
   const rpcOk = !!nodeInfo && nodeInfo.status === 'OK';
   const syncOk = rpcOk && nodeInfo.synchronized === true;
@@ -106,6 +117,16 @@ app.get('/api/status', async (req, res) => {
     tari: {
       enabled: !!settings.tariAddress,
       blocksFound: tariBlocks.getBlocks().length,
+      // EXPERIMENTAL - real gRPC sync progress from minotari_node itself.
+      // null (not {reachable:false}) when the node is unreachable/not up
+      // yet, so the frontend can show "Not running" without guessing why.
+      nodeSync: minotariSync
+        ? {
+            height: minotariSync.localHeight,
+            targetHeight: minotariSync.tipHeight || minotariSync.localHeight,
+            synchronized: minotariSync.synced,
+          }
+        : null,
     },
   });
 });

@@ -52,7 +52,7 @@
         <div class="progress-bar"><div id="sidebar-daemon-bar" class="progress-bar-fill" style="width:0%"></div></div>
         <div class="sync-count" id="sidebar-daemon-count"></div>
       </div>
-      <div class="sync-block" id="sidebar-minotari-block" style="display:none">
+      <div class="sync-block" id="sidebar-minotari-block">
         <div class="sync-label" id="sidebar-minotari-label">Minotari Node is not running</div>
         <div class="progress-bar"><div id="sidebar-minotari-bar" class="progress-bar-fill mining-dot-xtm-fill" style="width:0%"></div></div>
         <div class="sync-count" id="sidebar-minotari-count"></div>
@@ -81,8 +81,31 @@
                 <stop offset="45%" stop-color="#33363c" />
                 <stop offset="100%" stop-color="#1a1c20" />
               </linearGradient>
+              <radialGradient id="scene-vignette" cx="50%" cy="55%" r="65%">
+                <stop offset="0%" stop-color="#3a3d44" stop-opacity="0.5" />
+                <stop offset="55%" stop-color="#202226" stop-opacity="0.25" />
+                <stop offset="100%" stop-color="#000000" stop-opacity="0" />
+              </radialGradient>
             </defs>
+
+            <!-- Ambient cave backdrop - purely atmospheric, sits behind
+                 everything else so the rock reads as being inside a mined-out
+                 chamber instead of floating on a flat panel background. -->
+            <ellipse class="mining-scene-vignette" cx="110" cy="58" rx="112" ry="58" />
+
+            <!-- Slow-drifting dust motes - always animating (independent of
+                 mining state) so the scene feels alive even when idle. -->
+            <g class="mining-dust">
+              <circle class="mining-dust-particle" cx="90" cy="50" r="0.9" style="--dx:3px; animation-delay:-0.4s; animation-duration:4.6s;" />
+              <circle class="mining-dust-particle" cx="130" cy="46" r="0.7" style="--dx:-4px; animation-delay:-2.1s; animation-duration:5.4s;" />
+              <circle class="mining-dust-particle" cx="108" cy="62" r="1.1" style="--dx:2px; animation-delay:-3.6s; animation-duration:6.1s;" />
+              <circle class="mining-dust-particle" cx="70" cy="66" r="0.8" style="--dx:-3px; animation-delay:-1.2s; animation-duration:5s;" />
+              <circle class="mining-dust-particle" cx="150" cy="68" r="0.9" style="--dx:4px; animation-delay:-2.8s; animation-duration:4.8s;" />
+            </g>
+
+            <circle class="mining-logo-glow" id="logo-glow-xmr" cx="16" cy="14" r="15" />
             <image href="img/monero-icon.png" x="4" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xmr" />
+            <circle class="mining-logo-glow logo-glow-xtm" id="logo-glow-xtm" cx="204" cy="14" r="15" />
             <image href="img/tari-icon.png" x="192" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xtm" />
 
             <ellipse class="mining-rock-shadow" cx="110" cy="90" rx="48" ry="6" />
@@ -130,6 +153,7 @@
                  (where hands would grip it) - the head at the far/bottom end
                  is what sweeps down and strikes the rock. -->
             <g class="mining-half mining-half-xmr" id="mining-half-xmr">
+              <circle class="mining-impact-flash flash-xmr" cx="53" cy="71" r="14" />
               <circle class="mining-spark spark-1" cx="53" cy="71" r="2.4" />
               <circle class="mining-spark spark-2" cx="53" cy="71" r="2" />
               <circle class="mining-spark spark-3" cx="53" cy="71" r="1.8" />
@@ -145,6 +169,7 @@
             <!-- Tari side: exact mirror of the Monero side, resting beside
                  the rock's right edge. -->
             <g class="mining-half mining-half-xtm" id="mining-half-xtm">
+              <circle class="mining-impact-flash flash-xtm" cx="167" cy="71" r="14" />
               <circle class="mining-spark spark-1" cx="167" cy="71" r="2.4" />
               <circle class="mining-spark spark-2" cx="167" cy="71" r="2" />
               <circle class="mining-spark spark-3" cx="167" cy="71" r="1.8" />

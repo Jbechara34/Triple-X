@@ -288,6 +288,17 @@ main {
   overflow: visible;
 }
 
+/* Ambient glow on the whole panel while anything's actively mining - subtle
+   warm/cool wash from both coins' colors, transitioning in smoothly rather
+   than snapping on. */
+.mining-combined {
+  transition: box-shadow 0.6s ease, border-color 0.6s ease;
+}
+#mining-combined.any-active {
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 0 34px -10px rgba(255, 140, 40, 0.35), 0 0 34px -6px rgba(168, 120, 255, 0.28);
+}
+
 .mining-half-xmr { --coin-color: var(--orange); }
 .mining-half-xtm { --coin-color: var(--tari); }
 
@@ -295,6 +306,70 @@ main {
   filter: drop-shadow(0 0 0 transparent);
   transition: filter 0.3s ease;
 }
+
+/* Cave backdrop - purely atmospheric depth behind the rock/pickaxe scene. */
+.mining-scene-vignette {
+  fill: url(#scene-vignette);
+}
+
+/* Slow-drifting dust motes, always animating regardless of mining state so
+   the scene never looks static/dead even when idle. */
+.mining-dust-particle {
+  fill: rgba(255, 255, 255, 0.4);
+  animation: dust-drift 5s ease-in-out infinite;
+}
+
+@keyframes dust-drift {
+  0% { opacity: 0; transform: translate(0, 0); }
+  15% { opacity: 0.55; }
+  85% { opacity: 0.35; }
+  100% { opacity: 0; transform: translate(var(--dx, 3px), -20px); }
+}
+
+/* Soft breathing glow behind each coin's logo badge - idle is a slow gentle
+   pulse, active syncs to that side's strike for a brighter flare right on
+   impact. */
+.mining-logo-glow {
+  filter: blur(5px);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: logo-breathe 3.4s ease-in-out infinite;
+}
+.mining-logo-glow#logo-glow-xmr { fill: var(--orange); }
+.mining-logo-glow.logo-glow-xtm { fill: var(--tari); }
+.mining-logo-glow.is-active { animation: logo-breathe-active 1.4s ease-in-out infinite; }
+#logo-glow-xtm.is-active { animation-delay: 0.7s; }
+
+@keyframes logo-breathe {
+  0%, 100% { opacity: 0.12; transform: scale(1); }
+  50% { opacity: 0.28; transform: scale(1.15); }
+}
+
+@keyframes logo-breathe-active {
+  0%, 40% { opacity: 0.22; transform: scale(1); }
+  48% { opacity: 0.65; transform: scale(1.5); }
+  62%, 100% { opacity: 0.22; transform: scale(1); }
+}
+
+/* Radial flash right at each impact point, synced with that side's pickaxe
+   landing - reads as a brief spark of light instead of just particles. */
+.mining-impact-flash {
+  opacity: 0;
+  fill: var(--coin-color, var(--orange));
+  filter: blur(2.5px);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+}
+
+@keyframes impact-flash {
+  0%, 44% { opacity: 0; transform: scale(0.3); }
+  48% { opacity: 0.85; transform: scale(1); }
+  60% { opacity: 0; transform: scale(1.7); }
+  100% { opacity: 0; transform: scale(1.7); }
+}
+
+.mining-half-xmr.is-active .flash-xmr { animation: impact-flash 1.4s ease-out infinite; }
+.mining-half-xtm.is-active .flash-xtm { animation: impact-flash 1.4s ease-out 0.7s infinite; }
 
 .mining-rock-shadow {
   fill: #000;

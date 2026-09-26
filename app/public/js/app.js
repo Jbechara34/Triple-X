@@ -164,6 +164,7 @@ async function refreshMain() {
   xmrHalf.classList.toggle('is-active', xmrActive);
   xmrHalf.classList.toggle('is-idle', !xmrActive);
   document.getElementById('embedded-coin-xmr').classList.toggle('is-active', xmrActive);
+  document.getElementById('logo-glow-xmr').classList.toggle('is-active', xmrActive);
   const xmrStateEl = document.getElementById('mining-xmr-state');
   xmrStateEl.textContent = xmrActive ? 'Mining' : 'Idle';
   xmrStateEl.classList.toggle('state-xmr-active', xmrActive);
@@ -174,24 +175,32 @@ async function refreshMain() {
   xtmHalf.classList.toggle('is-active', xtmActive);
   xtmHalf.classList.toggle('is-idle', !xtmActive);
   document.getElementById('embedded-coin-xtm').classList.toggle('is-active', xtmActive);
+  document.getElementById('logo-glow-xtm').classList.toggle('is-active', xtmActive);
   const xtmStateEl = document.getElementById('mining-xtm-state');
   xtmStateEl.textContent = tariInfo.enabled
     ? (xtmActive ? 'Merge mining' : 'Waiting on XMR mining')
     : 'Not configured';
   xtmStateEl.classList.toggle('state-xtm-active', xtmActive);
 
-  // Sidebar Minotari Node bar (EXPERIMENTAL) - only shown once a Tari
-  // address is configured. No live block-height data yet (would need a
-  // gRPC client - see docker-compose.yml comments), so this is binary
-  // running/not-running rather than a real sync percentage like the two
-  // bars above it.
-  const minotariBlock = document.getElementById('sidebar-minotari-block');
+  // Sidebar Minotari Node bar (EXPERIMENTAL) - always shown, mirrors the
+  // Node/P2Pool bars above it using real sync progress from minotari_node's
+  // own gRPC interface (see lib/minotariRpc.js), independent of whether
+  // merge-mining is actually enabled.
   const minotariLabel = document.getElementById('sidebar-minotari-label');
   const minotariBar = document.getElementById('sidebar-minotari-bar');
-  minotariBlock.style.display = tariInfo.enabled ? '' : 'none';
-  if (tariInfo.enabled) {
-    minotariLabel.textContent = xtmActive ? 'Minotari Node is running' : 'Minotari Node is not running';
-    minotariBar.style.width = xtmActive ? '100%' : '0%';
+  const minotariCount = document.getElementById('sidebar-minotari-count');
+  const nodeSync = tariInfo.nodeSync;
+  if (!nodeSync) {
+    minotariLabel.textContent = 'Minotari Node - Not running';
+    minotariBar.style.width = '0%';
+    minotariCount.textContent = '';
+  } else {
+    const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
+    minotariLabel.textContent = nodeSync.synchronized
+      ? 'Minotari Node - Synchronized'
+      : 'Minotari Node - Synchronizing';
+    minotariBar.style.width = `${pct}%`;
+    minotariCount.textContent = `${nodeSync.height ?? '—'} / ${nodeSync.targetHeight ?? '—'} blocks`;
   }
 
   document.getElementById('mining-combined').classList.toggle('any-active', xmrActive || xtmActive);
