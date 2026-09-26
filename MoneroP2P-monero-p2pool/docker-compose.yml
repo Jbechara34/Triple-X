@@ -31,7 +31,12 @@ services:
       - ${APP_DATA_DIR}/state:/data/state
     environment:
       PORT: "3000"
-      MONEROD_HOST: MoneroP2P-monero-p2pool_monerod_1
+      # Plain service name - Compose gives every service in this project a DNS
+      # alias equal to its name on the project's own network, regardless of
+      # how the platform names/cases the project itself. Only app_proxy (a
+      # separate container on 5tratumOS's shared network, outside this
+      # project) needs the fully-qualified "<app-id>_<service>_1" form above.
+      MONEROD_HOST: monerod
       MONEROD_RPC_PORT: "18081"
       CONFIG_DIR: /data/config
       P2POOL_DATA_API_DIR: /data/p2pool-api
@@ -69,7 +74,7 @@ services:
     restart: on-failure
     stop_grace_period: 1m
     environment:
-      MONEROD_HOST: MoneroP2P-monero-p2pool_monerod_1
+      MONEROD_HOST: monerod
       MONEROD_RPC_PORT: "18081"
       MONEROD_ZMQ_PORT: "18083"
       CONFIG_FILE: /data/config/settings.json
