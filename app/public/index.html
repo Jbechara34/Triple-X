@@ -87,11 +87,15 @@
 
             <ellipse class="mining-rock-shadow" cx="110" cy="90" rx="48" ry="6" />
             <g class="mining-rock" id="mining-rock">
-              <!-- Small pebbles at the base give it a "pile" silhouette
-                   instead of one smooth boulder. -->
-              <ellipse cx="48" cy="87" rx="9" ry="5.5" class="mining-pebble" />
-              <ellipse cx="172" cy="87" rx="9" ry="5.5" class="mining-pebble" />
-              <ellipse cx="110" cy="93" rx="12" ry="4.5" class="mining-pebble" />
+              <!-- A low-poly cluster of separate angular chunks (per the
+                   reference image) instead of one smooth boulder - gives
+                   the coins real facet surfaces to sit "in". -->
+              <polygon points="26,90 20,80 32,74 44,80 42,90 34,94" class="mining-pebble" />
+              <polygon points="20,80 32,74 30,78 22,84" class="mining-pebble-facet-light" />
+              <polygon points="176,90 182,80 170,74 158,80 160,90 168,94" class="mining-pebble" />
+              <polygon points="182,80 170,74 172,78 180,84" class="mining-pebble-facet-light" />
+              <polygon points="86,96 76,88 96,84 124,84 144,88 134,96 110,100" class="mining-pebble" />
+              <polygon points="76,88 96,84 92,90 82,92" class="mining-pebble-facet-light" />
               <polygon points="56,84 42,62 66,44 110,38 154,44 178,62 164,84 110,90" class="mining-rock-main" />
               <!-- Lit facet (upper-left, catching the light) and a shadow
                    facet (lower-right) for a faceted, 3D-ish look instead of
@@ -134,7 +138,7 @@
               <image href="img/monero-icon.png" x="47" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xmr">
                 <rect x="28" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
-                <path d="M14,80 Q30,64 46,80 Q30,72 14,80 Z" class="pickaxe-head" />
+                <path d="M14,83 Q30,79 46,83 Q30,91 14,83 Z" class="pickaxe-head" />
               </g>
             </g>
 
@@ -149,7 +153,7 @@
               <image href="img/tari-icon.png" x="161" y="65" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xtm">
                 <rect x="188" y="55" width="4" height="28" rx="2" class="pickaxe-handle" />
-                <path d="M206,80 Q190,64 174,80 Q190,72 206,80 Z" class="pickaxe-head" />
+                <path d="M206,83 Q190,79 174,83 Q190,91 206,83 Z" class="pickaxe-head" />
               </g>
             </g>
           </svg>
