@@ -20,6 +20,7 @@ const config = require('./lib/config');
 const moneroRpc = require('./lib/moneroRpc');
 const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
+const tariBlocks = require('./lib/tariBlocks');
 const logs = require('./lib/logs');
 
 const app = express();
@@ -38,6 +39,10 @@ const STRATUM_PORT = process.env.P2POOL_STRATUM_PORT || '3333';
 // Written by monerod itself (--log-file, see docker-compose.yml) into a
 // volume shared read-only with this container - see README.md "Logs tab".
 const MONEROD_LOG_FILE = process.env.MONEROD_LOG_FILE || '/data/monerod-logs/monerod.log';
+
+// EXPERIMENTAL - Tari (XTM) merge-mining, see docker/p2pool/entrypoint.sh
+// and app/lib/tariBlocks.js.
+const MINOTARI_LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node.log';
 
 // ---------------------------------------------------------------------------
 // Status / readiness (Main tab)
@@ -95,6 +100,13 @@ app.get('/api/status', async (req, res) => {
       height: p2pool.network.height,
     },
     poolMode: settings.poolMode,
+    // EXPERIMENTAL Tari (XTM) merge-mining - "enabled" just reflects whether
+    // a Tari address is configured (p2pool only adds --merge-mine when one
+    // is), not whether the Tari node/wallet are actually up.
+    tari: {
+      enabled: !!settings.tariAddress,
+      blocksFound: tariBlocks.getBlocks().length,
+    },
   });
 });
 
@@ -151,6 +163,16 @@ app.get('/api/pool', async (req, res) => {
         'Example: ./xmrig -o <URL> -u my-rig-name -p x',
       ],
     },
+    // EXPERIMENTAL Tari (XTM) merge-mining - same workers/hashrate above
+    // also mine XTM once this is enabled, at no extra cost. Tari is
+    // currently solo-mined (see docker/p2pool/entrypoint.sh), so there's no
+    // separate pool hashrate/difficulty to show here yet - just whether
+    // it's on and what it's found.
+    tari: {
+      enabled: !!settings.tariAddress,
+      payoutAddress: settings.tariAddress || null,
+      blocksFound: tariBlocks.getBlocks().length,
+    },
   });
 });
 
@@ -159,6 +181,14 @@ app.get('/api/pool', async (req, res) => {
 // ---------------------------------------------------------------------------
 app.get('/api/blocks', (req, res) => {
   const settings = config.readSettings();
+
+  if (req.query.coin === 'xtm') {
+    // EXPERIMENTAL - no XTM block explorer wired up here yet, so no
+    // explorerUrl/addressExplorerUrl (unlike the XMR list below).
+    res.json({ blocks: tariBlocks.getBlocks(), explorerBaseUrl: null });
+    return;
+  }
+
   const list = blocks.getBlocks().map((b) => ({
     ...b,
     explorerUrl: b.height ? `${EXPLORER_BASE_URL}/block/${b.height}` : null,
@@ -173,17 +203,24 @@ app.get('/api/blocks', (req, res) => {
 // Logs tab
 // ---------------------------------------------------------------------------
 app.get('/api/logs', async (req, res) => {
-  const [monerod, p2pool] = await Promise.all([
+  const [monerod, p2pool, minotari] = await Promise.all([
     logs.tailFile(MONEROD_LOG_FILE),
     logs.tailFile(blocks.LOG_FILE),
+    logs.tailFile(MINOTARI_LOG_FILE),
   ]);
-  res.json({ monerod, p2pool });
+  res.json({ monerod, p2pool, minotari });
 });
 
-// Live tail (Server-Sent Events) - like `tail -f`. ?source=monerod|p2pool
+const LOG_SOURCES = {
+  monerod: () => MONEROD_LOG_FILE,
+  p2pool: () => blocks.LOG_FILE,
+  minotari: () => MINOTARI_LOG_FILE,
+};
+
+// Live tail (Server-Sent Events) - like `tail -f`. ?source=monerod|p2pool|minotari
 app.get('/api/logs/stream', (req, res) => {
-  const file = req.query.source === 'p2pool' ? blocks.LOG_FILE : MONEROD_LOG_FILE;
-  const stop = logs.attachTailStream(res, file);
+  const getFile = LOG_SOURCES[req.query.source] || LOG_SOURCES.monerod;
+  const stop = logs.attachTailStream(res, getFile());
   req.on('close', stop);
 });
 
@@ -213,6 +250,7 @@ app.get('*', (req, res) => {
 });
 
 blocks.start();
+tariBlocks.start();
 
 app.listen(PORT, () => {
   console.log(`monero-p2pool-dashboard listening on :${PORT}`);

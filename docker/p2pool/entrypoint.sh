@@ -28,6 +28,12 @@ MONEROD_RPC_PORT="${MONEROD_RPC_PORT:-18081}"
 MONEROD_ZMQ_PORT="${MONEROD_ZMQ_PORT:-18083}"
 STRATUM_BIND="${STRATUM_BIND:-0.0.0.0:3333}"
 P2P_BIND="${P2P_BIND:-0.0.0.0}"
+# Tari (XTM) merge-mining - only added to the command line when a Tari
+# wallet address is set in Settings (see build_args). MINOTARI_NODE_HOST
+# just needs to resolve to a running minotari-node with its gRPC enabled -
+# EXPERIMENTAL, not yet verified against a live node.
+MINOTARI_NODE_HOST="${MINOTARI_NODE_HOST:-minotari-node}"
+MINOTARI_NODE_GRPC_PORT="${MINOTARI_NODE_GRPC_PORT:-18142}"
 
 mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" 2>/dev/null || true
 
@@ -90,6 +96,14 @@ build_args() {
   # --data-api/--local-api/--stratum-api feed the dashboard's Pool/Blocks
   # tabs (see app/lib/p2poolApi.js and app/lib/blocks.js).
   ARGS="$ARGS --data-api $DATA_API_DIR --local-api --stratum-api"
+
+  # Tari (XTM) merge-mining - same hashrate mines both coins at no extra
+  # cost. Purely optional: only added when a Tari address is set, so the
+  # default behavior (XMR only) is completely unchanged.
+  TARI_ADDRESS="$(read_setting '.tariAddress')"
+  if [ -n "${TARI_ADDRESS:-}" ]; then
+    ARGS="$ARGS --merge-mine tari://${MINOTARI_NODE_HOST}:${MINOTARI_NODE_GRPC_PORT} $TARI_ADDRESS"
+  fi
 
   # Extra flags passed straight through from docker-compose.yml, e.g.
   # --out-peers/--in-peers tuning or --light-mode.

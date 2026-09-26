@@ -66,6 +66,28 @@
     <!-- MAIN TAB ============================================================ -->
     <section id="tab-main" class="tab-panel">
       <h1 class="page-title">Node Status</h1>
+
+      <div class="mining-strip">
+        <div class="mining-coin mining-coin-xmr" id="mining-xmr">
+          <div class="mining-coin-orbit">
+            <div class="mining-coin-badge">XMR</div>
+          </div>
+          <div class="mining-coin-info">
+            <div class="mining-coin-label">Monero</div>
+            <div class="mining-coin-state" id="mining-xmr-state">Idle</div>
+          </div>
+        </div>
+        <div class="mining-coin mining-coin-xtm" id="mining-xtm">
+          <div class="mining-coin-orbit">
+            <div class="mining-coin-badge">XTM</div>
+          </div>
+          <div class="mining-coin-info">
+            <div class="mining-coin-label">Tari <span class="badge-experimental">beta</span></div>
+            <div class="mining-coin-state" id="mining-xtm-state">Not configured</div>
+          </div>
+        </div>
+      </div>
+
       <div class="grid">
         <div class="card">
           <h2>Blockchain Sync</h2>
@@ -177,18 +199,48 @@
           </ul>
         </div>
       </div>
+
+      <div class="card full-width">
+        <h2>Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Status</div>
+            <div id="pool-tari-status" class="big-value" style="font-size:20px">Not configured</div>
+          </div>
+          <div>
+            <div class="sub-value">Payout Address</div>
+            <div id="pool-tari-address" class="mono" style="font-size:13px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">XTM Blocks Found</div>
+            <div id="pool-tari-blocks" class="big-value" style="font-size:20px">0</div>
+          </div>
+        </div>
+        <div class="hint">
+          Set a Tari wallet address in Settings to merge-mine XTM with the same hashrate as your XMR mining — no
+          extra cost. See the Blocks tab for XTM blocks found.
+        </div>
+      </div>
     </section>
 
     <!-- BLOCKS TAB ========================================================== -->
     <section id="tab-blocks" class="tab-panel" style="display:none">
       <h1 class="page-title">Blocks Found</h1>
       <div class="card full-width">
-        <h2>History</h2>
+        <h2>XMR Blocks Found</h2>
         <table>
           <thead><tr><th>Height</th><th>Detected</th><th>Block Hash</th><th>Verify</th></tr></thead>
           <tbody id="blocks-body"><tr><td colspan="4" class="empty-state">No blocks found yet. This can take a long time depending on total P2Pool network hashrate — that's normal.</td></tr></tbody>
         </table>
         <div class="hint" id="blocks-address-hint"></div>
+      </div>
+
+      <div class="card full-width">
+        <h2>XTM Blocks Found <span class="badge-experimental">beta</span></h2>
+        <table>
+          <thead><tr><th>Height</th><th>Detected</th><th>Log Line</th></tr></thead>
+          <tbody id="tari-blocks-body"><tr><td colspan="3" class="empty-state">No XTM blocks found yet, or Tari merge-mining isn't configured (see Settings).</td></tr></tbody>
+        </table>
       </div>
     </section>
 
@@ -203,6 +255,10 @@
         <div class="card full-width">
           <h2>P2Pool Log</h2>
           <pre class="log-box" id="logs-p2pool">—</pre>
+        </div>
+        <div class="card full-width">
+          <h2>Minotari Node Log <span class="badge-experimental">beta</span></h2>
+          <pre class="log-box" id="logs-minotari">—</pre>
         </div>
       </div>
     </section>
@@ -229,6 +285,17 @@
             <option value="nano">Nano</option>
           </select>
           <div class="hint">Changing this restarts the P2Pool process automatically (see entrypoint.sh) — no need to restart containers by hand.</div>
+        </div>
+
+        <h2 style="margin-top:20px">Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></h2>
+        <div class="field">
+          <label>Tari Wallet Address (optional)</label>
+          <input type="text" id="settings-tari-address" placeholder="Leave blank to mine XMR only" />
+          <div class="hint">
+            Mines XTM alongside XMR with the same hashrate, at no extra cost. Requires the bundled Minotari
+            node + wallet containers to be running — see the Logs tab. Experimental: not yet verified against a
+            live node.
+          </div>
         </div>
 
         <button class="primary" id="settings-save">Save Settings</button>

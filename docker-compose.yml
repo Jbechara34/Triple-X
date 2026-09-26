@@ -60,6 +60,10 @@ services:
       CONFIG_FILE: /data/config/settings.json
       DATA_API_DIR: /data/p2pool-api
       LOG_DIR: /data/p2pool-logs
+      # Optional Tari (XTM) merge-mining - see entrypoint.sh. Left blank,
+      # p2pool behaves exactly as before (XMR only).
+      MINOTARI_NODE_HOST: minotari-node
+      MINOTARI_NODE_GRPC_PORT: "18142"
       # Extra p2pool flags, space-separated, appended as-is. Example:
       # P2POOL_EXTRA_ARGS: "--out-peers 10 --in-peers 10"
       P2POOL_EXTRA_ARGS: ""
@@ -73,6 +77,62 @@ services:
       - shared-config:/data/config
       - p2pool-api:/data/p2pool-api
       - p2pool-logs:/data/p2pool-logs
+    networks:
+      - internal
+
+  # Tari (XTM) merge-mining - EXPERIMENTAL, disabled by default (P2Pool only
+  # merge-mines when a Tari wallet address is set in Settings). Uses Tari's
+  # own official images rather than building from source - Tari is a much
+  # larger, faster-moving Rust codebase and building it ourselves would be
+  # both slower and considerably riskier than monerod/p2pool already were.
+  # See docker/minotari/README.md for how these settings were sourced.
+  minotari-node:
+    image: ghcr.io/tari-project/minotari_node:latest-mainnet
+    container_name: monero-p2pool-dashboard_minotari-node
+    restart: unless-stopped
+    command:
+      - "--base-path=/tari-data"
+      - "--network=mainnet"
+      - "--non-interactive"
+      - "--init"
+      - "-p"
+      - "base_node.grpc_enabled=true"
+      - "-p"
+      - "base_node.grpc_address=/ip4/0.0.0.0/tcp/18142"
+      - "-p"
+      - "base_node.p2p.transport.type=tcp"
+      - "-p"
+      - "base_node.p2p.transport.tcp.listener_address=/ip4/0.0.0.0/tcp/18189"
+      - "-p"
+      - "base_node.grpc_server_allow_methods=get_version, get_tip_info, identify, get_network_state, list_headers, get_tokens_in_circulation, get_network_difficulty, get_new_block_template, get_new_block, get_new_block_with_coinbases, get_new_block_template_with_coinbases, get_new_block_blob, submit_block, submit_block_blob, submit_transaction, search_kernels, search_utxos, fetch_matching_utxos, transaction_state, list_connected_peers, get_mempool_stats"
+    ports:
+      - "18189:18189" # Tari p2p - forward this on your router for better connectivity
+    expose:
+      - "18142" # gRPC - internal only (read by p2pool's --merge-mine and this app)
+    volumes:
+      - minotari-node-data:/tari-data
+      - minotari-node-logs:/tari-data/mainnet/log
+    networks:
+      - internal
+
+  minotari-wallet:
+    build:
+      context: ./docker/minotari-wallet
+      dockerfile: Dockerfile
+    container_name: monero-p2pool-dashboard_minotari-wallet
+    restart: unless-stopped
+    depends_on:
+      - minotari-node
+    command:
+      - "--base-path=/tari-data"
+      - "--network=mainnet"
+      - "--non-interactive"
+      - "--grpc-enabled"
+      - "--grpc-address=/ip4/0.0.0.0/tcp/18143"
+    expose:
+      - "18143" # gRPC - internal only
+    volumes:
+      - minotari-wallet-data:/tari-data
     networks:
       - internal
 
@@ -96,6 +156,7 @@ services:
       P2POOL_STRATUM_PORT: "3333"
       EXPLORER_BASE_URL: "https://xmrchain.net"
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
+      MINOTARI_LOG_FILE: /data/minotari-logs/base_node.log
     ports:
       - "3000:3000" # the dashboard itself - this is the app's main UI port
     volumes:
@@ -103,6 +164,7 @@ services:
       - p2pool-api:/data/p2pool-api:ro
       - p2pool-logs:/data/p2pool-logs:ro
       - monerod-logs:/data/monerod-logs:ro
+      - minotari-node-logs:/data/minotari-logs:ro
       - app-state:/data/state
     networks:
       - internal
@@ -119,3 +181,6 @@ volumes:
   p2pool-logs:
   shared-config:
   app-state:
+  minotari-node-data:
+  minotari-node-logs:
+  minotari-wallet-data:

@@ -22,6 +22,9 @@ jobs:
           - name: monerod
             context: ./docker/monerod
             dockerfile: Dockerfile
+          - name: minotari-wallet
+            context: ./docker/minotari-wallet
+            dockerfile: Dockerfile
     steps:
       - uses: actions/checkout@v4
 

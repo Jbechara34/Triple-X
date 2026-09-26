@@ -11,6 +11,7 @@
   --green: #4caf50;
   --red: #e05252;
   --yellow: #e0b552;
+  --tari: #8a5cf6;
   --radius: 10px;
   --titlebar-h: 40px;
 }
@@ -257,6 +258,108 @@ main {
   flex: 1;
   padding: 28px 32px 60px;
   max-width: 1100px;
+}
+
+/* Live mining animation strip (Main tab) ----------------------------------- */
+.mining-strip {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.mining-coin {
+  flex: 1;
+  min-width: 220px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--panel);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+}
+
+.mining-coin-orbit {
+  position: relative;
+  width: 56px;
+  height: 56px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.mining-coin-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--coin-color, var(--orange));
+  border-right-color: var(--coin-color, var(--orange));
+  animation: mining-spin 1.6s linear infinite;
+  opacity: 0.55;
+}
+
+.mining-coin-badge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--panel-alt);
+  border: 1px solid var(--coin-color, var(--orange));
+  color: var(--coin-color, var(--orange));
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 12px color-mix(in srgb, var(--coin-color, var(--orange)) 55%, transparent);
+  animation: mining-pulse 1.8s ease-in-out infinite;
+}
+
+.mining-coin-xmr { --coin-color: var(--orange); }
+.mining-coin-xtm { --coin-color: var(--tari); }
+
+.mining-coin-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.mining-coin-state {
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 2px;
+}
+
+.mining-coin.is-active .mining-coin-orbit::before { opacity: 1; }
+.mining-coin.is-active .mining-coin-state { color: var(--coin-color, var(--orange)); }
+.mining-coin.is-idle .mining-coin-orbit::before { animation-play-state: paused; opacity: 0.2; }
+.mining-coin.is-idle .mining-coin-badge { animation-play-state: paused; box-shadow: none; opacity: 0.5; }
+
+@keyframes mining-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes mining-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+.badge-experimental {
+  display: inline-block;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--tari);
+  border: 1px solid var(--tari);
+  border-radius: 999px;
+  padding: 1px 6px;
+  margin-left: 6px;
+  vertical-align: middle;
 }
 
 h1.page-title {

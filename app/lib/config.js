@@ -14,6 +14,9 @@ const VALID_MODES = ['standard', 'mini', 'nano'];
 const DEFAULTS = {
   walletAddress: '',
   poolMode: 'standard', // standard | mini | nano  (see README: maps to --mini / --nano flags)
+  // Optional Tari (XTM) merge-mining payout address - EXPERIMENTAL. Leave
+  // blank to keep mining XMR only (see docker/p2pool/entrypoint.sh).
+  tariAddress: '',
   updatedAt: null,
 };
 
@@ -71,6 +74,13 @@ function writeSettings(update) {
       throw err;
     }
     next.poolMode = mode;
+  }
+
+  if (typeof update.tariAddress === 'string') {
+    // No format validation - Tari's address encoding isn't pinned down here
+    // yet (EXPERIMENTAL feature). p2pool/the Tari node are the source of
+    // truth and will reject a bad address.
+    next.tariAddress = update.tariAddress.trim();
   }
 
   next.updatedAt = new Date().toISOString();

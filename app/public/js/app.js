@@ -155,6 +155,23 @@ async function refreshMain() {
     daemonBar.style.width = '100%';
     daemonCount.textContent = '';
   }
+
+  // Live mining animation strip - XMR follows P2Pool stratum state, XTM
+  // (EXPERIMENTAL) follows whether merge-mining is enabled/configured.
+  const xmrCoin = document.getElementById('mining-xmr');
+  const xmrActive = !!p2poolInfo.running;
+  xmrCoin.classList.toggle('is-active', xmrActive);
+  xmrCoin.classList.toggle('is-idle', !xmrActive);
+  document.getElementById('mining-xmr-state').textContent = xmrActive ? 'Mining' : 'Idle';
+
+  const tariInfo = data.tari || {};
+  const xtmCoin = document.getElementById('mining-xtm');
+  const xtmActive = !!tariInfo.enabled && xmrActive;
+  xtmCoin.classList.toggle('is-active', xtmActive);
+  xtmCoin.classList.toggle('is-idle', !xtmActive);
+  document.getElementById('mining-xtm-state').textContent = tariInfo.enabled
+    ? (xtmActive ? 'Merge mining' : 'Waiting on XMR mining')
+    : 'Not configured';
 }
 
 // ---------------------------------------------------------------------------
@@ -202,6 +219,11 @@ async function refreshPool() {
 
   document.getElementById('pool-miner-url').value = data.minerConfig?.url || '—';
   document.getElementById('pool-payout-address').value = data.minerConfig?.payoutAddress || 'Not configured — set this in Settings';
+
+  const tari = data.tari || {};
+  document.getElementById('pool-tari-status').textContent = tari.enabled ? 'Enabled' : 'Not configured';
+  document.getElementById('pool-tari-address').textContent = tari.payoutAddress || '—';
+  document.getElementById('pool-tari-blocks').textContent = tari.blocksFound ?? 0;
 }
 
 poolModeSelect.addEventListener('change', refreshPool);
@@ -243,6 +265,30 @@ async function refreshBlocks() {
   hint.innerHTML = withAddr
     ? `Cross-check payouts to your address directly: <a href="${withAddr.addressExplorerUrl}" target="_blank" rel="noopener">view your address on ${data.explorerBaseUrl}</a>.`
     : 'Set a payout address in Settings to get a direct link for verifying payouts.';
+
+  let tariData;
+  try {
+    tariData = await getJSON('/api/blocks?coin=xtm');
+  } catch (err) {
+    console.error(err);
+    return;
+  }
+
+  const tariBody = document.getElementById('tari-blocks-body');
+  if (tariData.blocks && tariData.blocks.length) {
+    tariBody.innerHTML = tariData.blocks
+      .map(
+        (b) => `<tr>
+          <td>${b.height ?? '—'}</td>
+          <td>${fmtTime(b.detectedAt)}</td>
+          <td class="mono" style="font-size:11px">${escapeHtml(b.raw || '—')}</td>
+        </tr>`
+      )
+      .join('');
+  } else {
+    tariBody.innerHTML =
+      '<tr><td colspan="3" class="empty-state">No XTM blocks found yet, or Tari merge-mining isn\'t configured (see Settings).</td></tr>';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -293,6 +339,7 @@ function startLogStreams() {
   logStreams = [
     openLogStream('monerod', document.getElementById('logs-monerod')),
     openLogStream('p2pool', document.getElementById('logs-p2pool')),
+    openLogStream('minotari', document.getElementById('logs-minotari')),
   ];
 }
 
@@ -314,6 +361,7 @@ async function loadSettings() {
   }
   document.getElementById('settings-wallet').value = data.walletAddress || '';
   document.getElementById('settings-pool-mode').value = data.poolMode || 'standard';
+  document.getElementById('settings-tari-address').value = data.tariAddress || '';
   poolModeSelect.value = data.poolMode || 'standard';
   setSidebarPoolMode(data.poolMode || 'standard');
 }
@@ -336,6 +384,7 @@ document.getElementById('settings-save').addEventListener('click', async () => {
       body: JSON.stringify({
         walletAddress: document.getElementById('settings-wallet').value.trim(),
         poolMode: document.getElementById('settings-pool-mode').value,
+        tariAddress: document.getElementById('settings-tari-address').value.trim(),
       }),
     });
     status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';

@@ -6,15 +6,48 @@
 // moment a new line is written, like `tail -f` in a terminal.
 
 const fsp = require('fs/promises');
+const path = require('path');
 
 const MAX_READ_BYTES = 128 * 1024; // plenty for a few hundred lines
 const MAX_LINES = 300;
 const POLL_MS = 1000;
 
+// Most of our processes write to one fixed, known log path (monerod,
+// p2pool). Some don't - e.g. minotari_node's logging is configured via a
+// log4rs.yml whose exact output filename isn't pinned down here yet. For
+// those, fall back to the newest *.log file in the same directory instead
+// of guessing a filename outright.
+async function resolveLogPath(filePath) {
+  try {
+    const stat = await fsp.stat(filePath);
+    if (stat.isFile()) return filePath;
+  } catch (err) {
+    // not found at the exact path - fall through to the directory scan below
+  }
+  const dir = path.dirname(filePath);
+  try {
+    const entries = await fsp.readdir(dir, { withFileTypes: true });
+    const logFiles = entries.filter((e) => e.isFile() && e.name.endsWith('.log'));
+    if (!logFiles.length) return filePath;
+    const withStats = await Promise.all(
+      logFiles.map(async (e) => {
+        const p = path.join(dir, e.name);
+        const s = await fsp.stat(p);
+        return { p, mtime: s.mtimeMs };
+      })
+    );
+    withStats.sort((a, b) => b.mtime - a.mtime);
+    return withStats[0].p;
+  } catch (err) {
+    return filePath;
+  }
+}
+
 async function tailFile(filePath, maxLines = MAX_LINES) {
   let fh;
   try {
-    fh = await fsp.open(filePath, 'r');
+    const resolved = await resolveLogPath(filePath);
+    fh = await fsp.open(resolved, 'r');
     const stat = await fh.stat();
     const readSize = Math.min(stat.size, MAX_READ_BYTES);
     const start = stat.size - readSize;
@@ -52,6 +85,7 @@ function attachTailStream(res, filePath) {
   let stopped = false;
   let offset = 0;
   let timer = null;
+  let resolvedPath = filePath;
 
   function send(event, data) {
     if (stopped) return;
@@ -61,10 +95,13 @@ function attachTailStream(res, filePath) {
   async function poll() {
     if (stopped) return;
     try {
-      const stat = await fsp.stat(filePath);
+      // Re-resolve each tick: cheap (one small directory listing) and lets
+      // us pick up a log file that didn't exist yet when we first attached.
+      resolvedPath = await resolveLogPath(filePath);
+      const stat = await fsp.stat(resolvedPath);
       if (stat.size < offset) offset = 0; // rotated/truncated
       if (stat.size > offset) {
-        const fh = await fsp.open(filePath, 'r');
+        const fh = await fsp.open(resolvedPath, 'r');
         try {
           const toRead = stat.size - offset;
           const buf = Buffer.alloc(toRead);
@@ -86,7 +123,8 @@ function attachTailStream(res, filePath) {
     if (stopped) return;
     send('init', initial);
     try {
-      const stat = await fsp.stat(filePath);
+      resolvedPath = await resolveLogPath(filePath);
+      const stat = await fsp.stat(resolvedPath);
       offset = stat.size;
     } catch (err) {
       offset = 0;
