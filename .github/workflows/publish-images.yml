@@ -19,7 +19,7 @@ name: Publish images
 
 on:
   push:
-    tags: ["v*.*.*"]
+    tags: ["v*.*.*", "Dev*"]
   workflow_dispatch:
 
 env:

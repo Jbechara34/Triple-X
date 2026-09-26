@@ -4,7 +4,7 @@ manifestVersion: 1
 id: MoneroP2P-monero-p2pool
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Monero Node + P2Pool
-version: "1.1.0-rc1"
+version: "Dev1"
 tagline: Run a Monero node and mine P2Pool with a Monero-GUI-styled dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -30,6 +30,6 @@ defaultPassword: ""
 submitter: Jbechara34
 submission: https://github.com/Jbechara34/monero-p2pool-dashboard
 releaseNotes: >-
-  1.1.0-rc1: new Logs tab (live monerod + P2Pool log tail), Monero-GUI-styled
-  sidebar redesign, and fixes for monerod's Ubuntu 24.04 build and the
-  app-to-monerod hostname on 5tratumOS.
+  Dev1 (development build): new Logs tab (live monerod + P2Pool log tail),
+  Monero-GUI-styled sidebar redesign, and fixes for monerod's Ubuntu 24.04
+  build and the app-to-monerod hostname on 5tratumOS.
