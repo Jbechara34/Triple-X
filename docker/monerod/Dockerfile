@@ -47,13 +47,24 @@ RUN make release -j"$(nproc)"
 RUN mkdir -p /out && \
     cp "$(find /build/monero/build -maxdepth 5 -type f -name monerod | head -n1)" /out/monerod
 
+# `make release` links monerod dynamically against Boost/OpenSSL/etc (it is
+# NOT the static build the official release tarballs use - see
+# Dockerfile.prebuilt for that). Rather than hand-listing every runtime
+# package name the final stage needs to match (fragile - Ubuntu renames
+# these across releases, e.g. the libpgm t64 transition), just copy every
+# shared library the binary actually resolves to. Both stages are the same
+# base image, so these are guaranteed ABI-compatible.
+RUN mkdir -p /out/lib && \
+    ldd /out/monerod | awk '{ if ($3 ~ /^\//) print $3 }' | sort -u | xargs -r cp -Lv -t /out/lib/
+
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates libzmq5 libunbound8 libsodium23 libunwind8 \
-    libpgm-5.3-0t64 tini \
+    ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /out/monerod /usr/local/bin/monerod
+COPY --from=builder /out/lib/ /usr/local/lib/
+RUN ldconfig
 
 # ubuntu:24.04 ships a pre-existing "ubuntu" user at UID 1000 - remove it
 # first so this UID is free (keeps the container's file ownership at a
