@@ -109,7 +109,27 @@ app.get('/api/status', async (req, res) => {
       // monerod - compared against monerod's own height/target below, this
       // is what lets the sidebar show P2Pool's sync progress.
       height: p2pool.network.height,
+      // Miners connected to YOUR p2pool node's stratum port (not the whole
+      // sidechain - see network.minersOnSidechain in /api/pool for that).
+      connections: p2pool.stratum.connections,
+      incomingConnections: p2pool.stratum.incomingConnections,
+      sharesFound: p2pool.stratum.sharesFound,
+      sharesFailed: p2pool.stratum.sharesFailed,
     },
+    // Straight from monerod's own get_info - peer counts and daemon identity,
+    // not previously surfaced anywhere in the UI.
+    node: nodeInfo
+      ? {
+          version: nodeInfo.version || null,
+          nettype: nodeInfo.nettype || (nodeInfo.mainnet ? 'mainnet' : null),
+          connectionsOut: nodeInfo.outgoing_connections_count ?? null,
+          connectionsIn: nodeInfo.incoming_connections_count ?? null,
+          whitePeers: nodeInfo.white_peerlist_size ?? null,
+          greyPeers: nodeInfo.grey_peerlist_size ?? null,
+          txPoolSize: nodeInfo.tx_pool_size ?? null,
+          txCount: nodeInfo.tx_count ?? null,
+        }
+      : null,
     poolMode: settings.poolMode,
     // EXPERIMENTAL Tari (XTM) merge-mining - "enabled" just reflects whether
     // a Tari address is configured (p2pool only adds --merge-mine when one
@@ -164,11 +184,20 @@ app.get('/api/pool', async (req, res) => {
     network: {
       difficulty: p2pool.network.difficulty,
       height: p2pool.network.height,
+      reward: p2pool.network.reward,
       algorithm: 'RandomX',
+      // Sidechain-wide (all miners on this P2Pool mode), not just this node -
+      // from p2pool's own pool/stats file (see lib/p2poolApi.js).
+      minersOnSidechain: p2pool.pool.miners,
+      totalBlocksFound: p2pool.pool.totalBlocksFound,
     },
     bestShare: {
       sinceBlock: p2pool.stratum.currentEffort,
       allTime: p2pool.stratum.averageEffort,
+    },
+    shares: {
+      found: p2pool.stratum.sharesFound,
+      failed: p2pool.stratum.sharesFailed,
     },
     lastShareAt: workers.length
       ? workers.reduce((a, b) => (a.lastSeen > b.lastSeen ? a : b)).lastSeen

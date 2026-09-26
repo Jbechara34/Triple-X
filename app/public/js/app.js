@@ -109,6 +109,25 @@ async function refreshMain() {
   document.getElementById('main-diff').textContent = fmtDifficulty(data.difficulty?.bestShare);
   document.getElementById('main-diff-sub').textContent = `Network: ${fmtDifficulty(data.difficulty?.network)}`;
 
+  const node = data.node || {};
+  document.getElementById('main-peers-out').textContent = node.connectionsOut ?? '—';
+  document.getElementById('main-peers-in').textContent = node.connectionsIn ?? '—';
+  document.getElementById('main-peers-sub').textContent =
+    node.whitePeers != null ? `${node.whitePeers} known peers (white list)` : '—';
+
+  document.getElementById('main-p2pool-connections').textContent = data.p2pool?.connections ?? '—';
+  document.getElementById('main-p2pool-connections-sub').textContent =
+    data.p2pool?.incomingConnections != null
+      ? `Miners connected · ${data.p2pool.incomingConnections} incoming`
+      : "Miners connected to this node's stratum";
+
+  document.getElementById('main-shares-found').textContent = data.p2pool?.sharesFound ?? '—';
+  document.getElementById('main-shares-failed').textContent = data.p2pool?.sharesFailed ?? '—';
+
+  document.getElementById('sidebar-node-id').textContent = node.version
+    ? `Monero ${node.version}${node.nettype ? ` · ${node.nettype}` : ''}`
+    : '—';
+
   const checklist = data.readiness || {};
   document.querySelectorAll('#main-checklist .status-dot').forEach((dot) => {
     const key = dot.dataset.check;
@@ -228,6 +247,11 @@ async function refreshPool() {
 
   document.getElementById('pool-net-diff').textContent = fmtDifficulty(data.network?.difficulty);
   document.getElementById('pool-net-sub').textContent = `RandomX · Height ${data.network?.height ?? '—'}`;
+
+  document.getElementById('pool-network-miners').textContent = data.network?.minersOnSidechain ?? '—';
+  document.getElementById('pool-network-blocks').textContent = data.network?.totalBlocksFound ?? '—';
+  document.getElementById('pool-network-reward').textContent =
+    data.network?.reward != null ? `${(data.network.reward / 1e12).toFixed(6)} XMR` : '—';
 
   const hr = data.hashrate || {};
   const row = document.getElementById('pool-hashrate-row');

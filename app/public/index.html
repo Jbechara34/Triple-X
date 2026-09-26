@@ -64,6 +64,7 @@
           <div class="ns-value" id="sidebar-pool-mode">Standard</div>
         </div>
       </div>
+      <div class="sidebar-node-id" id="sidebar-node-id">—</div>
     </div>
   </aside>
 
@@ -216,6 +217,41 @@
         </div>
       </div>
 
+      <div class="grid">
+        <div class="card">
+          <h2>Network Peers</h2>
+          <div class="stat-split">
+            <div class="stat-split-item">
+              <div class="stat-split-value" id="main-peers-out">—</div>
+              <div class="stat-split-label">Outgoing</div>
+            </div>
+            <div class="stat-split-item">
+              <div class="stat-split-value" id="main-peers-in">—</div>
+              <div class="stat-split-label">Incoming</div>
+            </div>
+          </div>
+          <div class="sub-value" id="main-peers-sub">—</div>
+        </div>
+        <div class="card">
+          <h2>P2Pool Connections</h2>
+          <div class="big-value" id="main-p2pool-connections">—</div>
+          <div class="sub-value" id="main-p2pool-connections-sub">Miners connected to this node's stratum</div>
+        </div>
+        <div class="card">
+          <h2>Shares</h2>
+          <div class="stat-split">
+            <div class="stat-split-item">
+              <div class="stat-split-value stat-good" id="main-shares-found">—</div>
+              <div class="stat-split-label">Found</div>
+            </div>
+            <div class="stat-split-item">
+              <div class="stat-split-value stat-bad" id="main-shares-failed">—</div>
+              <div class="stat-split-label">Failed</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
       <div class="card full-width">
         <h2>Readiness Checklist</h2>
         <ul class="checklist" id="main-checklist">
@@ -250,6 +286,24 @@
           <h2>Network Difficulty</h2>
           <div id="pool-net-diff" class="big-value" style="font-size:20px">—</div>
           <div id="pool-net-sub" class="sub-value">—</div>
+        </div>
+      </div>
+
+      <div class="card full-width">
+        <h2>P2Pool Network (Sidechain-Wide)</h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Miners on this Sidechain</div>
+            <div id="pool-network-miners" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Blocks Found (All Miners)</div>
+            <div id="pool-network-blocks" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Block Reward</div>
+            <div id="pool-network-reward" class="big-value" style="font-size:20px">—</div>
+          </div>
         </div>
       </div>
 
