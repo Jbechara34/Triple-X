@@ -30,8 +30,11 @@ jobs:
 
       # monerod's from-source build is slow - cap it so CI fails fast instead
       # of burning hours of runner time; local builds have no such limit.
+      # p2pool also compiles from source and can occasionally run past 30min
+      # on a contended runner even though it normally finishes well under
+      # that - give it more headroom than app's plain `npm install`.
       - name: Build ${{ matrix.name }}
-        timeout-minutes: ${{ matrix.name == 'monerod' && 90 || 30 }}
+        timeout-minutes: ${{ matrix.name == 'monerod' && 90 || (matrix.name == 'p2pool' && 60 || 30) }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}

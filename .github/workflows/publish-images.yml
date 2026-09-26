@@ -65,7 +65,7 @@ jobs:
           OWNER: ${{ github.repository_owner }}
 
       - name: Build and push ${{ matrix.name }}
-        timeout-minutes: ${{ matrix.name == 'monerod' && 180 || 30 }}
+        timeout-minutes: ${{ matrix.name == 'monerod' && 180 || (matrix.name == 'p2pool' && 60 || 30) }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
@@ -78,5 +78,5 @@ jobs:
 
       # After this job finishes, grab the pushed digest from the GHCR
       # package page (or `docker buildx imagetools inspect <tag>`) and pin
-      # yourstore-monero-p2pool/docker-compose.yml's `image:` lines to
+      # MoneroP2P-monero-p2pool/docker-compose.yml's `image:` lines to
       # `@sha256:<digest>`, matching how Umbrel's own apps do it.
