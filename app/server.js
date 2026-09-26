@@ -22,6 +22,7 @@ const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
 const tariBlocks = require('./lib/tariBlocks');
 const minotariRpc = require('./lib/minotariRpc');
+const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 
 const app = express();
@@ -163,6 +164,38 @@ app.get('/api/pool', async (req, res) => {
 
   const runningDifferentMode = requestedMode !== settings.poolMode;
 
+  // Optional (see lib/config.js observerEnabled) - the public P2Pool
+  // Observer service, queried for network-wide info always when enabled,
+  // and for this node's own lifetime shares when a payout address is set.
+  // Never called unless the user opted in, since it sends the address to a
+  // third party over clearnet.
+  let observer = null;
+  if (settings.observerEnabled) {
+    try {
+      const [poolInfo, minerInfo] = await Promise.all([
+        p2poolObserver.getPoolInfo(requestedMode),
+        settings.walletAddress ? p2poolObserver.getMinerInfo(requestedMode, settings.walletAddress) : null,
+      ]);
+      observer = {
+        globalMiners: poolInfo?.sidechain?.miners ?? null,
+        p2poolVersion: poolInfo?.versions?.p2pool?.version ?? null,
+        moneroVersion: poolInfo?.versions?.monero?.version ?? null,
+        yourShares: minerInfo
+          ? {
+              lastShareHeight: minerInfo.last_share_height ?? null,
+              lastShareAt: minerInfo.last_share_timestamp ? minerInfo.last_share_timestamp * 1000 : null,
+              totalShares: Array.isArray(minerInfo.shares)
+                ? minerInfo.shares.reduce((sum, s) => sum + (s.shares || 0), 0)
+                : null,
+            }
+          : null,
+        explorerUrl: p2poolObserver.explorerUrlFor(requestedMode, settings.walletAddress),
+      };
+    } catch (err) {
+      observer = { error: err.message };
+    }
+  }
+
   res.json({
     requestedMode,
     activeMode: settings.poolMode,
@@ -199,6 +232,8 @@ app.get('/api/pool', async (req, res) => {
       found: p2pool.stratum.sharesFound,
       failed: p2pool.stratum.sharesFailed,
     },
+    // null unless enabled in Settings - see comment above where it's built.
+    observer,
     lastShareAt: workers.length
       ? workers.reduce((a, b) => (a.lastSeen > b.lastSeen ? a : b)).lastSeen
       : null,

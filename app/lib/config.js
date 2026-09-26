@@ -17,6 +17,10 @@ const DEFAULTS = {
   // Optional Tari (XTM) merge-mining payout address - EXPERIMENTAL. Leave
   // blank to keep mining XMR only (see docker/p2pool/entrypoint.sh).
   tariAddress: '',
+  // Off by default - enabling this sends your payout address to the public
+  // git.gammaspectra.live/P2Pool/observer service (over clearnet) to fetch
+  // your lifetime share history. See lib/p2poolObserver.js.
+  observerEnabled: false,
   updatedAt: null,
 };
 
@@ -81,6 +85,10 @@ function writeSettings(update) {
     // yet (EXPERIMENTAL feature). p2pool/the Tari node are the source of
     // truth and will reject a bad address.
     next.tariAddress = update.tariAddress.trim();
+  }
+
+  if (typeof update.observerEnabled === 'boolean') {
+    next.observerEnabled = update.observerEnabled;
   }
 
   next.updatedAt = new Date().toISOString();

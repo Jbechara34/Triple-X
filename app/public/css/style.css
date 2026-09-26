@@ -25,6 +25,42 @@
   --muted: #6b7076;
 }
 
+/* Alternate accent presets - same layout/structure, different palette.
+   Independent of the light/dark class above (see .light rules further
+   down) so any of these can combine with light mode too. Cycled via the
+   titlebar's theme button (see app.js applyTheme). */
+:root[data-theme="tari"] {
+  --bg: #0c0a14;
+  --panel: #171224;
+  --panel-alt: #1f1830;
+  --border: #332a4a;
+  --orange: #9b6bff;
+  --orange-dim: #7548d6;
+  --tari: #ff9f4a;
+}
+:root[data-theme="tari"].light {
+  --bg: #f2eefc;
+  --panel: #ffffff;
+  --panel-alt: #f6f2ff;
+  --border: #ddd2f7;
+}
+
+:root[data-theme="molten"] {
+  --bg: #0f0705;
+  --panel: #1d100b;
+  --panel-alt: #271611;
+  --border: #4a2418;
+  --orange: #ff4433;
+  --orange-dim: #cc2f22;
+  --tari: #ffb020;
+}
+:root[data-theme="molten"].light {
+  --bg: #fdf1ea;
+  --panel: #ffffff;
+  --panel-alt: #fbe9df;
+  --border: #f0cdbb;
+}
+
 * { box-sizing: border-box; }
 
 html, body {
@@ -800,6 +836,22 @@ input[type="text"], select {
 }
 input[type="text"]:focus, select:focus { outline: none; border-color: var(--orange); }
 .field { margin-bottom: 16px; }
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.checkbox-label input[type="checkbox"] {
+  width: 15px;
+  height: 15px;
+  accent-color: var(--orange);
+  cursor: pointer;
+}
 
 button.primary {
   all: unset;

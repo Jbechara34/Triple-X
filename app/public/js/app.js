@@ -276,6 +276,22 @@ async function refreshPool() {
   document.getElementById('pool-miner-url').value = data.minerConfig?.url || '—';
   document.getElementById('pool-payout-address').value = data.minerConfig?.payoutAddress || 'Not configured — set this in Settings';
 
+  const observerCard = document.getElementById('pool-observer-card');
+  const observer = data.observer;
+  if (observer && !observer.error) {
+    observerCard.style.display = '';
+    document.getElementById('observer-global-miners').textContent = observer.globalMiners ?? '—';
+    document.getElementById('observer-your-shares').textContent = observer.yourShares?.totalShares ?? '—';
+    document.getElementById('observer-last-share').textContent = observer.yourShares?.lastShareAt
+      ? fmtTime(observer.yourShares.lastShareAt)
+      : '—';
+    document.getElementById('observer-p2pool-version').textContent = observer.p2poolVersion || '—';
+    document.getElementById('observer-monero-version').textContent = observer.moneroVersion || '—';
+    document.getElementById('observer-explorer-link').href = observer.explorerUrl || '#';
+  } else {
+    observerCard.style.display = 'none';
+  }
+
   const tari = data.tari || {};
   document.getElementById('pool-tari-status').textContent = tari.enabled ? 'Enabled' : 'Not configured';
   document.getElementById('pool-tari-address').textContent = tari.payoutAddress || '—';
@@ -418,6 +434,7 @@ async function loadSettings() {
   document.getElementById('settings-wallet').value = data.walletAddress || '';
   document.getElementById('settings-pool-mode').value = data.poolMode || 'standard';
   document.getElementById('settings-tari-address').value = data.tariAddress || '';
+  document.getElementById('settings-observer-enabled').checked = !!data.observerEnabled;
   poolModeSelect.value = data.poolMode || 'standard';
   setSidebarPoolMode(data.poolMode || 'standard');
 }
@@ -441,6 +458,7 @@ document.getElementById('settings-save').addEventListener('click', async () => {
         walletAddress: document.getElementById('settings-wallet').value.trim(),
         poolMode: document.getElementById('settings-pool-mode').value,
         tariAddress: document.getElementById('settings-tari-address').value.trim(),
+        observerEnabled: document.getElementById('settings-observer-enabled').checked,
       }),
     });
     status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';
@@ -466,7 +484,7 @@ function refreshActiveTab() {
 }
 
 // ---------------------------------------------------------------------------
-// Titlebar: theme toggle + explorer link
+// Titlebar: light/dark toggle + color preset cycle + explorer link
 // ---------------------------------------------------------------------------
 const THEME_KEY = 'p2pool-dashboard-theme';
 function applyTheme(theme) {
@@ -481,6 +499,36 @@ document.getElementById('tb-theme').addEventListener('click', () => {
   const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
   applyTheme(next);
   try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* ignore */ }
+});
+
+// Color presets - same layout, different accent palette (see :root[data-theme]
+// blocks in style.css). Independent of the light/dark toggle above.
+const PALETTE_KEY = 'p2pool-dashboard-palette';
+const PALETTES = [
+  { id: 'classic', label: 'Monero Classic' },
+  { id: 'tari', label: 'Tari Nebula' },
+  { id: 'molten', label: 'Molten Cave' },
+];
+function applyPalette(id) {
+  if (id === 'classic') {
+    document.documentElement.removeAttribute('data-theme');
+  } else {
+    document.documentElement.setAttribute('data-theme', id);
+  }
+  const label = PALETTES.find((p) => p.id === id)?.label || id;
+  document.getElementById('tb-palette').title = `Color theme: ${label} (click to cycle)`;
+}
+let currentPalette = 'classic';
+try {
+  currentPalette = localStorage.getItem(PALETTE_KEY) || 'classic';
+} catch (err) { /* ignore */ }
+applyPalette(currentPalette);
+document.getElementById('tb-palette').addEventListener('click', () => {
+  const idx = PALETTES.findIndex((p) => p.id === currentPalette);
+  currentPalette = PALETTES[(idx + 1) % PALETTES.length].id;
+  applyPalette(currentPalette);
+  try { localStorage.setItem(PALETTE_KEY, currentPalette); } catch (err) { /* ignore */ }
+  showToast(`Theme: ${PALETTES.find((p) => p.id === currentPalette).label}`);
 });
 
 getJSON('/api/blocks')

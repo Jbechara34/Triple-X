@@ -14,7 +14,8 @@
   </div>
   <div class="titlebar-actions">
     <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
-    <button class="tb-icon" id="tb-theme" title="Toggle theme">&#127769;</button>
+    <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
+    <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
   </div>
 </div>
 <div id="app">
@@ -363,6 +364,28 @@
         </div>
       </div>
 
+      <div class="card full-width" id="pool-observer-card" style="display:none">
+        <h2>P2Pool Observer <span class="badge-experimental">3rd-party</span></h2>
+        <div class="grid">
+          <div>
+            <div class="sub-value">Miners (Whole Network)</div>
+            <div id="observer-global-miners" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Your Lifetime Shares</div>
+            <div id="observer-your-shares" class="big-value" style="font-size:20px">—</div>
+          </div>
+          <div>
+            <div class="sub-value">Your Last Share</div>
+            <div id="observer-last-share" class="big-value" style="font-size:16px">—</div>
+          </div>
+        </div>
+        <div class="hint">
+          Recommended versions - P2Pool <span id="observer-p2pool-version">—</span> · Monero <span id="observer-monero-version">—</span>.
+          <a id="observer-explorer-link" href="#" target="_blank" rel="noopener">View full history on p2pool.observer</a>.
+        </div>
+      </div>
+
       <div class="card full-width">
         <h2>Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></h2>
         <div class="grid">
@@ -458,6 +481,21 @@
             Mines XTM alongside XMR with the same hashrate, at no extra cost. Requires the bundled Minotari
             node + wallet containers to be running — see the Logs tab. Experimental: not yet verified against a
             live node.
+          </div>
+        </div>
+
+        <h2 style="margin-top:20px">P2Pool Observer <span class="badge-experimental">3rd-party</span></h2>
+        <div class="field">
+          <label class="checkbox-label">
+            <input type="checkbox" id="settings-observer-enabled" />
+            Enable network-wide stats from p2pool.observer
+          </label>
+          <div class="hint warn">
+            Privacy note: turning this on sends your payout address to the public, community-run
+            <a href="https://git.gammaspectra.live/P2Pool/observer" target="_blank" rel="noopener">P2Pool Observer</a>
+            service over clearnet, so it can look up your lifetime share history. It is not affiliated with this
+            dashboard. Leave this off if you'd rather not share your address externally - everything else in this
+            app works fine without it.
           </div>
         </div>
 
