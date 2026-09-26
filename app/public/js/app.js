@@ -19,6 +19,11 @@ function showTab(name) {
     el.style.display = key === name ? '' : 'none';
   });
   tabButtons.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === name));
+  if (name === 'logs') {
+    startLogStreams();
+  } else {
+    stopLogStreams();
+  }
   refreshActiveTab();
 }
 
@@ -219,8 +224,11 @@ async function refreshBlocks() {
 }
 
 // ---------------------------------------------------------------------------
-// Logs tab
+// Logs tab - live tail via Server-Sent Events, like `tail -f` in a terminal.
 // ---------------------------------------------------------------------------
+const MAX_CLIENT_LOG_LINES = 500;
+let logStreams = [];
+
 function renderLogBox(el, result) {
   if (!result) return;
   if (result.error && (!result.lines || !result.lines.length)) {
@@ -231,16 +239,44 @@ function renderLogBox(el, result) {
   el.scrollTop = el.scrollHeight;
 }
 
-async function refreshLogs() {
-  let data;
-  try {
-    data = await getJSON('/api/logs');
-  } catch (err) {
-    console.error(err);
-    return;
-  }
-  renderLogBox(document.getElementById('logs-monerod'), data.monerod);
-  renderLogBox(document.getElementById('logs-p2pool'), data.p2pool);
+function appendLogLines(el, lines) {
+  const wasAtBottom = el.scrollTop + el.clientHeight >= el.scrollHeight - 4;
+  const isPlaceholder = !el.dataset.hasContent;
+  const existing = isPlaceholder ? [] : el.textContent.split('\n');
+  const combined = existing.concat(lines).slice(-MAX_CLIENT_LOG_LINES);
+  el.textContent = combined.join('\n');
+  el.dataset.hasContent = '1';
+  if (wasAtBottom) el.scrollTop = el.scrollHeight;
+}
+
+function openLogStream(source, el) {
+  el.dataset.hasContent = '';
+  const es = new EventSource(`/api/logs/stream?source=${encodeURIComponent(source)}`);
+  es.addEventListener('init', (e) => {
+    const result = JSON.parse(e.data);
+    renderLogBox(el, result);
+    el.dataset.hasContent = result.lines && result.lines.length ? '1' : '';
+  });
+  es.addEventListener('append', (e) => {
+    appendLogLines(el, JSON.parse(e.data));
+  });
+  es.onerror = () => {
+    // EventSource auto-reconnects on transient drops; nothing to do here.
+  };
+  return es;
+}
+
+function startLogStreams() {
+  if (logStreams.length) return;
+  logStreams = [
+    openLogStream('monerod', document.getElementById('logs-monerod')),
+    openLogStream('p2pool', document.getElementById('logs-p2pool')),
+  ];
+}
+
+function stopLogStreams() {
+  logStreams.forEach((es) => es.close());
+  logStreams = [];
 }
 
 // ---------------------------------------------------------------------------
@@ -299,7 +335,7 @@ function refreshActiveTab() {
   if (active === 'main') refreshMain();
   if (active === 'pool') refreshPool();
   if (active === 'blocks') refreshBlocks();
-  if (active === 'logs') refreshLogs();
+  // 'logs' is excluded - it stays live via Server-Sent Events (see startLogStreams).
 }
 
 // ---------------------------------------------------------------------------

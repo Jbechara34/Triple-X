@@ -1,5 +1,18 @@
 'use strict';
 
+// Keep the process alive on unexpected errors instead of crashing - an
+// uncaught error anywhere (a bad response from monerod/p2pool, a flaky
+// filesystem read, etc.) would otherwise kill the whole dashboard and, under
+// `restart: on-failure`, loop it endlessly instead of just logging and
+// carrying on. This is a monitoring dashboard, not a system of record, so
+// staying up in a possibly-degraded state beats restarting.
+process.on('unhandledRejection', (reason) => {
+  console.error('[server] Unhandled promise rejection:', reason);
+});
+process.on('uncaughtException', (err) => {
+  console.error('[server] Uncaught exception:', err);
+});
+
 const path = require('path');
 const express = require('express');
 
@@ -158,6 +171,13 @@ app.get('/api/logs', async (req, res) => {
     logs.tailFile(blocks.LOG_FILE),
   ]);
   res.json({ monerod, p2pool });
+});
+
+// Live tail (Server-Sent Events) - like `tail -f`. ?source=monerod|p2pool
+app.get('/api/logs/stream', (req, res) => {
+  const file = req.query.source === 'p2pool' ? blocks.LOG_FILE : MONEROD_LOG_FILE;
+  const stop = logs.attachTailStream(res, file);
+  req.on('close', stop);
 });
 
 // ---------------------------------------------------------------------------
