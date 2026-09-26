@@ -10,6 +10,19 @@ DATA_API_DIR="${DATA_API_DIR:-/data/p2pool-api}"
 LOG_DIR="${LOG_DIR:-/data/p2pool-logs}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/p2pool.log}"
 
+# The Dockerfile leaves this container running as root (no USER) because
+# bind-mounted volumes (e.g. Umbrel/5tratumOS's ${APP_DATA_DIR} paths) arrive
+# owned by root regardless of what the image sets up - unlike Docker-managed
+# named volumes, a bind mount doesn't inherit the image directory's
+# ownership. So: chown everything p2pool needs to write while we're still
+# root, then re-exec this same script as the unprivileged p2pool user before
+# touching any settings or starting p2pool.
+if [ "$(id -u)" = "0" ]; then
+  mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
+  chown p2pool:p2pool "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
+  exec setpriv --reuid=p2pool --regid=p2pool --init-groups "$0" "$@"
+fi
+
 MONEROD_HOST="${MONEROD_HOST:-monerod}"
 MONEROD_RPC_PORT="${MONEROD_RPC_PORT:-18081}"
 MONEROD_ZMQ_PORT="${MONEROD_ZMQ_PORT:-18083}"

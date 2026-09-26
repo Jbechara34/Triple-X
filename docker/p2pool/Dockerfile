@@ -43,7 +43,10 @@ RUN groupadd -r p2pool -g 1000 && \
 COPY entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-USER p2pool
+# No USER here (stays root) - entrypoint.sh chowns the mounted volumes (which
+# arrive owned by root when bind-mounted from the host, e.g. Umbrel/5tratumOS's
+# ${APP_DATA_DIR} paths, unlike Docker-managed named volumes) and then drops
+# to the unprivileged p2pool user itself via setpriv before running p2pool.
 WORKDIR /home/p2pool/.p2pool
 
 EXPOSE 3333 37888 37889 37890

@@ -68,11 +68,16 @@ RUN if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cu
 # needs to write monerod.log here (see --log-file in docker-compose.yml).
 RUN mkdir -p /var/log/monerod && chown monero:monero /var/log/monerod
 
-USER monero
+COPY entrypoint.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+# No USER here (stays root) - entrypoint.sh chowns the mounted volumes and
+# drops to the unprivileged monero user itself via setpriv before running
+# monerod. See entrypoint.sh for why this is necessary.
 WORKDIR /home/monero
 
 EXPOSE 18080 18081 18083
 VOLUME ["/home/monero/.bitmonero"]
 
-ENTRYPOINT ["/usr/bin/tini", "--", "monerod"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["--help"]
