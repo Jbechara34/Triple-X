@@ -7,19 +7,56 @@
 <link rel="stylesheet" href="css/style.css" />
 </head>
 <body>
+<div class="titlebar">
+  <div class="titlebar-brand">
+    <span class="titlebar-dot"></span>
+    <span class="titlebar-title">Monero P2Pool Dashboard</span>
+  </div>
+  <div class="titlebar-actions">
+    <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
+    <button class="tb-icon" id="tb-theme" title="Toggle theme">&#127769;</button>
+  </div>
+</div>
 <div id="app">
   <aside class="sidebar">
-    <div class="brand">
-      <div class="brand-dot"></div>
-      <div class="brand-text">Monero Node<small>+ P2Pool Dashboard</small></div>
+    <div class="account-card">
+      <div class="account-top">
+        <div class="account-avatar">M</div>
+        <div>
+          <div class="account-kicker">Node #0</div>
+          <div class="account-name">This Node</div>
+        </div>
+      </div>
+      <div class="account-balance">
+        <span class="account-balance-unit">HR</span>
+        <span id="sidebar-hashrate">0.00 H/s</span>
+      </div>
     </div>
+
     <nav class="tabs">
-      <button data-tab="main" class="active">Main</button>
-      <button data-tab="pool">Pool</button>
-      <button data-tab="blocks">Blocks</button>
-      <button data-tab="settings">Settings</button>
+      <button data-tab="main" class="active">Main<span class="chev">&#8250;</span></button>
+      <button data-tab="pool">Pool<span class="chev">&#8250;</span></button>
+      <button data-tab="blocks">Blocks<span class="chev">&#8250;</span></button>
+      <button data-tab="settings">Settings<span class="chev">&#8250;</span></button>
     </nav>
-    <div class="sidebar-footer">Refreshes every 15s</div>
+
+    <div class="sidebar-footer">
+      <div class="sync-block">
+        <div class="sync-label">Node is synchronized</div>
+        <div class="progress-bar"><div id="sidebar-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="sync-block">
+        <div class="sync-label" id="sidebar-daemon-label">P2Pool is running</div>
+        <div class="progress-bar"><div id="sidebar-daemon-bar" class="progress-bar-fill" style="width:0%"></div></div>
+      </div>
+      <div class="network-status">
+        <span class="bolt">&#9889;</span>
+        <div>
+          <div class="ns-label">Pool mode</div>
+          <div class="ns-value" id="sidebar-pool-mode">Standard</div>
+        </div>
+      </div>
+    </div>
   </aside>
 
   <main>

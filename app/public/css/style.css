@@ -12,6 +12,16 @@
   --red: #e05252;
   --yellow: #e0b552;
   --radius: 10px;
+  --titlebar-h: 40px;
+}
+
+:root.light {
+  --bg: #eef0f2;
+  --panel: #ffffff;
+  --panel-alt: #f2f3f5;
+  --border: #dbdde1;
+  --text: #1c1e21;
+  --muted: #6b7076;
 }
 
 * { box-sizing: border-box; }
@@ -24,57 +34,143 @@ html, body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Titlebar ------------------------------------------------------------ */
+.titlebar {
+  height: var(--titlebar-h);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  background: #0e1013;
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+:root.light .titlebar { background: #ffffff; }
+
+.titlebar-brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.titlebar-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--orange);
+  box-shadow: 0 0 8px var(--orange);
+}
+
+.titlebar-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+  letter-spacing: 0.01em;
+}
+
+.titlebar-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.tb-icon {
+  all: unset;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  color: var(--muted);
+}
+
+.tb-icon:hover { background: var(--panel-alt); color: var(--text); }
+
 #app {
   display: flex;
-  min-height: 100vh;
+  min-height: calc(100vh - var(--titlebar-h));
 }
 
 /* Sidebar / tabs -------------------------------------------------------- */
 .sidebar {
-  width: 220px;
+  width: 260px;
   flex-shrink: 0;
   background: linear-gradient(180deg, #14161a 0%, #0e1013 100%);
   border-right: 1px solid var(--border);
-  padding: 20px 0;
+  padding: 16px;
   display: flex;
   flex-direction: column;
+  gap: 16px;
 }
 
-.brand {
+:root.light .sidebar { background: linear-gradient(180deg, #f7f8f9 0%, #eef0f2 100%); }
+
+/* Account-style summary card -------------------------------------------- */
+.account-card {
+  background:
+    radial-gradient(120% 140% at 100% 0%, rgba(255, 102, 0, 0.35), transparent 55%),
+    linear-gradient(135deg, #3a2a22 0%, #241c18 60%, #1a1512 100%);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+}
+
+.account-top {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 0 20px 20px;
-  border-bottom: 1px solid var(--border);
-  margin-bottom: 12px;
+  margin-bottom: 16px;
 }
 
-.brand-dot {
-  width: 14px;
-  height: 14px;
+.account-avatar {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
   border-radius: 50%;
-  background: var(--orange);
-  box-shadow: 0 0 10px var(--orange);
+  background: #fff;
+  color: var(--orange);
+  font-weight: 700;
+  font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 2px rgba(255, 102, 0, 0.5);
 }
 
-.brand-text {
-  font-weight: 600;
-  font-size: 15px;
-  letter-spacing: 0.02em;
-}
-
-.brand-text small {
-  display: block;
-  color: var(--muted);
-  font-weight: 400;
+.account-kicker {
   font-size: 11px;
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.account-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.account-balance {
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.account-balance-unit {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--orange);
+  margin-right: 6px;
 }
 
 nav.tabs {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 10px;
 }
 
 nav.tabs button {
@@ -82,12 +178,19 @@ nav.tabs button {
   cursor: pointer;
   padding: 12px 14px;
   border-radius: var(--radius);
+  border-left: 3px solid transparent;
   color: var(--muted);
   font-size: 14px;
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  transition: background 0.15s, color 0.15s;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+
+nav.tabs button .chev {
+  color: var(--muted);
+  font-size: 15px;
 }
 
 nav.tabs button:hover {
@@ -97,15 +200,50 @@ nav.tabs button:hover {
 
 nav.tabs button.active {
   background: rgba(255, 102, 0, 0.12);
+  border-left-color: var(--orange);
   color: var(--orange);
   font-weight: 600;
 }
 
+nav.tabs button.active .chev { color: var(--orange); }
+
 .sidebar-footer {
   margin-top: auto;
-  padding: 12px 20px;
-  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.sync-block .sync-label {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+
+.network-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding-top: 4px;
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.network-status .bolt {
+  color: var(--orange);
+  font-size: 16px;
+}
+
+.network-status .ns-label {
   font-size: 11px;
+  color: var(--muted);
+}
+
+.network-status .ns-value {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
 }
 
 /* Main content ------------------------------------------------------------ */

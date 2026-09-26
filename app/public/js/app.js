@@ -109,6 +109,24 @@ async function refreshMain() {
     dot.classList.toggle('ok', !!checklist[key]);
     dot.classList.toggle('bad', !checklist[key]);
   });
+
+  // Sidebar summary (mirrors the main tab's key numbers)
+  document.getElementById('sidebar-hashrate').textContent = fmtHashrate(data.hashrate?.hashrate1h);
+  if (!sync.error) {
+    const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
+    document.getElementById('sidebar-sync-bar').style.width = `${pct}%`;
+  } else {
+    document.getElementById('sidebar-sync-bar').style.width = '0%';
+  }
+  const daemonBar = document.getElementById('sidebar-daemon-bar');
+  const daemonLabel = document.getElementById('sidebar-daemon-label');
+  if (checklist.stratumRunning) {
+    daemonBar.style.width = '100%';
+    daemonLabel.textContent = 'P2Pool is running';
+  } else {
+    daemonBar.style.width = '0%';
+    daemonLabel.textContent = 'P2Pool is not running';
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -213,6 +231,12 @@ async function loadSettings() {
   document.getElementById('settings-wallet').value = data.walletAddress || '';
   document.getElementById('settings-pool-mode').value = data.poolMode || 'standard';
   poolModeSelect.value = data.poolMode || 'standard';
+  setSidebarPoolMode(data.poolMode || 'standard');
+}
+
+function setSidebarPoolMode(mode) {
+  const label = { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[mode] || mode;
+  document.getElementById('sidebar-pool-mode').textContent = label;
 }
 
 document.getElementById('settings-save').addEventListener('click', async () => {
@@ -232,6 +256,7 @@ document.getElementById('settings-save').addEventListener('click', async () => {
     });
     status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';
     showToast('Settings saved');
+    setSidebarPoolMode(document.getElementById('settings-pool-mode').value);
   } catch (err) {
     status.textContent = err.message;
     status.classList.add('warn');
@@ -249,6 +274,30 @@ function refreshActiveTab() {
   if (active === 'pool') refreshPool();
   if (active === 'blocks') refreshBlocks();
 }
+
+// ---------------------------------------------------------------------------
+// Titlebar: theme toggle + explorer link
+// ---------------------------------------------------------------------------
+const THEME_KEY = 'p2pool-dashboard-theme';
+function applyTheme(theme) {
+  document.documentElement.classList.toggle('light', theme === 'light');
+}
+try {
+  applyTheme(localStorage.getItem(THEME_KEY) || 'dark');
+} catch (err) {
+  applyTheme('dark');
+}
+document.getElementById('tb-theme').addEventListener('click', () => {
+  const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
+  applyTheme(next);
+  try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* ignore */ }
+});
+
+getJSON('/api/blocks')
+  .then((data) => {
+    if (data.explorerBaseUrl) document.getElementById('tb-explorer').href = data.explorerBaseUrl;
+  })
+  .catch(() => {});
 
 loadSettings();
 refreshActiveTab();
