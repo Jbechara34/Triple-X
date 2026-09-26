@@ -302,16 +302,40 @@ main {
   filter: blur(1px);
 }
 
-.mining-rock polygon {
-  fill: var(--panel-alt);
+.mining-rock-main {
+  fill: url(#rock-gradient);
   stroke: var(--border);
   stroke-width: 1.5;
   stroke-linejoin: round;
 }
 
-.mining-rock .mining-rock-facet {
-  fill: color-mix(in srgb, var(--orange) 8%, color-mix(in srgb, var(--tari) 8%, var(--panel-alt)));
+.mining-pebble {
+  fill: url(#rock-gradient);
+  stroke: var(--border);
+  stroke-width: 1;
+}
+
+.mining-rock-facet-light {
+  fill: rgba(255, 255, 255, 0.08);
   stroke: none;
+}
+
+.mining-rock-facet-dark {
+  fill: rgba(0, 0, 0, 0.4);
+  stroke: none;
+}
+
+.mining-rock-crack {
+  fill: none;
+  stroke: rgba(0, 0, 0, 0.55);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.mining-coin-socket {
+  fill: rgba(0, 0, 0, 0.45);
+  stroke: rgba(0, 0, 0, 0.3);
+  stroke-width: 1;
 }
 
 .pickaxe-handle {
@@ -330,16 +354,21 @@ main {
    point in the SVG's own coordinate system (transform-box: view-box), not a
    percentage of the shape's own bounding box. That's what makes it swing
    from the grip end instead of spinning around the head. */
+/* Rest angle actually lifts the head up above the pivot (like a held
+   pickaxe, anticipating a swing) instead of just tilting it while it
+   still hangs down next to the rock - that drooping look was the "upside
+   down" pickaxe the head sweeps DOWN from here to strike (see the
+   pickaxe-swing-xmr/xtm keyframes' 48% impact angle). */
 .mining-pickaxe-xmr {
   transform-box: view-box;
   transform-origin: 30px 55px;
-  transform: rotate(-20deg);
+  transform: rotate(-130deg);
 }
 
 .mining-pickaxe-xtm {
   transform-box: view-box;
   transform-origin: 190px 55px;
-  transform: rotate(20deg);
+  transform: rotate(130deg);
 }
 
 /* A visible coin pile sitting in the rock at all times, not hidden ore -
@@ -376,7 +405,8 @@ main {
 /* Idle (default): that side's pickaxe/logo hold still. The rock only shakes
    when at least one side is actually mining it. */
 .mining-half.is-idle .mining-coin-logo { opacity: 0.5; }
-#mining-combined:not(.any-active) .mining-rock polygon { opacity: 0.6; }
+#mining-combined:not(.any-active) .mining-rock-main,
+#mining-combined:not(.any-active) .mining-pebble { opacity: 0.6; }
 
 /* Active: each side's pickaxe swings and hits the shared rock once per
    cycle - Tari's is offset half a cycle so they strike alternately, like
@@ -422,15 +452,15 @@ main {
 #embedded-coin-xtm.is-active { animation-delay: 0.7s; }
 
 @keyframes pickaxe-swing-xmr {
-  0%, 32% { transform: rotate(-20deg); }
+  0%, 32% { transform: rotate(-130deg); }
   48% { transform: rotate(-55deg); }
-  62%, 100% { transform: rotate(-20deg); }
+  62%, 100% { transform: rotate(-130deg); }
 }
 
 @keyframes pickaxe-swing-xtm {
-  0%, 32% { transform: rotate(20deg); }
+  0%, 32% { transform: rotate(130deg); }
   48% { transform: rotate(55deg); }
-  62%, 100% { transform: rotate(20deg); }
+  62%, 100% { transform: rotate(130deg); }
 }
 
 @keyframes embedded-coin-reveal {
