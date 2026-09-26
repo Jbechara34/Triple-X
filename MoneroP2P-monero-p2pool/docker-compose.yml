@@ -21,12 +21,12 @@ services:
       APP_PORT: 3000
 
   web:
-    # Pinned to the Dev7 build's exact digest (not :latest) so the platform
+    # Pinned to the Dev8 build's exact digest (not :latest) so the platform
     # is forced to pull this specific image instead of reusing whatever it
     # already has cached under a floating tag. Update this digest (see
     # ../.github/workflows/publish-images.yml) every time a new version is
     # published.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-app@sha256:c0cde1419043b0f394bdd35b964bbc2104619f7d793c8b11d0c3409656d8b3fa
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-app@sha256:7cd5334c397150e8a75c9dd122380bb4ffa5adf253c17be63eb0ff77f91f21d4
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -53,8 +53,8 @@ services:
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
 
   monerod:
-    # Pinned to the Dev7 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod@sha256:c5c3cfcba423f1f8c71fd7144495a298a674905bb69d1046389e49bf54b981b9
+    # Pinned to the Dev8 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-monerod@sha256:60e37d99480d4b46a7025c06e62032b37537025ba246501fc8a277009b70aff9
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -80,8 +80,14 @@ services:
       - ${APP_DATA_DIR}/monerod-logs:/var/log/monerod
 
   p2pool:
-    # Pinned to the Dev7 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool@sha256:9af5fa44c91a91dcac7807b6bc0e8432c762522e253500510d895884d420896f
+    # Pinned to the Dev8 build's exact digest - see note on web's image above.
+    # NOTE: fetched from this build's own workflow log, not the ":Dev8"
+    # GHCR tag - a stray duplicate run from an earlier tag mixup finished
+    # *after* this one for p2pool specifically and moved the tag onto its
+    # (older, unfixed) image. Pinning by digest here sidesteps that
+    # entirely, but if you ever re-check via the tag instead, verify the
+    # digest actually matches this run before trusting it.
+    image: ghcr.io/jbechara34/monero-p2pool-dashboard-p2pool@sha256:e04c30b4b30e5a7f6b8541d07a4d33f833daaff2f6c9802b82ac5c24c413c78c
     restart: on-failure
     stop_grace_period: 1m
     environment:
