@@ -325,16 +325,20 @@ main {
   stroke-linejoin: round;
 }
 
+/* Pivot at the TOP of the handle (68-72,10) / (148-152,10) - an absolute
+   point in the SVG's own coordinate system (transform-box: view-box), not a
+   percentage of the shape's own bounding box. That's what makes it swing
+   from the grip end instead of spinning around the head. */
 .mining-pickaxe-xmr {
-  transform-box: fill-box;
-  transform-origin: 88% 12%;
-  transform: rotate(-50deg);
+  transform-box: view-box;
+  transform-origin: 70px 10px;
+  transform: rotate(-115deg);
 }
 
 .mining-pickaxe-xtm {
-  transform-box: fill-box;
-  transform-origin: 12% 12%;
-  transform: rotate(50deg);
+  transform-box: view-box;
+  transform-origin: 150px 10px;
+  transform: rotate(115deg);
 }
 
 .mining-spark {
@@ -390,15 +394,15 @@ main {
 .mining-half-xtm.is-active .coin-particle-3 { animation: coin-fly-3 1.4s ease-out 0.7s infinite; }
 
 @keyframes pickaxe-swing-xmr {
-  0%, 32% { transform: rotate(-50deg); }
-  48% { transform: rotate(12deg); }
-  62%, 100% { transform: rotate(-50deg); }
+  0%, 32% { transform: rotate(-115deg); }
+  48% { transform: rotate(-15deg); }
+  62%, 100% { transform: rotate(-115deg); }
 }
 
 @keyframes pickaxe-swing-xtm {
-  0%, 32% { transform: rotate(50deg); }
-  48% { transform: rotate(-12deg); }
-  62%, 100% { transform: rotate(50deg); }
+  0%, 32% { transform: rotate(115deg); }
+  48% { transform: rotate(15deg); }
+  62%, 100% { transform: rotate(115deg); }
 }
 
 /* Two shakes per cycle - one for each side's impact (Monero at ~48%, Tari's

@@ -79,31 +79,35 @@
               <polygon points="66,44 110,38 98,60 70,62" class="mining-rock-facet" />
             </g>
 
-            <!-- Monero side: pickaxe swings in from the left -->
+            <!-- Monero side: pickaxe swings in from the left. Pivot is at
+                 the TOP of the handle (where hands would grip it, near the
+                 shoulder) - the head at the far/bottom end is what sweeps
+                 down and strikes the rock, not the other way around. -->
             <g class="mining-half mining-half-xmr" id="mining-half-xmr">
-              <circle class="mining-spark spark-1" cx="76" cy="58" r="2.4" />
-              <circle class="mining-spark spark-2" cx="76" cy="58" r="2" />
-              <circle class="mining-spark spark-3" cx="76" cy="58" r="1.8" />
-              <image href="img/monero-icon.png" x="70" y="52" width="12" height="12" class="mining-coin-particle coin-particle-1" />
-              <image href="img/monero-icon.png" x="70" y="52" width="10" height="10" class="mining-coin-particle coin-particle-2" />
-              <image href="img/monero-icon.png" x="70" y="52" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <circle class="mining-spark spark-1" cx="80" cy="48" r="2.4" />
+              <circle class="mining-spark spark-2" cx="80" cy="48" r="2" />
+              <circle class="mining-spark spark-3" cx="80" cy="48" r="1.8" />
+              <image href="img/monero-icon.png" x="74" y="42" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/monero-icon.png" x="74" y="42" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/monero-icon.png" x="74" y="42" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xmr">
-                <rect x="58" y="14" width="4.5" height="52" rx="2.2" class="pickaxe-handle" />
-                <path d="M40 12 L84 12 L72 2 L52 2 Z" class="pickaxe-head" />
+                <rect x="68" y="10" width="4" height="42" rx="2" class="pickaxe-handle" />
+                <path d="M56 50 L84 50 L70 38 Z" class="pickaxe-head" />
               </g>
             </g>
 
-            <!-- Tari side: mirror image, pickaxe swings in from the right -->
+            <!-- Tari side: exact mirror of the Monero side (pivot at top of
+                 handle, head sweeps down into the rock from the right). -->
             <g class="mining-half mining-half-xtm" id="mining-half-xtm">
-              <circle class="mining-spark spark-1" cx="144" cy="58" r="2.4" />
-              <circle class="mining-spark spark-2" cx="144" cy="58" r="2" />
-              <circle class="mining-spark spark-3" cx="144" cy="58" r="1.8" />
-              <image href="img/tari-icon.png" x="138" y="52" width="12" height="12" class="mining-coin-particle coin-particle-1" />
-              <image href="img/tari-icon.png" x="138" y="52" width="10" height="10" class="mining-coin-particle coin-particle-2" />
-              <image href="img/tari-icon.png" x="138" y="52" width="9" height="9" class="mining-coin-particle coin-particle-3" />
+              <circle class="mining-spark spark-1" cx="140" cy="48" r="2.4" />
+              <circle class="mining-spark spark-2" cx="140" cy="48" r="2" />
+              <circle class="mining-spark spark-3" cx="140" cy="48" r="1.8" />
+              <image href="img/tari-icon.png" x="134" y="42" width="12" height="12" class="mining-coin-particle coin-particle-1" />
+              <image href="img/tari-icon.png" x="134" y="42" width="10" height="10" class="mining-coin-particle coin-particle-2" />
+              <image href="img/tari-icon.png" x="134" y="42" width="9" height="9" class="mining-coin-particle coin-particle-3" />
               <g class="mining-pickaxe mining-pickaxe-xtm">
-                <rect x="157.5" y="14" width="4.5" height="52" rx="2.2" class="pickaxe-handle" />
-                <path d="M180 12 L136 12 L148 2 L168 2 Z" class="pickaxe-head" />
+                <rect x="148" y="10" width="4" height="42" rx="2" class="pickaxe-handle" />
+                <path d="M164 50 L136 50 L150 38 Z" class="pickaxe-head" />
               </g>
             </g>
           </svg>
