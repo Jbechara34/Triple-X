@@ -55,7 +55,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=builder /out/monerod /usr/local/bin/monerod
 
-RUN useradd -r -u 1000 -m -d /home/monero -s /usr/sbin/nologin monero
+# ubuntu:24.04 ships a pre-existing "ubuntu" user at UID 1000 - remove it
+# first so this UID is free (keeps the container's file ownership at a
+# predictable 1000:1000 regardless of base-image changes).
+RUN if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi && \
+    useradd -r -u 1000 -m -d /home/monero -s /usr/sbin/nologin monero
 USER monero
 WORKDIR /home/monero
 
