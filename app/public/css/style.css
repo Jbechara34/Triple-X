@@ -325,21 +325,29 @@ main {
   stroke-linejoin: round;
 }
 
-/* Pivot at the TOP of the handle (38-42,20) / (178-182,20) - an absolute
+/* Pivot at the TOP of the handle (28-32,55) / (188-192,55) - right beside
+   the rock's left/right edge points, not floating above it - an absolute
    point in the SVG's own coordinate system (transform-box: view-box), not a
    percentage of the shape's own bounding box. That's what makes it swing
-   from the grip end instead of spinning around the head. Positioned lower
-   and further out to the sides than the rock, not floating high above it. */
+   from the grip end instead of spinning around the head. */
 .mining-pickaxe-xmr {
   transform-box: view-box;
-  transform-origin: 40px 20px;
-  transform: rotate(-70deg);
+  transform-origin: 30px 55px;
+  transform: rotate(-20deg);
 }
 
 .mining-pickaxe-xtm {
   transform-box: view-box;
-  transform-origin: 180px 20px;
-  transform: rotate(70deg);
+  transform-origin: 190px 55px;
+  transform: rotate(20deg);
+}
+
+.mining-embedded-coin {
+  opacity: 0.18;
+  filter: grayscale(1) brightness(0.6);
+  transition: opacity 0.3s ease, filter 0.3s ease;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
 }
 
 .mining-spark {
@@ -394,16 +402,31 @@ main {
 .mining-half-xtm.is-active .coin-particle-2 { animation: coin-fly-2 1.4s ease-out 0.7s infinite; }
 .mining-half-xtm.is-active .coin-particle-3 { animation: coin-fly-3 1.4s ease-out 0.7s infinite; }
 
+/* Embedded ore flashes to full color right as its OWN side's pickaxe
+   lands, then dims back down as the loose coin flies out. Driven by JS
+   (mirrors the pickaxe halves) rather than a CSS structural selector,
+   since the rock (parent of these) is a DOM sibling that comes before
+   mining-half-xmr/xtm - a sibling combinator can't reach backwards. */
+.mining-embedded-coin.is-active { animation: embedded-coin-reveal 1.4s ease-in-out infinite; }
+#embedded-coin-xtm.is-active { animation-delay: 0.7s; }
+
 @keyframes pickaxe-swing-xmr {
-  0%, 32% { transform: rotate(-70deg); }
-  48% { transform: rotate(-20deg); }
-  62%, 100% { transform: rotate(-70deg); }
+  0%, 32% { transform: rotate(-20deg); }
+  48% { transform: rotate(-55deg); }
+  62%, 100% { transform: rotate(-20deg); }
 }
 
 @keyframes pickaxe-swing-xtm {
-  0%, 32% { transform: rotate(70deg); }
-  48% { transform: rotate(20deg); }
-  62%, 100% { transform: rotate(70deg); }
+  0%, 32% { transform: rotate(20deg); }
+  48% { transform: rotate(55deg); }
+  62%, 100% { transform: rotate(20deg); }
+}
+
+@keyframes embedded-coin-reveal {
+  0%, 44% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
+  48% { opacity: 1; filter: grayscale(0) brightness(1.15); transform: scale(1.25); }
+  60% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
+  100% { opacity: 0.18; filter: grayscale(1) brightness(0.6); transform: scale(1); }
 }
 
 /* Two shakes per cycle - one for each side's impact (Monero at ~48%, Tari's

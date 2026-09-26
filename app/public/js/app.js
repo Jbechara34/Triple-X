@@ -163,6 +163,7 @@ async function refreshMain() {
   const xmrActive = !!p2poolInfo.running;
   xmrHalf.classList.toggle('is-active', xmrActive);
   xmrHalf.classList.toggle('is-idle', !xmrActive);
+  document.getElementById('embedded-coin-xmr').classList.toggle('is-active', xmrActive);
   const xmrStateEl = document.getElementById('mining-xmr-state');
   xmrStateEl.textContent = xmrActive ? 'Mining' : 'Idle';
   xmrStateEl.classList.toggle('state-xmr-active', xmrActive);
@@ -172,6 +173,7 @@ async function refreshMain() {
   const xtmActive = !!tariInfo.enabled && xmrActive;
   xtmHalf.classList.toggle('is-active', xtmActive);
   xtmHalf.classList.toggle('is-idle', !xtmActive);
+  document.getElementById('embedded-coin-xtm').classList.toggle('is-active', xtmActive);
   const xtmStateEl = document.getElementById('mining-xtm-state');
   xtmStateEl.textContent = tariInfo.enabled
     ? (xtmActive ? 'Merge mining' : 'Waiting on XMR mining')
