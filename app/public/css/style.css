@@ -268,28 +268,27 @@ main {
   flex-wrap: wrap;
 }
 
-.mining-coin {
+.mining-combined {
   flex: 1;
-  min-width: 260px;
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 20px;
   background: var(--panel);
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 10px 20px 10px 10px;
+  padding: 10px 24px 10px 10px;
   overflow: hidden;
 }
 
-.mining-coin-xmr { --coin-color: var(--orange); }
-.mining-coin-xtm { --coin-color: var(--tari); }
-
-.mining-scene {
-  width: 120px;
-  height: 96px;
+.mining-scene-combined {
+  width: 220px;
+  height: 100px;
   flex-shrink: 0;
   overflow: visible;
 }
+
+.mining-half-xmr { --coin-color: var(--orange); }
+.mining-half-xtm { --coin-color: var(--tari); }
 
 .mining-coin-logo {
   filter: drop-shadow(0 0 0 transparent);
@@ -310,7 +309,7 @@ main {
 }
 
 .mining-rock .mining-rock-facet {
-  fill: color-mix(in srgb, var(--coin-color, var(--orange)) 12%, var(--panel-alt));
+  fill: color-mix(in srgb, var(--orange) 8%, color-mix(in srgb, var(--tari) 8%, var(--panel-alt)));
   stroke: none;
 }
 
@@ -325,10 +324,16 @@ main {
   stroke-linejoin: round;
 }
 
-.mining-pickaxe {
+.mining-pickaxe-xmr {
   transform-box: fill-box;
   transform-origin: 88% 12%;
   transform: rotate(-50deg);
+}
+
+.mining-pickaxe-xtm {
+  transform-box: fill-box;
+  transform-origin: 12% 12%;
+  transform: rotate(50deg);
 }
 
 .mining-spark {
@@ -336,38 +341,60 @@ main {
   opacity: 0;
 }
 
-/* Idle (default): everything holds still. */
-.mining-coin.is-idle .mining-coin-logo { opacity: 0.5; }
-.mining-coin.is-idle .mining-rock polygon { opacity: 0.6; }
+/* Idle (default): that side's pickaxe/logo hold still. The rock only shakes
+   when at least one side is actually mining it. */
+.mining-half.is-idle .mining-coin-logo { opacity: 0.5; }
+#mining-combined:not(.any-active) .mining-rock polygon { opacity: 0.6; }
 
-/* Active: pickaxe swings and hits the rock once per cycle, in sync with a
-   little shake and a burst of sparks; the logo pulses with a soft glow. */
-.mining-coin.is-active .mining-pickaxe {
-  animation: pickaxe-swing 1.4s ease-in-out infinite;
+/* Active: each side's pickaxe swings and hits the shared rock once per
+   cycle - Tari's is offset half a cycle so they strike alternately, like
+   two miners working the same rock - with a burst of sparks and the logo
+   pulsing with a soft glow. */
+.mining-half-xmr.is-active .mining-pickaxe-xmr {
+  animation: pickaxe-swing-xmr 1.4s ease-in-out infinite;
 }
-.mining-coin.is-active .mining-rock {
-  animation: rock-hit 1.4s ease-in-out infinite;
+.mining-half-xtm.is-active .mining-pickaxe-xtm {
+  animation: pickaxe-swing-xtm 1.4s ease-in-out 0.7s infinite;
+}
+#mining-combined.any-active .mining-rock {
+  animation: rock-hit-double 1.4s ease-in-out infinite;
   transform-box: fill-box;
   transform-origin: 50% 50%;
 }
-.mining-coin.is-active .mining-coin-logo {
+.mining-half.is-active .mining-coin-logo {
   animation: mining-pulse 1.4s ease-in-out infinite;
 }
-.mining-coin.is-active .spark-1 { animation: spark-fly-1 1.4s ease-out infinite; }
-.mining-coin.is-active .spark-2 { animation: spark-fly-2 1.4s ease-out infinite; }
-.mining-coin.is-active .spark-3 { animation: spark-fly-3 1.4s ease-out infinite; }
+.mining-half-xtm.is-active .mining-coin-logo {
+  animation-delay: 0.7s;
+}
+.mining-half-xmr.is-active .spark-1 { animation: spark-fly-1 1.4s ease-out infinite; }
+.mining-half-xmr.is-active .spark-2 { animation: spark-fly-2 1.4s ease-out infinite; }
+.mining-half-xmr.is-active .spark-3 { animation: spark-fly-3 1.4s ease-out infinite; }
+.mining-half-xtm.is-active .spark-1 { animation: spark-fly-1 1.4s ease-out 0.7s infinite; }
+.mining-half-xtm.is-active .spark-2 { animation: spark-fly-2 1.4s ease-out 0.7s infinite; }
+.mining-half-xtm.is-active .spark-3 { animation: spark-fly-3 1.4s ease-out 0.7s infinite; }
 
-@keyframes pickaxe-swing {
+@keyframes pickaxe-swing-xmr {
   0%, 32% { transform: rotate(-50deg); }
   48% { transform: rotate(12deg); }
   62%, 100% { transform: rotate(-50deg); }
 }
 
-@keyframes rock-hit {
-  0%, 45%, 62%, 100% { transform: translate(0, 0); }
-  48% { transform: translate(-1.5px, 1px); }
-  52% { transform: translate(1.5px, -1px); }
-  56% { transform: translate(-1px, 0.5px); }
+@keyframes pickaxe-swing-xtm {
+  0%, 32% { transform: rotate(50deg); }
+  48% { transform: rotate(-12deg); }
+  62%, 100% { transform: rotate(50deg); }
+}
+
+/* Two shakes per cycle - one for each side's impact (Monero at ~48%, Tari's
+   offset 0.7s lands at ~98%). */
+@keyframes rock-hit-double {
+  0%, 44%, 52%, 94%, 100% { transform: translate(0, 0); }
+  46% { transform: translate(-1.5px, 1px); }
+  48% { transform: translate(1.5px, -1px); }
+  50% { transform: translate(-1px, 0.5px); }
+  96% { transform: translate(1.5px, -1px); }
+  98% { transform: translate(-1.5px, 1px); }
 }
 
 @keyframes mining-pulse {
@@ -397,6 +424,29 @@ main {
   100% { opacity: 0; }
 }
 
+.mining-combined-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.mining-coin-row {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.mining-coin-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  background: var(--muted);
+}
+
+.mining-dot-xmr { background: var(--orange); }
+.mining-dot-xtm { background: var(--tari); }
+
 .mining-coin-label {
   font-size: 13px;
   font-weight: 600;
@@ -406,10 +456,10 @@ main {
 .mining-coin-state {
   font-size: 12px;
   color: var(--muted);
-  margin-top: 2px;
 }
 
-.mining-coin.is-active .mining-coin-state { color: var(--coin-color, var(--orange)); }
+.mining-coin-state.state-xmr-active { color: var(--orange); }
+.mining-coin-state.state-xtm-active { color: var(--tari); }
 
 .badge-experimental {
   display: inline-block;

@@ -68,46 +68,50 @@
       <h1 class="page-title">Node Status</h1>
 
       <div class="mining-strip">
-        <div class="mining-coin mining-coin-xmr" id="mining-xmr">
-          <svg class="mining-scene" viewBox="0 0 120 96" xmlns="http://www.w3.org/2000/svg">
-            <image href="img/monero-icon.png" x="4" y="4" width="28" height="28" class="mining-coin-logo" />
-            <ellipse class="mining-rock-shadow" cx="66" cy="88" rx="34" ry="5" />
-            <g class="mining-rock">
-              <polygon points="34,86 24,66 40,50 64,45 90,54 100,72 92,90 60,94" />
-              <polygon points="40,50 64,45 58,62 38,64" class="mining-rock-facet" />
+        <div class="mining-combined" id="mining-combined">
+          <svg class="mining-scene mining-scene-combined" viewBox="0 0 220 100" xmlns="http://www.w3.org/2000/svg">
+            <image href="img/monero-icon.png" x="4" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xmr" />
+            <image href="img/tari-icon.png" x="192" y="2" width="24" height="24" class="mining-coin-logo mining-logo-xtm" />
+
+            <ellipse class="mining-rock-shadow" cx="110" cy="90" rx="48" ry="6" />
+            <g class="mining-rock" id="mining-rock">
+              <polygon points="56,84 42,62 66,44 110,38 154,44 178,62 164,84 110,90" />
+              <polygon points="66,44 110,38 98,60 70,62" class="mining-rock-facet" />
             </g>
-            <circle class="mining-spark spark-1" cx="64" cy="58" r="2.4" />
-            <circle class="mining-spark spark-2" cx="64" cy="58" r="2" />
-            <circle class="mining-spark spark-3" cx="64" cy="58" r="1.8" />
-            <g class="mining-pickaxe">
-              <rect x="76" y="16" width="4.5" height="46" rx="2.2" class="pickaxe-handle" />
-              <path d="M58 14 L102 14 L90 4 L70 4 Z" class="pickaxe-head" />
+
+            <!-- Monero side: pickaxe swings in from the left -->
+            <g class="mining-half mining-half-xmr" id="mining-half-xmr">
+              <circle class="mining-spark spark-1" cx="80" cy="56" r="2.4" />
+              <circle class="mining-spark spark-2" cx="80" cy="56" r="2" />
+              <circle class="mining-spark spark-3" cx="80" cy="56" r="1.8" />
+              <g class="mining-pickaxe mining-pickaxe-xmr">
+                <rect x="58" y="14" width="4.5" height="46" rx="2.2" class="pickaxe-handle" />
+                <path d="M40 12 L84 12 L72 2 L52 2 Z" class="pickaxe-head" />
+              </g>
             </g>
-          </svg>
-          <div class="mining-coin-info">
-            <div class="mining-coin-label">Monero</div>
-            <div class="mining-coin-state" id="mining-xmr-state">Idle</div>
-          </div>
-        </div>
-        <div class="mining-coin mining-coin-xtm" id="mining-xtm">
-          <svg class="mining-scene" viewBox="0 0 120 96" xmlns="http://www.w3.org/2000/svg">
-            <image href="img/tari-icon.png" x="4" y="4" width="28" height="28" class="mining-coin-logo" />
-            <ellipse class="mining-rock-shadow" cx="66" cy="88" rx="34" ry="5" />
-            <g class="mining-rock">
-              <polygon points="34,86 24,66 40,50 64,45 90,54 100,72 92,90 60,94" />
-              <polygon points="40,50 64,45 58,62 38,64" class="mining-rock-facet" />
-            </g>
-            <circle class="mining-spark spark-1" cx="64" cy="58" r="2.4" />
-            <circle class="mining-spark spark-2" cx="64" cy="58" r="2" />
-            <circle class="mining-spark spark-3" cx="64" cy="58" r="1.8" />
-            <g class="mining-pickaxe">
-              <rect x="76" y="16" width="4.5" height="46" rx="2.2" class="pickaxe-handle" />
-              <path d="M58 14 L102 14 L90 4 L70 4 Z" class="pickaxe-head" />
+
+            <!-- Tari side: mirror image, pickaxe swings in from the right -->
+            <g class="mining-half mining-half-xtm" id="mining-half-xtm">
+              <circle class="mining-spark spark-1" cx="140" cy="56" r="2.4" />
+              <circle class="mining-spark spark-2" cx="140" cy="56" r="2" />
+              <circle class="mining-spark spark-3" cx="140" cy="56" r="1.8" />
+              <g class="mining-pickaxe mining-pickaxe-xtm">
+                <rect x="157.5" y="14" width="4.5" height="46" rx="2.2" class="pickaxe-handle" />
+                <path d="M180 12 L136 12 L148 2 L168 2 Z" class="pickaxe-head" />
+              </g>
             </g>
           </svg>
-          <div class="mining-coin-info">
-            <div class="mining-coin-label">Tari <span class="badge-experimental">beta</span></div>
-            <div class="mining-coin-state" id="mining-xtm-state">Not configured</div>
+          <div class="mining-combined-info">
+            <div class="mining-coin-row">
+              <span class="mining-coin-dot mining-dot-xmr"></span>
+              <span class="mining-coin-label">Monero</span>
+              <span class="mining-coin-state" id="mining-xmr-state">Idle</span>
+            </div>
+            <div class="mining-coin-row">
+              <span class="mining-coin-dot mining-dot-xtm"></span>
+              <span class="mining-coin-label">Tari <span class="badge-experimental">beta</span></span>
+              <span class="mining-coin-state" id="mining-xtm-state">Not configured</span>
+            </div>
           </div>
         </div>
       </div>

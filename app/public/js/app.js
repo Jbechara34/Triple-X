@@ -156,22 +156,29 @@ async function refreshMain() {
     daemonCount.textContent = '';
   }
 
-  // Live mining animation strip - XMR follows P2Pool stratum state, XTM
-  // (EXPERIMENTAL) follows whether merge-mining is enabled/configured.
-  const xmrCoin = document.getElementById('mining-xmr');
+  // Live mining animation strip - both sides swing at the same shared rock.
+  // XMR follows P2Pool stratum state, XTM (EXPERIMENTAL) follows whether
+  // merge-mining is enabled/configured.
+  const xmrHalf = document.getElementById('mining-half-xmr');
   const xmrActive = !!p2poolInfo.running;
-  xmrCoin.classList.toggle('is-active', xmrActive);
-  xmrCoin.classList.toggle('is-idle', !xmrActive);
-  document.getElementById('mining-xmr-state').textContent = xmrActive ? 'Mining' : 'Idle';
+  xmrHalf.classList.toggle('is-active', xmrActive);
+  xmrHalf.classList.toggle('is-idle', !xmrActive);
+  const xmrStateEl = document.getElementById('mining-xmr-state');
+  xmrStateEl.textContent = xmrActive ? 'Mining' : 'Idle';
+  xmrStateEl.classList.toggle('state-xmr-active', xmrActive);
 
   const tariInfo = data.tari || {};
-  const xtmCoin = document.getElementById('mining-xtm');
+  const xtmHalf = document.getElementById('mining-half-xtm');
   const xtmActive = !!tariInfo.enabled && xmrActive;
-  xtmCoin.classList.toggle('is-active', xtmActive);
-  xtmCoin.classList.toggle('is-idle', !xtmActive);
-  document.getElementById('mining-xtm-state').textContent = tariInfo.enabled
+  xtmHalf.classList.toggle('is-active', xtmActive);
+  xtmHalf.classList.toggle('is-idle', !xtmActive);
+  const xtmStateEl = document.getElementById('mining-xtm-state');
+  xtmStateEl.textContent = tariInfo.enabled
     ? (xtmActive ? 'Merge mining' : 'Waiting on XMR mining')
     : 'Not configured';
+  xtmStateEl.classList.toggle('state-xtm-active', xtmActive);
+
+  document.getElementById('mining-combined').classList.toggle('any-active', xmrActive || xtmActive);
 }
 
 // ---------------------------------------------------------------------------
