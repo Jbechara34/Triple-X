@@ -37,7 +37,7 @@ RUN curl -fsSLO "https://downloads.getmonero.org/cli/monero-linux-x64-${MONERO_V
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libzmq5 libunbound8 libsodium23 libunwind8 \
-    libpgm-5.3-1t64 tini \
+    libpgm-5.3-0t64 tini \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=fetch /fetch/monerod /usr/local/bin/monerod

@@ -50,7 +50,7 @@ RUN mkdir -p /out && \
 FROM ubuntu:24.04
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates libzmq5 libunbound8 libsodium23 libunwind8 \
-    libpgm-5.3-1t64 tini \
+    libpgm-5.3-0t64 tini \
     && rm -rf /var/lib/apt/lists/*
 
 COPY --from=builder /out/monerod /usr/local/bin/monerod
