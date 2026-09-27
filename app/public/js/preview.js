@@ -236,6 +236,20 @@ async function loadSettingsForm() {
   if (tariEl) tariEl.value = data.tariAddress || '';
   const observerEl = document.getElementById('pv-settings-observer-enabled');
   if (observerEl) observerEl.checked = !!data.observerEnabled;
+  const logsTabEl = document.getElementById('pv-settings-logs-tab-enabled');
+  if (logsTabEl) logsTabEl.checked = data.logsTabEnabled !== false;
+  applyLogsTabVisibility(data.logsTabEnabled !== false);
+}
+
+// Hides the Logs tab button entirely (not just its content) when disabled in
+// Settings, and switches away from it first if it's the currently active tab.
+function applyLogsTabVisibility(enabled) {
+  const logsBtn = document.querySelector('[data-tabbtn="logs"]');
+  if (!logsBtn) return;
+  logsBtn.style.display = enabled ? '' : 'none';
+  if (!enabled && logsBtn.classList.contains('active')) {
+    document.querySelector('[data-tabbtn="overview"]')?.click();
+  }
 }
 
 function wireSettingsSave() {
@@ -254,11 +268,13 @@ function wireSettingsSave() {
           poolMode: document.getElementById('pv-settings-pool-mode')?.value,
           tariAddress: document.getElementById('pv-settings-tari-address')?.value.trim() || '',
           observerEnabled: !!document.getElementById('pv-settings-observer-enabled')?.checked,
+          logsTabEnabled: !!document.getElementById('pv-settings-logs-tab-enabled')?.checked,
         }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Save failed');
       if (status) status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';
+      applyLogsTabVisibility(!!document.getElementById('pv-settings-logs-tab-enabled')?.checked);
       refreshAll();
     } catch (err) {
       if (status) status.textContent = err.message;
@@ -392,76 +408,115 @@ function wireTabs() {
 }
 
 // ---------------------------------------------------------------------------
-// Wallet tab - Tari address display + one-time seed-phrase reveal. Present
-// only on variants that include these elements.
+// Wallet tab - address display + one-time seed-phrase reveal, one config
+// per coin. Present only on variants that include these elements.
 // ---------------------------------------------------------------------------
+const WALLET_COINS = [
+  {
+    apiBase: '/api/wallet/tari',
+    settingsField: 'tariAddress',
+    useLabel: 'Saved as your Tari merge-mining address.',
+    ids: {
+      address: 'pv-wallet-tari-address',
+      useBtn: 'pv-wallet-tari-use',
+      useStatus: 'pv-wallet-tari-use-status',
+      step1: 'pv-wallet-reveal-step1',
+      confirm: 'pv-wallet-reveal-confirm',
+      step2: 'pv-wallet-reveal-step2',
+      cancel: 'pv-wallet-reveal-cancel',
+      grid: 'pv-wallet-seed-grid',
+      intro: 'pv-wallet-seed-intro',
+    },
+  },
+  {
+    apiBase: '/api/wallet/monero',
+    settingsField: 'walletAddress',
+    useLabel: 'Saved as your Monero payout address.',
+    ids: {
+      address: 'pv-wallet-xmr-address',
+      useBtn: 'pv-wallet-xmr-use',
+      useStatus: 'pv-wallet-xmr-use-status',
+      step1: 'pv-wallet-xmr-reveal-step1',
+      confirm: 'pv-wallet-xmr-reveal-confirm',
+      step2: 'pv-wallet-xmr-reveal-step2',
+      cancel: 'pv-wallet-xmr-reveal-cancel',
+      grid: 'pv-wallet-xmr-seed-grid',
+      intro: 'pv-wallet-xmr-seed-intro',
+    },
+  },
+];
+
 async function refreshWalletTab() {
-  const addressEl = document.getElementById('pv-wallet-tari-address');
-  if (!addressEl) return; // this variant has no Wallet tab
-  let data;
-  try {
-    data = await getJSON('/api/wallet/tari');
-  } catch (err) {
-    return;
-  }
-  addressEl.value = data.address || 'Wallet not reachable yet';
-  const revealBtn = document.getElementById('pv-wallet-reveal-step1');
-  const intro = document.getElementById('pv-wallet-seed-intro');
-  if (revealBtn && !data.seedAvailable) {
-    revealBtn.style.display = 'none';
-    if (intro) intro.textContent = 'No seed backup is available - it was already revealed once, or this wallet was restored from an existing seed rather than freshly created.';
+  for (const coin of WALLET_COINS) {
+    const addressEl = document.getElementById(coin.ids.address);
+    if (!addressEl) continue; // this variant has no such wallet section
+    let data;
+    try {
+      data = await getJSON(coin.apiBase);
+    } catch (err) {
+      continue;
+    }
+    addressEl.value = data.address || 'Wallet not reachable yet';
+    const revealBtn = document.getElementById(coin.ids.step1);
+    const intro = document.getElementById(coin.ids.intro);
+    if (revealBtn && !data.seedAvailable) {
+      revealBtn.style.display = 'none';
+      if (intro) intro.textContent = 'No seed backup is available - it was already revealed once, or this wallet was restored from an existing seed rather than freshly created.';
+    }
   }
 }
 
 function wireWalletTab() {
-  const useBtn = document.getElementById('pv-wallet-tari-use');
-  if (useBtn) {
-    useBtn.addEventListener('click', async () => {
-      const status = document.getElementById('pv-wallet-tari-use-status');
-      const address = document.getElementById('pv-wallet-tari-address').value;
-      if (!address || address === 'Wallet not reachable yet') return;
-      try {
-        await fetch('/api/settings', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ tariAddress: address }),
-        });
-        if (status) status.textContent = 'Saved as your Tari merge-mining address.';
-        refreshAll();
-      } catch (err) {
-        if (status) status.textContent = 'Failed to save - try again.';
-      }
-    });
-  }
+  for (const coin of WALLET_COINS) {
+    const useBtn = document.getElementById(coin.ids.useBtn);
+    if (useBtn) {
+      useBtn.addEventListener('click', async () => {
+        const status = document.getElementById(coin.ids.useStatus);
+        const address = document.getElementById(coin.ids.address).value;
+        if (!address || address === 'Wallet not reachable yet') return;
+        try {
+          await fetch('/api/settings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [coin.settingsField]: address }),
+          });
+          if (status) status.textContent = coin.useLabel;
+          refreshAll();
+        } catch (err) {
+          if (status) status.textContent = 'Failed to save - try again.';
+        }
+      });
+    }
 
-  const step1 = document.getElementById('pv-wallet-reveal-step1');
-  const confirmBox = document.getElementById('pv-wallet-reveal-confirm');
-  const step2 = document.getElementById('pv-wallet-reveal-step2');
-  const cancelBtn = document.getElementById('pv-wallet-reveal-cancel');
-  if (step1 && confirmBox && step2 && cancelBtn) {
-    step1.addEventListener('click', () => {
-      step1.style.display = 'none';
-      confirmBox.style.display = '';
-    });
-    cancelBtn.addEventListener('click', () => {
-      confirmBox.style.display = 'none';
-      step1.style.display = '';
-    });
-    step2.addEventListener('click', async () => {
-      step2.disabled = true;
-      try {
-        const res = await fetch('/api/wallet/tari/reveal-seed', { method: 'POST' });
-        const body = await res.json();
-        if (!res.ok) throw new Error(body.error || 'Reveal failed');
-        const grid = document.getElementById('pv-wallet-seed-grid');
-        grid.innerHTML = body.words.map((w, i) => `<span style="display:inline-block;width:110px;">${i + 1}. ${escapeHtml(w)}</span>`).join('');
-        grid.style.display = '';
+    const step1 = document.getElementById(coin.ids.step1);
+    const confirmBox = document.getElementById(coin.ids.confirm);
+    const step2 = document.getElementById(coin.ids.step2);
+    const cancelBtn = document.getElementById(coin.ids.cancel);
+    if (step1 && confirmBox && step2 && cancelBtn) {
+      step1.addEventListener('click', () => {
+        step1.style.display = 'none';
+        confirmBox.style.display = '';
+      });
+      cancelBtn.addEventListener('click', () => {
         confirmBox.style.display = 'none';
-      } catch (err) {
-        confirmBox.querySelector('.hint').textContent = err.message;
-        step2.disabled = false;
-      }
-    });
+        step1.style.display = '';
+      });
+      step2.addEventListener('click', async () => {
+        step2.disabled = true;
+        try {
+          const res = await fetch(`${coin.apiBase}/reveal-seed`, { method: 'POST' });
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || 'Reveal failed');
+          const grid = document.getElementById(coin.ids.grid);
+          grid.innerHTML = body.words.map((w, i) => `<span style="display:inline-block;width:110px;">${i + 1}. ${escapeHtml(w)}</span>`).join('');
+          grid.style.display = '';
+          confirmBox.style.display = 'none';
+        } catch (err) {
+          confirmBox.querySelector('.hint').textContent = err.message;
+          step2.disabled = false;
+        }
+      });
+    }
   }
 }
 

@@ -45,6 +45,38 @@ services:
     networks:
       - internal
 
+  # EXPERIMENTAL - Wallet tab's "generate-once, show-once" Monero wallet
+  # creation (see app/lib/moneroWalletRpc.js). Runs in --wallet-dir mode so
+  # the app container creates/opens the "dashboard" wallet by name over RPC
+  # rather than needing one baked in at build/start time. No --rpc-login:
+  # this port is never published to the host (see `expose` below, not
+  # `ports`), same internal-network-only trust boundary monerod's own RPC
+  # already relies on.
+  monero-wallet-rpc:
+    build:
+      context: ./docker/monerod
+      dockerfile: Dockerfile
+      target: wallet-rpc
+    container_name: monero-p2pool-dashboard_monero-wallet-rpc
+    restart: unless-stopped
+    depends_on:
+      - monerod
+    command:
+      - "--wallet-dir=/home/monero/wallet-data"
+      - "--daemon-address=monerod:18081"
+      - "--rpc-bind-ip=0.0.0.0"
+      - "--rpc-bind-port=18084"
+      - "--confirm-external-bind"
+      - "--disable-rpc-login"
+      - "--non-interactive"
+      - "--log-file=/var/log/monero-wallet-rpc/wallet-rpc.log"
+    expose:
+      - "18084" # RPC - internal only
+    volumes:
+      - monero-wallet-data:/home/monero/wallet-data
+    networks:
+      - internal
+
   p2pool:
     build:
       context: ./docker/p2pool
@@ -166,6 +198,9 @@ services:
       MINOTARI_WALLET_HOST: minotari-wallet
       MINOTARI_WALLET_GRPC_PORT: "18143"
       MINOTARI_WALLET_SEED_FILE: /data/minotari-wallet/seed-words.txt
+      MONERO_WALLET_RPC_HOST: monero-wallet-rpc
+      MONERO_WALLET_RPC_PORT: "18084"
+      MONERO_WALLET_STATE_FILE: /data/state/monero-wallet.json
     ports:
       - "3000:3000" # the dashboard itself - this is the app's main UI port
     volumes:
@@ -196,3 +231,4 @@ volumes:
   minotari-node-data:
   minotari-node-logs:
   minotari-wallet-data:
+  monero-wallet-data:

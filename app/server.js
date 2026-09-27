@@ -24,6 +24,8 @@ const tariBlocks = require('./lib/tariBlocks');
 const minotariRpc = require('./lib/minotariRpc');
 const minotariWalletRpc = require('./lib/minotariWalletRpc');
 const tariWallet = require('./lib/tariWallet');
+const moneroWalletRpc = require('./lib/moneroWalletRpc');
+const moneroWalletState = require('./lib/moneroWalletState');
 const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 
@@ -354,6 +356,34 @@ app.post('/api/wallet/tari/reveal-seed', (req, res) => {
     return;
   }
   res.json({ words });
+});
+
+app.get('/api/wallet/monero', async (req, res) => {
+  let address = null;
+  try {
+    ({ address } = await moneroWalletRpc.getAddress());
+  } catch (err) {
+    // monero-wallet-rpc not reachable yet, or still syncing with monerod -
+    // not an error the user needs a stack trace for.
+  }
+  res.json({ address, seedAvailable: address ? !moneroWalletState.seedRevealed() : false });
+});
+
+// POST (not GET) - side-effecting, marks the seed as revealed so it can
+// never be shown through this dashboard again (see lib/moneroWalletState.js
+// for why this can't be enforced by deleting anything, unlike Tari's flow).
+app.post('/api/wallet/monero/reveal-seed', async (req, res) => {
+  if (moneroWalletState.seedRevealed()) {
+    res.status(404).json({ error: 'This seed phrase was already revealed once through this dashboard.' });
+    return;
+  }
+  try {
+    const words = await moneroWalletRpc.getSeedWords();
+    moneroWalletState.markSeedRevealed();
+    res.json({ words });
+  } catch (err) {
+    res.status(502).json({ error: err.message });
+  }
 });
 
 // ---------------------------------------------------------------------------

@@ -58,20 +58,25 @@ RUN mkdir -p build/release && \
 # The exact output path has moved around across Monero versions
 # (build/release/bin vs build/Linux/<tag>/release/bin) - find it instead of
 # hardcoding it, so this Dockerfile keeps working across releases.
+# `make -j$(nproc)` above (not a narrower target) builds monero-wallet-rpc
+# alongside monerod in the same pass - copy both out of the one build so the
+# wallet-rpc image below (see the "wallet-rpc" stage) doesn't need its own
+# hour-long recompile.
 RUN mkdir -p /out && \
-    cp "$(find /build/monero/build -maxdepth 5 -type f -name monerod | head -n1)" /out/monerod
+    cp "$(find /build/monero/build -maxdepth 5 -type f -name monerod | head -n1)" /out/monerod && \
+    cp "$(find /build/monero/build -maxdepth 5 -type f -name monero-wallet-rpc | head -n1)" /out/monero-wallet-rpc
 
 # `make release` links monerod dynamically against Boost/OpenSSL/etc (it is
 # NOT the static build the official release tarballs use - see
 # Dockerfile.prebuilt for that). Rather than hand-listing every runtime
 # package name the final stage needs to match (fragile - Ubuntu renames
 # these across releases, e.g. the libpgm t64 transition), just copy every
-# shared library the binary actually resolves to. Both stages are the same
-# base image, so these are guaranteed ABI-compatible.
+# shared library either binary actually resolves to. Both stages are the
+# same base image, so these are guaranteed ABI-compatible.
 RUN mkdir -p /out/lib && \
-    ldd /out/monerod | awk '{ if ($3 ~ /^\//) print $3 }' | sort -u | xargs -r cp -Lv -t /out/lib/
+    ldd /out/monerod /out/monero-wallet-rpc | awk '{ if ($3 ~ /^\//) print $3 }' | sort -u | xargs -r cp -Lv -t /out/lib/
 
-FROM ubuntu:24.04
+FROM ubuntu:24.04 AS monerod
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates tini \
     && rm -rf /var/lib/apt/lists/*
@@ -103,6 +108,38 @@ WORKDIR /home/monero
 
 EXPOSE 18080 18081 18083
 VOLUME ["/home/monero/.bitmonero"]
+
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
+CMD ["--help"]
+
+# ---------------------------------------------------------------------------
+# monero-wallet-rpc - same builder output as monerod above, just the wallet
+# binary instead. Built as a separate final stage (not a separate Dockerfile)
+# so it reuses the builder stage's Docker layer cache instead of repeating
+# the hour-long compile. Select this stage with `docker build --target
+# wallet-rpc` (see docker-compose.yml's monero-wallet-rpc service).
+# ---------------------------------------------------------------------------
+FROM ubuntu:24.04 AS wallet-rpc
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates tini \
+    && rm -rf /var/lib/apt/lists/*
+
+COPY --from=builder /out/monero-wallet-rpc /usr/local/bin/monero-wallet-rpc
+COPY --from=builder /out/lib/ /usr/local/lib/
+RUN ldconfig
+
+RUN if getent passwd 1000 >/dev/null; then userdel -r "$(getent passwd 1000 | cut -d: -f1)"; fi && \
+    useradd -r -u 1000 -m -d /home/monero -s /usr/sbin/nologin monero
+
+RUN mkdir -p /var/log/monero-wallet-rpc /home/monero/wallet-data && \
+    chown monero:monero /var/log/monero-wallet-rpc /home/monero/wallet-data
+
+COPY entrypoint-wallet-rpc.sh /usr/local/bin/entrypoint.sh
+RUN chmod +x /usr/local/bin/entrypoint.sh
+
+WORKDIR /home/monero
+EXPOSE 18084
+VOLUME ["/home/monero/wallet-data"]
 
 ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["--help"]

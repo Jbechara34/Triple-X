@@ -21,6 +21,10 @@ const DEFAULTS = {
   // git.gammaspectra.live/P2Pool/observer service (over clearnet) to fetch
   // your lifetime share history. See lib/p2poolObserver.js.
   observerEnabled: false,
+  // On by default (unchanged from before this setting existed) - lets users
+  // who don't need it hide the Logs tab from the nav instead of leaving it
+  // always visible.
+  logsTabEnabled: true,
   updatedAt: null,
 };
 
@@ -89,6 +93,10 @@ function writeSettings(update) {
 
   if (typeof update.observerEnabled === 'boolean') {
     next.observerEnabled = update.observerEnabled;
+  }
+
+  if (typeof update.logsTabEnabled === 'boolean') {
+    next.logsTabEnabled = update.logsTabEnabled;
   }
 
   next.updatedAt = new Date().toISOString();
