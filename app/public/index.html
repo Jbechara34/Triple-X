@@ -22,17 +22,20 @@
   }
   .v1-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); }
   .v1-brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 8px var(--orange); }
-  .v1-switcher a {
-    font-size: 12px;
-    color: var(--muted);
-    text-decoration: none;
-    padding: 6px 10px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    margin-left: 6px;
-  }
-  .v1-switcher a.current { color: var(--orange); border-color: var(--orange); }
   .v1-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  .v1-tabs {
+    display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
+  }
+  .v1-tabs button {
+    background: none; border: 1px solid transparent; color: var(--muted);
+    font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+  }
+  .v1-tabs button:hover { background: var(--panel-alt); color: var(--text); }
+  .v1-tabs button.active {
+    color: var(--text);
+    background: linear-gradient(120deg, rgba(255,102,0,0.15), rgba(61,220,132,0.15));
+    border-color: var(--border);
+  }
   .v1-bento {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -80,17 +83,19 @@
       <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
       <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
       <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
-      <div class="v1-switcher">
-        <a href="index.html" class="current">Command Center</a>
-        <a href="index-classic.html">Classic UI</a>
-        <a href="ui-v2.html">v2 Terminal</a>
-        <a href="ui-v3.html">v3 Refined</a>
-      </div>
     </div>
   </div>
 
   <div class="v1-wrap">
-    <div class="v1-bento">
+    <div class="v1-tabs">
+      <button data-tabbtn="overview" class="active">Overview</button>
+      <button data-tabbtn="pool">Pool</button>
+      <button data-tabbtn="blocks">Blocks</button>
+      <button data-tabbtn="logs">Logs</button>
+      <button data-tabbtn="settings">Settings</button>
+    </div>
+
+    <div class="v1-bento" data-tabpanel="overview">
       <!-- Hero: mining scene + sync status -->
       <div class="v1-hero">
         <div class="v1-label">Mining Status</div>
@@ -161,13 +166,19 @@
         </div>
       </div>
 
-      <!-- Side column: sync + hashrate stacked -->
+      <!-- Side column: sync (Monero + Tari) + hashrate stacked -->
       <div class="v1-side">
         <div>
-          <div class="v1-label">Blockchain Sync</div>
+          <div class="v1-label">Blockchain Sync — Monero</div>
           <div class="v1-big" id="pv-sync-value" style="font-size:18px;">—</div>
           <div class="v1-sub" id="pv-sync-sub">—</div>
           <div class="progress-bar" style="margin-top:8px;"><div id="pv-sync-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        </div>
+        <div>
+          <div class="v1-label">Blockchain Sync — Tari <span class="badge-experimental">beta</span></div>
+          <div class="v1-big" id="pv-tari-sync-value" style="font-size:18px;">—</div>
+          <div class="v1-sub" id="pv-tari-sync-sub">—</div>
+          <div class="progress-bar" style="margin-top:8px;"><div id="pv-tari-sync-bar" class="progress-bar-fill mining-dot-xtm-fill" style="width:0%"></div></div>
         </div>
         <div>
           <div class="v1-label">Hash Rate (1h)</div>
@@ -200,7 +211,9 @@
         <div class="v1-big" style="font-size:18px" id="pv-diff">—</div>
         <div class="v1-sub" id="pv-diff-sub">—</div>
       </div>
+    </div>
 
+    <div class="v1-bento" data-tabpanel="pool" style="display:none">
       <!-- Half-width: P2Pool sidechain-wide -->
       <div class="v1-half">
         <div class="v1-label">P2Pool Network (Sidechain-Wide)</div>
@@ -221,15 +234,7 @@
           <div><div class="v1-big" style="font-size:18px" id="pv-minotari-label">—</div><div class="v1-sub">Minotari Node</div></div>
         </div>
         <div class="progress-bar" style="margin-top:10px;"><div id="pv-minotari-bar" class="progress-bar-fill" style="width:0%"></div></div>
-      </div>
-
-      <!-- Full width: recent blocks + miner config -->
-      <div class="v1-half">
-        <div class="v1-label">Recent Blocks</div>
-        <table class="v1-table">
-          <thead><tr><th>Height</th><th>Detected</th><th>Hash</th></tr></thead>
-          <tbody id="pv-blocks-body"><tr><td colspan="3" class="pv-empty">Loading…</td></tr></tbody>
-        </table>
+        <div class="v1-sub" style="margin-top:8px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
       </div>
       <div class="v1-half">
         <div class="v1-label">Miner Configuration</div>
@@ -280,17 +285,42 @@
         <div class="v1-sub" style="margin-top:8px;" id="pv-observer-versions">—</div>
         <a id="pv-observer-link" href="#" target="_blank" rel="noopener" class="v1-sub">View full history on p2pool.observer</a>
       </div>
+    </div>
+
+    <div class="v1-bento" data-tabpanel="blocks" style="display:none">
+      <!-- XMR blocks -->
+      <div class="v1-half">
+        <div class="v1-label">XMR Blocks Found</div>
+        <table class="v1-table">
+          <thead><tr><th>Height</th><th>Detected</th><th>Hash</th></tr></thead>
+          <tbody id="pv-blocks-body"><tr><td colspan="3" class="pv-empty">Loading…</td></tr></tbody>
+        </table>
+      </div>
 
       <!-- XTM blocks -->
-      <div class="v1-full">
+      <div class="v1-half">
         <div class="v1-label">XTM Blocks Found <span class="badge-experimental">beta</span></div>
         <table class="v1-table">
           <thead><tr><th>Height</th><th>Detected</th><th>Log Line</th></tr></thead>
           <tbody id="pv-tari-blocks-body"><tr><td colspan="3" class="pv-empty">No XTM blocks found yet.</td></tr></tbody>
         </table>
-        <div class="v1-sub" style="margin-top:6px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
       </div>
+    </div>
 
+    <div class="v1-bento" data-tabpanel="logs" style="display:none">
+      <!-- Logs -->
+      <div class="v1-full">
+        <div class="v1-label">Logs (live)</div>
+        <div class="v1-label" style="margin-top:10px;">monerod</div>
+        <pre class="log-box" id="pv-logs-monerod" style="max-height:120px;">—</pre>
+        <div class="v1-label" style="margin-top:10px;">p2pool</div>
+        <pre class="log-box" id="pv-logs-p2pool" style="max-height:120px;">—</pre>
+        <div class="v1-label" style="margin-top:10px;">minotari <span class="badge-experimental">beta</span></div>
+        <pre class="log-box" id="pv-logs-minotari" style="max-height:120px;">—</pre>
+      </div>
+    </div>
+
+    <div class="v1-bento" data-tabpanel="settings" style="display:none">
       <!-- Settings -->
       <div class="v1-full">
         <div class="v1-label">Settings</div>
@@ -318,17 +348,6 @@
         </div>
         <button class="primary" id="pv-settings-save">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
-      </div>
-
-      <!-- Logs -->
-      <div class="v1-full">
-        <div class="v1-label">Logs (live)</div>
-        <div class="v1-label" style="margin-top:10px;">monerod</div>
-        <pre class="log-box" id="pv-logs-monerod" style="max-height:120px;">—</pre>
-        <div class="v1-label" style="margin-top:10px;">p2pool</div>
-        <pre class="log-box" id="pv-logs-p2pool" style="max-height:120px;">—</pre>
-        <div class="v1-label" style="margin-top:10px;">minotari <span class="badge-experimental">beta</span></div>
-        <pre class="log-box" id="pv-logs-minotari" style="max-height:120px;">—</pre>
       </div>
     </div>
   </div>

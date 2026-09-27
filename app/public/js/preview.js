@@ -127,10 +127,17 @@ async function refreshAll() {
   if (!nodeSync) {
     setText('pv-minotari-label', 'Not running');
     setWidth('pv-minotari-bar', 0);
+    setText('pv-tari-sync-value', tari.enabled ? 'Not running' : 'Not configured');
+    setText('pv-tari-sync-sub', '—');
+    setWidth('pv-tari-sync-bar', 0);
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
-    setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
+    const label = nodeSync.synchronized ? 'Synchronized' : 'Synchronizing';
+    setText('pv-minotari-label', label);
     setWidth('pv-minotari-bar', pct);
+    setText('pv-tari-sync-value', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing…');
+    setText('pv-tari-sync-sub', `Height ${nodeSync.height ?? '—'} / ${nodeSync.targetHeight ?? '—'} (${pct.toFixed(1)}%)`);
+    setWidth('pv-tari-sync-bar', pct);
   }
 
   const blocksBody = document.getElementById('pv-blocks-body');
@@ -369,6 +376,22 @@ function wireThemeControls() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Tabs (data-tabbtn / data-tabpanel) - present only on variants that split
+// content into tabs; others just skip this.
+// ---------------------------------------------------------------------------
+function wireTabs() {
+  const buttons = document.querySelectorAll('[data-tabbtn]');
+  if (!buttons.length) return;
+  const panels = document.querySelectorAll('[data-tabpanel]');
+  function show(name) {
+    panels.forEach((p) => { p.style.display = p.dataset.tabpanel === name ? '' : 'none'; });
+    buttons.forEach((b) => b.classList.toggle('active', b.dataset.tabbtn === name));
+  }
+  buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.tabbtn)));
+}
+
+wireTabs();
 wireThemeControls();
 wireSettingsSave();
 loadSettingsForm();
