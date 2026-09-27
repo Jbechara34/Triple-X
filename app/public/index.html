@@ -400,10 +400,13 @@
       <!-- Readiness checklist -->
       <div class="v1-full">
         <div class="pv-status-head">
-          <div>
-            <div class="pv-kicker">Readiness</div>
-            <div class="pv-status-title" style="font-size:20px;">Startup Checklist</div>
-            <div class="pv-status-sub">Direct visibility into what's blocking the node and pool.</div>
+          <div style="display:flex; align-items:center; gap:12px;">
+            <img src="img/xmr-verify.png" alt="" style="width:40px; height:40px; border-radius:10px; flex-shrink:0;" />
+            <div>
+              <div class="pv-kicker">Readiness</div>
+              <div class="pv-status-title" style="font-size:20px;">Startup Checklist</div>
+              <div class="pv-status-sub">Direct visibility into what's blocking the node and pool.</div>
+            </div>
           </div>
           <span class="pv-pill" id="pv-ready-pill">—</span>
         </div>
@@ -561,6 +564,19 @@
     <div class="v1-bento" data-tabpanel="wallet" style="display:none">
       <div class="v1-full">
         <div class="v1-label">Tari (XTM) Wallet <span class="badge-experimental">beta</span></div>
+        <div class="wallet-card" style="background-image:url('img/tari-card-bg-landscape.png'); margin-top:10px;">
+          <div class="wallet-card-top">
+            <span class="wallet-card-ticker">Tari · XTM</span>
+          </div>
+          <div>
+            <div class="wallet-card-balance-label">Available</div>
+            <div class="wallet-card-balance" id="pv-wallet-tari-card-balance">—</div>
+          </div>
+          <div class="wallet-card-address-row">
+            <span class="wallet-card-address" id="pv-wallet-tari-card-address">•••• •••• •••• ••••</span>
+            <button class="wallet-card-toggle" id="pv-wallet-tari-card-toggle" title="Show address">&#128065;</button>
+          </div>
+        </div>
         <div class="v1-sub">
           This wallet was created automatically by the bundled Minotari node/wallet containers - this dashboard
           never holds funds itself, it just gives you a one-time look at the receive address and backup phrase.
@@ -602,7 +618,10 @@
         </div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">Seed Phrase Backup</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
+            <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>
+          </div>
           <div class="v1-sub" id="pv-wallet-seed-intro">
             A one-time backup of this wallet's seed phrase is available. Revealing it deletes the backup file from
             disk immediately after - it can only be shown once, so make sure you can write it down before confirming.
@@ -619,6 +638,19 @@
 
       <div class="v1-full">
         <div class="v1-label">Monero (XMR) Wallet</div>
+        <div class="wallet-card" style="background-image:url('img/xmr-card-bg.png'); background-size:180% auto; background-position:right center; margin-top:10px;">
+          <div class="wallet-card-top">
+            <span class="wallet-card-ticker">Monero · XMR</span>
+          </div>
+          <div>
+            <div class="wallet-card-balance-label">Unlocked</div>
+            <div class="wallet-card-balance" id="pv-wallet-xmr-card-balance">—</div>
+          </div>
+          <div class="wallet-card-address-row">
+            <span class="wallet-card-address" id="pv-wallet-xmr-card-address">•••• •••• •••• ••••</span>
+            <button class="wallet-card-toggle" id="pv-wallet-xmr-card-toggle" title="Show address">&#128065;</button>
+          </div>
+        </div>
         <div class="v1-sub">
           Created automatically by the bundled monero-wallet-rpc container on first use - same one-time reveal
           approach as the Tari wallet above.
@@ -659,7 +691,10 @@
         </div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">Seed Phrase Backup</div>
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
+            <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>
+          </div>
           <div class="v1-sub" id="pv-wallet-xmr-seed-intro">
             A one-time reveal of this wallet's 25-word seed phrase is available. Once shown, this dashboard will
             never display it again - have a pen and paper (or a password manager) ready before confirming.

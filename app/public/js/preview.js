@@ -185,6 +185,7 @@ async function refreshAll() {
     { key: 'blockchainSynced', label: 'Blockchain Sync', good: 'Synchronized', bad: 'Syncing', desc: 'Chain is synchronized and ready for pool traffic.', badDesc: 'Still catching up to the network tip.' },
     { key: 'payoutAddressConfigured', label: 'Payout Address', good: 'Configured', bad: 'Missing', desc: 'Block rewards have a payout target.', badDesc: 'Set a wallet address in Settings.' },
     { key: 'stratumRunning', label: 'Stratum', good: 'Open', bad: 'Closed', desc: 'Remote miners can connect.', badDesc: 'P2Pool is not running yet.' },
+    { key: 'nodePortOpen', label: 'P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18080 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18080 on your router.' },
   ];
   const readiness = status.readiness || {};
   const readyCount = checks.filter((c) => readiness[c.key]).length;
@@ -605,6 +606,8 @@ function wireTabs() {
 // Wallet tab - address display + one-time seed-phrase reveal, one config
 // per coin. Present only on variants that include these elements.
 // ---------------------------------------------------------------------------
+const MASKED_ADDRESS = '•••• •••• •••• ••••';
+
 const WALLET_COINS = [
   {
     apiBase: '/api/wallet/tari',
@@ -616,7 +619,10 @@ const WALLET_COINS = [
       setText('pv-wallet-tari-balance-available', `${data.availableBalance} XTM`);
       setText('pv-wallet-tari-balance-pending-in', `${data.pendingIncoming} XTM`);
       setText('pv-wallet-tari-balance-pending-out', `${data.pendingOutgoing} XTM`);
+      setText('pv-wallet-tari-card-balance', `${data.availableBalance} XTM`);
     },
+    cardAddressId: 'pv-wallet-tari-card-address',
+    cardToggleId: 'pv-wallet-tari-card-toggle',
     // Renders the successful POST .../send result { transactionId, amountXtm, feePerGram }.
     sendResultText(result) {
       return `Sent ${result.amountXtm} XTM. Transaction ID: ${result.transactionId} (fee rate used: ${result.feePerGram} µT/gram).`;
@@ -650,7 +656,10 @@ const WALLET_COINS = [
     renderBalance(data) {
       setText('pv-wallet-xmr-balance-available', `${data.unlockedBalance} XMR`);
       setText('pv-wallet-xmr-balance-total', `${data.balance} XMR`);
+      setText('pv-wallet-xmr-card-balance', `${data.unlockedBalance} XMR`);
     },
+    cardAddressId: 'pv-wallet-xmr-card-address',
+    cardToggleId: 'pv-wallet-xmr-card-toggle',
     // Renders the successful POST .../send result { txHash, amountXmr, feeXmr }.
     sendResultText(result) {
       return `Sent ${result.amountXmr} XMR (fee ${result.feeXmr} XMR). Tx hash: ${result.txHash}`;
@@ -688,6 +697,20 @@ async function refreshWalletTab() {
       continue;
     }
     addressEl.value = data.address || 'Wallet not reachable yet';
+    if (coin.cardAddressId) {
+      const cardAddressEl = document.getElementById(coin.cardAddressId);
+      if (cardAddressEl) {
+        cardAddressEl.dataset.fullAddress = data.address || '';
+        // Don't clobber the masked/revealed state on every poll - only set
+        // the initial text once, when the element has no state yet.
+        if (cardAddressEl.dataset.revealed === undefined) {
+          cardAddressEl.dataset.revealed = 'false';
+          cardAddressEl.textContent = data.address ? MASKED_ADDRESS : '—';
+        } else if (cardAddressEl.dataset.revealed === 'true') {
+          cardAddressEl.textContent = data.address || '—';
+        }
+      }
+    }
     const revealBtn = document.getElementById(coin.ids.step1);
     const intro = document.getElementById(coin.ids.intro);
     if (revealBtn && !data.seedAvailable) {
@@ -759,7 +782,26 @@ function wireWalletTab() {
     }
 
     wireWalletSend(coin);
+    wireWalletCardToggle(coin);
   }
+}
+
+// Show/hide toggle for the wallet card's address - masked by default
+// (MASKED_ADDRESS), full address on click. The full value came from the
+// wallet's own API response (stored in the element's dataset by
+// refreshWalletTab), never re-fetched here.
+function wireWalletCardToggle(coin) {
+  const toggle = document.getElementById(coin.cardToggleId);
+  const addressEl = document.getElementById(coin.cardAddressId);
+  if (!toggle || !addressEl) return;
+  toggle.addEventListener('click', () => {
+    const revealed = addressEl.dataset.revealed === 'true';
+    const next = !revealed;
+    addressEl.dataset.revealed = String(next);
+    const full = addressEl.dataset.fullAddress || '';
+    addressEl.textContent = next ? (full || '—') : (full ? MASKED_ADDRESS : '—');
+    toggle.title = next ? 'Hide address' : 'Show address';
+  });
 }
 
 // Two-step confirm for sending funds - deliberately no "estimate fee first"

@@ -846,6 +846,42 @@ input[type="text"]:focus, select:focus { outline: none; border-color: var(--oran
 }
 .flag-box .hint { margin-top: 4px; }
 
+/* Wallet card - a real card-shaped widget (like a phone Wallet app entry),
+   not just a banner strip. Fixed aspect ratio so the background art never
+   distorts regardless of panel width. */
+.wallet-card {
+  width: 100%;
+  max-width: 360px;
+  aspect-ratio: 1.79 / 1;
+  border-radius: 16px;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  box-shadow: 0 14px 32px rgba(0,0,0,0.5);
+  padding: 18px 20px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #fff;
+  margin-bottom: 18px;
+}
+.wallet-card-top { display: flex; align-items: center; justify-content: space-between; }
+.wallet-card-ticker { font-size: 12px; font-weight: 700; letter-spacing: 0.08em; opacity: 0.85; text-transform: uppercase; }
+.wallet-card-balance-label { font-size: 11px; opacity: 0.7; text-transform: uppercase; letter-spacing: 0.05em; }
+.wallet-card-balance { font-size: 28px; font-weight: 800; text-shadow: 0 2px 10px rgba(0,0,0,0.55); margin-top: 2px; }
+.wallet-card-address { font-family: "SF Mono", Menlo, Consolas, monospace; font-size: 13px; letter-spacing: 0.06em; opacity: 0.85; text-shadow: 0 1px 4px rgba(0,0,0,0.5); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.wallet-card-address-row { display: flex; align-items: center; gap: 8px; }
+.wallet-card-address-row .wallet-card-address { flex: 1; min-width: 0; }
+.wallet-card-toggle {
+  all: unset;
+  cursor: pointer;
+  font-size: 14px;
+  opacity: 0.75;
+  flex-shrink: 0;
+  padding: 2px;
+}
+.wallet-card-toggle:hover { opacity: 1; }
+
 .checkbox-label {
   display: flex;
   align-items: center;

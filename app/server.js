@@ -98,12 +98,21 @@ app.get('/api/status', async (req, res) => {
   const bestShareDifficulty = p2pool.stratum.currentEffort; // best-effort proxy, see p2poolApi.js
   const networkDifficulty = p2pool.network.difficulty ?? (nodeInfo ? nodeInfo.difficulty : null);
 
+  // Best-effort "is my p2p port actually reachable from the internet"
+  // signal - monerod can't test its own external reachability, but a
+  // node accepting *inbound* peer connections (not just making outbound
+  // ones itself) is strong evidence the port is open and forwarded
+  // correctly. Right after startup this can read false for a while even on
+  // a correctly forwarded port, simply because no peer has connected in yet.
+  const nodePortOpen = rpcOk && (nodeInfo.incoming_connections_count ?? 0) > 0;
+
   res.json({
     readiness: {
       nodeRpc: rpcOk,
       payoutAddressConfigured: payoutConfigured,
       blockchainSynced: syncOk,
       stratumRunning: stratumOk,
+      nodePortOpen,
     },
     sync: nodeInfo
       ? {
