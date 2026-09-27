@@ -47,7 +47,10 @@
   .pv-app-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--panel-alt); padding: 6px; flex-shrink: 0; }
   .pv-app-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
   .pv-app-title { font-size: 19px; font-weight: 800; color: var(--text); }
+  .pv-app-version { font-size: 13px; font-weight: 600; color: var(--muted); }
+  .pv-pill-stage { color: var(--yellow); border-color: var(--yellow); }
   .pv-app-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .pv-app-subtitle #pv-header-mode { color: var(--text); font-weight: 600; text-transform: none; }
   .pv-app-header-actions { display: flex; align-items: center; gap: 14px; }
 
   .pv-app-header-tabs {
@@ -222,9 +225,10 @@
           <div>
             <div class="pv-app-title-row">
               <span class="pv-app-title">Monero P2Pool Dashboard</span>
-              <span class="pv-pill" id="pv-header-mode">—</span>
+              <span class="pv-app-version">v0.0.1</span>
+              <span class="pv-pill pv-pill-stage">Dev1</span>
             </div>
-            <div class="pv-app-subtitle">P2Pool (PPLNS) + Tari (XTM) Merge-Mining</div>
+            <div class="pv-app-subtitle"><span id="pv-header-mode">—</span> Pool &middot; P2Pool (PPLNS) + Tari (XTM) Merge-Mining</div>
           </div>
         </div>
         <div class="pv-app-header-actions">
