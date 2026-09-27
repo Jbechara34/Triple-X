@@ -22,13 +22,13 @@ function toggleClass(id, cls, on) {
 }
 
 const RING_CIRCUMFERENCE = 188.5; // 2 * PI * r, r=30 (see .pv-ring-fill / the SVG's r="30")
-function setRing(fillId, labelId, pct, isGood) {
+function setRing(fillId, labelId, pct, isGood, inProgressColor) {
   const fill = document.getElementById(fillId);
   const label = document.getElementById(labelId);
   const clamped = Math.max(0, Math.min(100, pct));
   if (fill) {
     fill.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - clamped / 100));
-    fill.style.stroke = isGood ? '#4caf6a' : 'var(--orange)';
+    fill.style.stroke = isGood ? '#4caf6a' : (inProgressColor || 'var(--orange)');
   }
   if (label) label.textContent = `${clamped.toFixed(0)}%`;
 }
@@ -234,14 +234,14 @@ async function refreshAll() {
     setWidth('pv-minotari-bar', 0);
     setText('pv-tari-bc-title', tari.enabled ? 'Not running' : 'Not configured');
     setText('pv-tari-bc-sub', '—');
-    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', 0, false);
+    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', 0, false, 'var(--tari)');
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
     setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
     setWidth('pv-minotari-bar', pct);
     setText('pv-tari-bc-title', nodeSync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
     setText('pv-tari-bc-sub', 'Minotari Node · mainnet');
-    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', pct, nodeSync.synchronized);
+    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', pct, nodeSync.synchronized, 'var(--tari)');
     setText('pv-tari-bc-height', nodeSync.height ?? '—');
     setText('pv-tari-bc-target', nodeSync.targetHeight ?? '—');
   }

@@ -54,13 +54,14 @@
   .v1-bento > *:hover, .v1-side > *:hover {
     box-shadow: -10px 0 26px -12px var(--orange), 10px 0 26px -12px var(--tari);
   }
-  .v1-hero { grid-column: span 8; }
+  .v1-hero { grid-column: span 12; }
   .v1-side { grid-column: span 4; display: flex; flex-direction: column; gap: 14px; }
   .v1-quarter { grid-column: span 3; }
+  .v1-third { grid-column: span 4; }
   .v1-half { grid-column: span 6; }
   .v1-full { grid-column: span 12; }
   @media (max-width: 900px) {
-    .v1-hero, .v1-side, .v1-quarter, .v1-half, .v1-full { grid-column: span 12; }
+    .v1-hero, .v1-side, .v1-quarter, .v1-third, .v1-half, .v1-full { grid-column: span 12; }
   }
   .v1-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
   .v1-big { font-size: 28px; font-weight: 700; color: var(--text); }
@@ -101,7 +102,10 @@
   .pv-share-pct { font-size: 11px; color: var(--muted); width: 38px; text-align: right; flex-shrink: 0; }
 
   .pv-status-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; margin-bottom: 16px; }
-  .pv-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .pv-kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  .pv-kicker .mining-coin-dot { flex-shrink: 0; }
+  .pv-ring-fill.pv-ring-xmr { stroke: var(--orange); }
+  .pv-ring-fill.pv-ring-xtm { stroke: var(--tari); }
   .pv-status-title { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 3px; }
   .pv-status-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
@@ -224,18 +228,18 @@
         </div>
       </div>
 
-      <!-- Blockchain status card, ckpool-solo-dashboard-inspired -->
-      <div class="v1-half">
+      <!-- Blockchain status card - Monero (XMR), ckpool-solo-dashboard-inspired -->
+      <div class="v1-third">
         <div class="pv-status-head">
           <div>
-            <div class="pv-kicker">Blockchain</div>
+            <div class="pv-kicker"><span class="mining-coin-dot mining-dot-xmr"></span> Blockchain · Monero (XMR)</div>
             <div class="pv-status-title" id="pv-bc-title">—</div>
             <div class="pv-status-sub" id="pv-bc-sub">—</div>
           </div>
           <div class="pv-ring">
             <svg viewBox="0 0 70 70">
               <circle class="pv-ring-track" cx="35" cy="35" r="30" />
-              <circle class="pv-ring-fill" id="pv-bc-ring" cx="35" cy="35" r="30" />
+              <circle class="pv-ring-fill pv-ring-xmr" id="pv-bc-ring" cx="35" cy="35" r="30" />
             </svg>
             <div class="pv-ring-label" id="pv-bc-ring-label">0%</div>
           </div>
@@ -248,19 +252,20 @@
         </div>
       </div>
 
-      <!-- Blockchain status card - Tari (a separate blockchain from Monero,
-           gets its own sync card here rather than being folded into Monero's) -->
-      <div class="v1-half">
+      <!-- Blockchain status card - Minotari (XTM), a separate blockchain from
+           Monero, gets its own sync card here rather than being folded into
+           Monero's -->
+      <div class="v1-third">
         <div class="pv-status-head">
           <div>
-            <div class="pv-kicker">Blockchain <span class="badge-experimental">beta</span></div>
+            <div class="pv-kicker"><span class="mining-coin-dot mining-dot-xtm"></span> Blockchain · Minotari (XTM) <span class="badge-experimental">beta</span></div>
             <div class="pv-status-title" id="pv-tari-bc-title">—</div>
             <div class="pv-status-sub" id="pv-tari-bc-sub">—</div>
           </div>
           <div class="pv-ring">
             <svg viewBox="0 0 70 70">
               <circle class="pv-ring-track" cx="35" cy="35" r="30" />
-              <circle class="pv-ring-fill" id="pv-tari-bc-ring" cx="35" cy="35" r="30" />
+              <circle class="pv-ring-fill pv-ring-xtm" id="pv-tari-bc-ring" cx="35" cy="35" r="30" />
             </svg>
             <div class="pv-ring-label" id="pv-tari-bc-ring-label">0%</div>
           </div>
@@ -272,7 +277,7 @@
       </div>
 
       <!-- P2Pool status card -->
-      <div class="v1-half">
+      <div class="v1-third">
         <div class="pv-status-head">
           <div>
             <div class="pv-kicker">P2Pool</div>
