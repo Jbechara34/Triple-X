@@ -42,6 +42,13 @@ const BLOCK_FOUND_RE = /BLOCK FOUND[^\n]*?height[:\s]+(\d+)[^\n]*/i;
 const HEIGHT_ONLY_RE = /height[:\s]+(\d+)/i;
 const HASH_RE = /\b([0-9a-f]{64})\b/i;
 const SHARE_FOUND_RE = /SHARE FOUND[^\n]*?user[:\s]+([^\s,]+)/i;
+// p2pool's own log line (see src/stratum_server.cpp): "SHARE FOUND: mainchain
+// height H, sidechain height H2, diff D, client ADDR, user USER, effort E%" -
+// "diff" here is that specific share's sidechain difficulty, which is what
+// lets us track each worker's best (highest-difficulty) share seen, the same
+// "record share vs network difficulty" concept p2pool's own bestShare stats
+// already use pool-wide (see p2poolApi.js currentEffort/averageEffort).
+const SHARE_DIFF_RE = /SHARE FOUND[^\n]*?diff[:\s]+(\d+)/i;
 const TIMESTAMP_PREFIX_RE = /^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})/;
 
 let state = {
@@ -97,9 +104,14 @@ function parseLine(line) {
   if (/SHARE FOUND/i.test(line)) {
     const userMatch = line.match(SHARE_FOUND_RE);
     const name = userMatch ? userMatch[1] : 'unknown';
-    const entry = state.workers[name] || { shares: 0, firstSeen: detectedAt };
+    const diffMatch = line.match(SHARE_DIFF_RE);
+    const diff = diffMatch ? Number(diffMatch[1]) : null;
+    const entry = state.workers[name] || { shares: 0, firstSeen: detectedAt, bestDifficulty: 0 };
     entry.shares += 1;
     entry.lastSeen = detectedAt;
+    if (diff !== null && diff > (entry.bestDifficulty || 0)) {
+      entry.bestDifficulty = diff;
+    }
     state.workers[name] = entry;
   }
 }
@@ -165,6 +177,7 @@ function getWorkers() {
     firstSeen: w.firstSeen,
     lastSeen: w.lastSeen,
     active: now - new Date(w.lastSeen).getTime() < WORKER_STALE_MS,
+    bestDifficulty: w.bestDifficulty || 0,
   }));
 }
 

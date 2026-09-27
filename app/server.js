@@ -257,11 +257,19 @@ app.get('/api/pool', async (req, res) => {
     // from what we actually track (see lib/blocks.js), unlike a per-worker
     // "odds of finding a block" which P2Pool's PPLNS payout model doesn't
     // really support computing per-worker.
+    // bestDifficultyPercent: this worker's single highest-difficulty share
+    // seen, as a percentage of the current Monero network difficulty - the
+    // same "record share vs target" concept as the pool-wide bestShare
+    // stats above, just tracked per worker via the SHARE FOUND log lines
+    // (see lib/blocks.js SHARE_DIFF_RE). Expect this to sit near 0% for a
+    // typical home miner - that's normal, not a bug.
     workers: (() => {
       const totalShares = workers.reduce((sum, w) => sum + w.shares, 0);
+      const networkDiff = p2pool.network.difficulty;
       return workers.map((w) => ({
         ...w,
         sharePercent: totalShares ? (w.shares / totalShares) * 100 : 0,
+        bestDifficultyPercent: networkDiff && w.bestDifficulty ? Math.min(100, (w.bestDifficulty / networkDiff) * 100) : 0,
       }));
     })(),
     minerConfig: {

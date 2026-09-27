@@ -8,7 +8,15 @@
 
 function setText(id, val) {
   const el = document.getElementById(id);
-  if (el) el.textContent = val;
+  if (!el) return;
+  const str = String(val);
+  if (el.textContent !== str && el.textContent !== '—' && el.dataset.pvInit) {
+    el.classList.remove('pv-value-flash');
+    void el.offsetWidth; // restart the animation if it's still running
+    el.classList.add('pv-value-flash');
+  }
+  el.dataset.pvInit = '1';
+  el.textContent = str;
 }
 
 function setWidth(id, pct) {
@@ -286,22 +294,46 @@ async function refreshAll() {
   setText('pv-best-since', fmtDifficulty(pool.bestShare?.sinceBlock));
   setText('pv-best-alltime', fmtDifficulty(pool.bestShare?.allTime));
 
-  // Worker Details
-  const workersBody = document.getElementById('pv-workers-body');
-  if (workersBody) {
-    workersBody.innerHTML = (pool.workers || []).length
+  // Worker Details - each worker gets a card with a ring showing how close
+  // their single best share has gotten to the real network difficulty
+  // (bestDifficultyPercent, see server.js) - the more "filled in" the ring,
+  // the closer that worker came to actually finding a block. A small home
+  // miner sitting near 0% is expected, not a bug.
+  const WORKER_RING_CIRCUMFERENCE = 138.2; // 2 * PI * r, r=22
+  const workersGrid = document.getElementById('pv-workers-grid');
+  if (workersGrid) {
+    workersGrid.innerHTML = (pool.workers || []).length
       ? pool.workers
           .map((w) => {
-            const pct = w.sharePercent ?? 0;
-            return `<tr><td>${escapeHtml(w.name)}</td><td>${w.shares}</td><td>
-              <div class="pv-share-cell">
-                <div class="pv-share-bar-track"><div class="pv-share-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
-                <span class="pv-share-pct">${pct.toFixed(1)}%</span>
+            const sharePct = w.sharePercent ?? 0;
+            const diffPct = Math.max(0, Math.min(100, w.bestDifficultyPercent ?? 0));
+            const dotIdx = w.name.lastIndexOf('.');
+            const address = dotIdx > 0 ? w.name.slice(0, dotIdx) : null;
+            const label = dotIdx > 0 ? w.name.slice(dotIdx + 1) : w.name;
+            const shortAddress = address && address.length > 20 ? `${address.slice(0, 10)}…${address.slice(-6)}` : address;
+            const ringOffset = WORKER_RING_CIRCUMFERENCE * (1 - diffPct / 100);
+            return `<div class="pv-worker-card">
+              <div class="pv-worker-info">
+                <div class="pv-worker-name">${escapeHtml(label)}</div>
+                ${shortAddress ? `<div class="pv-worker-address">${escapeHtml(shortAddress)}</div>` : ''}
+                <div class="pv-worker-meta">
+                  <span class="pv-worker-meta-item"><strong>${w.shares}</strong> shares</span>
+                  <span class="pv-worker-meta-item">Last seen <strong>${fmtTime(w.lastSeen)}</strong></span>
+                  <span class="pv-worker-meta-item">${sharePct.toFixed(1)}% of your total shares</span>
+                </div>
+                <div class="pv-worker-share-bar-track"><div class="pv-worker-share-bar-fill" style="width:${sharePct.toFixed(1)}%"></div></div>
               </div>
-            </td><td>${fmtTime(w.lastSeen)}</td></tr>`;
+              <div class="pv-worker-ring" title="Best share difficulty vs current network difficulty">
+                <svg viewBox="0 0 56 56">
+                  <circle class="pv-worker-ring-track" cx="28" cy="28" r="22" />
+                  <circle class="pv-worker-ring-fill" cx="28" cy="28" r="22" style="stroke-dasharray:${WORKER_RING_CIRCUMFERENCE};stroke-dashoffset:${ringOffset}" />
+                </svg>
+                <div class="pv-worker-ring-label">${diffPct >= 1 ? diffPct.toFixed(0) : diffPct.toFixed(2)}%<br>diff</div>
+              </div>
+            </div>`;
           })
           .join('')
-      : '<tr><td colspan="4" class="pv-empty">No workers connected yet.</td></tr>';
+      : '<div class="pv-empty">No workers connected yet.</div>';
   }
 
   // Tari payout address + XTM blocks table
