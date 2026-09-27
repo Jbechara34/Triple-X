@@ -306,20 +306,26 @@ async function refreshAll() {
   }
 
   // Optional P2Pool Observer card (see lib/p2poolObserver.js) - only shown
-  // when the user opted in from Settings.
+  // when the user opted in from Settings. When it's hidden (the default),
+  // Worker Details would otherwise sit alone in a half-width row with empty
+  // space next to it - expand it to full width in that case instead.
   const observerCard = document.getElementById('pv-observer-card');
+  const workerDetailsCard = document.getElementById('pv-worker-details-card');
   if (observerCard) {
     const observer = pool.observer;
-    if (observer && !observer.error) {
-      observerCard.style.display = '';
+    const showObserver = !!(observer && !observer.error);
+    observerCard.style.display = showObserver ? '' : 'none';
+    if (workerDetailsCard) {
+      workerDetailsCard.classList.toggle('v1-half', showObserver);
+      workerDetailsCard.classList.toggle('v1-full', !showObserver);
+    }
+    if (showObserver) {
       setText('pv-observer-miners', observer.globalMiners ?? '—');
       setText('pv-observer-shares', observer.yourShares?.totalShares ?? '—');
       setText('pv-observer-last-share', observer.yourShares?.lastShareAt ? fmtTime(observer.yourShares.lastShareAt) : '—');
       setText('pv-observer-versions', `P2Pool ${observer.p2poolVersion || '—'} · Monero ${observer.moneroVersion || '—'}`);
       const link = document.getElementById('pv-observer-link');
       if (link) link.href = observer.explorerUrl || '#';
-    } else {
-      observerCard.style.display = 'none';
     }
   }
 

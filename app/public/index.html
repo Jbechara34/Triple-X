@@ -349,7 +349,7 @@
         <div class="progress-bar" style="margin-top:10px;"><div id="pv-minotari-bar" class="progress-bar-fill" style="width:0%"></div></div>
         <div class="v1-sub" style="margin-top:8px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
       </div>
-      <div class="v1-half">
+      <div class="v1-full">
         <div class="v1-label">Miner Configuration</div>
         <div class="field">
           <label>Pool URL</label>
@@ -389,8 +389,10 @@
         </div>
       </div>
 
-      <!-- Worker details -->
-      <div class="v1-half">
+      <!-- Worker details - expands to full width via JS when the Observer
+           card below is hidden (its default state), so it never sits alone
+           in a half-width row with empty space next to it. -->
+      <div class="v1-half" id="pv-worker-details-card">
         <div class="v1-label">Worker Details</div>
         <table class="v1-table">
           <thead><tr><th>Worker</th><th>Shares</th><th>Share of Total</th><th>Last Seen</th></tr></thead>
