@@ -16,6 +16,7 @@
   /* App header card, ckpool-style: icon + title/subtitle + status pill on
      top, underline-style tabs below in the same card. */
   .pv-app-header {
+    position: relative;
     border-radius: var(--radius);
     padding: 18px 20px 0;
     border: 1px solid transparent;
@@ -26,6 +27,21 @@
     margin-bottom: 20px;
     animation: pv-card-in 0.35s ease both;
   }
+
+  /* Dropdown tab switcher - mobile/tablet only, hidden on desktop where the
+     underline tab row already fits. */
+  .pv-tab-select {
+    display: none;
+    width: 100%;
+    background: var(--panel-alt);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 14px;
+    margin-bottom: 14px;
+  }
+
   .pv-app-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 16px; }
   .pv-app-brand { display: flex; align-items: center; gap: 14px; }
   .pv-app-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--panel-alt); padding: 6px; flex-shrink: 0; }
@@ -46,6 +62,17 @@
   }
   .pv-app-header-tabs button:hover { color: var(--text); }
   .pv-app-header-tabs button.active { color: var(--text); font-weight: 600; border-bottom-color: var(--orange); }
+  @media (max-width: 900px) {
+    .pv-app-header-tabs { display: none; }
+    .pv-tab-select { display: block; }
+    /* Explorer/palette/theme move into Settings on small screens - see the
+       matching #pv-settings-explorer/-palette/-theme controls there. */
+    .pv-app-header-actions #tb-explorer,
+    .pv-app-header-actions #tb-palette,
+    .pv-app-header-actions #tb-theme { display: none; }
+    #pv-header-status { position: absolute; top: 16px; right: 16px; }
+    .pv-app-header-actions { min-height: 1px; }
+  }
   .v1-bento {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -221,6 +248,14 @@
         <button data-tabbtn="logs">Logs</button>
         <button data-tabbtn="settings">Settings</button>
       </div>
+      <select class="pv-tab-select" id="pv-tab-select">
+        <option value="overview">Overview</option>
+        <option value="pool">Pool</option>
+        <option value="blocks">Blocks</option>
+        <option value="wallet">Wallet</option>
+        <option value="logs">Logs</option>
+        <option value="settings">Settings</option>
+      </select>
     </div>
 
     <div class="v1-bento" data-tabpanel="overview">
@@ -595,6 +630,19 @@
     </div>
 
     <div class="v1-bento" data-tabpanel="settings" style="display:none">
+      <!-- Preferences - block explorer / color theme / light-dark toggle live
+           here on mobile (moved out of the header, which only has room for
+           them on desktop); shown here on all screen sizes since there's no
+           harm in the shortcut existing on desktop too. -->
+      <div class="v1-full">
+        <div class="v1-label">Preferences</div>
+        <div class="v1-stat-row" style="align-items:center; flex-wrap:wrap; gap:14px;">
+          <a class="icon-btn" id="pv-settings-explorer" href="#" target="_blank" rel="noopener">&#127760; Block Explorer</a>
+          <button class="icon-btn" id="pv-settings-palette">&#127912; Cycle Color Theme</button>
+          <button class="icon-btn" id="pv-settings-theme">&#127769; Toggle Light/Dark</button>
+        </div>
+      </div>
+
       <!-- Settings -->
       <div class="v1-full">
         <div class="v1-label">Settings</div>

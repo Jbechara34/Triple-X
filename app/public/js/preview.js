@@ -422,7 +422,10 @@ function applyLogsTabVisibility(enabled) {
   const logsBtn = document.querySelector('[data-tabbtn="logs"]');
   if (!logsBtn) return;
   logsBtn.style.display = enabled ? '' : 'none';
-  if (!enabled && logsBtn.classList.contains('active')) {
+  const logsOption = document.querySelector('#pv-tab-select option[value="logs"]');
+  if (logsOption) logsOption.disabled = !enabled;
+  const activeViaSelect = document.getElementById('pv-tab-select')?.value === 'logs';
+  if (!enabled && (logsBtn.classList.contains('active') || activeViaSelect)) {
     document.querySelector('[data-tabbtn="overview"]')?.click();
   }
 }
@@ -523,46 +526,50 @@ function startLogStreamsIfPresent() {
 // these titlebar buttons.
 // ---------------------------------------------------------------------------
 function wireThemeControls() {
-  const THEME_KEY = 'p2pool-dashboard-theme';
-  const themeBtn = document.getElementById('tb-theme');
-  if (themeBtn) {
+  // Each control has a header copy (desktop) and a Settings-tab copy
+  // (always present, primary on mobile where the header ones are hidden via
+  // CSS) - both ids are wired to the same state so either one works.
+  const themeBtns = ['tb-theme', 'pv-settings-theme'].map((id) => document.getElementById(id)).filter(Boolean);
+  if (themeBtns.length) {
+    const THEME_KEY = 'p2pool-dashboard-theme';
     const applyTheme = (theme) => document.documentElement.classList.toggle('light', theme === 'light');
     try { applyTheme(localStorage.getItem(THEME_KEY) || 'dark'); } catch (err) { applyTheme('dark'); }
-    themeBtn.addEventListener('click', () => {
+    themeBtns.forEach((btn) => btn.addEventListener('click', () => {
       const next = document.documentElement.classList.contains('light') ? 'dark' : 'light';
       applyTheme(next);
       try { localStorage.setItem(THEME_KEY, next); } catch (err) { /* ignore */ }
-    });
+    }));
   }
 
-  const PALETTE_KEY = 'p2pool-dashboard-palette';
-  const PALETTES = [
-    { id: 'classic', label: 'Monero Classic' },
-    { id: 'tari', label: 'Tari Nebula' },
-    { id: 'molten', label: 'Molten Cave' },
-  ];
-  const paletteBtn = document.getElementById('tb-palette');
-  if (paletteBtn) {
+  const paletteBtns = ['tb-palette', 'pv-settings-palette'].map((id) => document.getElementById(id)).filter(Boolean);
+  if (paletteBtns.length) {
+    const PALETTE_KEY = 'p2pool-dashboard-palette';
+    const PALETTES = [
+      { id: 'classic', label: 'Monero Classic' },
+      { id: 'tari', label: 'Tari Nebula' },
+      { id: 'molten', label: 'Molten Cave' },
+    ];
     let current = 'classic';
     const apply = (id) => {
       if (id === 'classic') document.documentElement.removeAttribute('data-theme');
       else document.documentElement.setAttribute('data-theme', id);
-      paletteBtn.title = `Color theme: ${PALETTES.find((p) => p.id === id)?.label || id} (click to cycle)`;
+      const label = `Color theme: ${PALETTES.find((p) => p.id === id)?.label || id} (click to cycle)`;
+      paletteBtns.forEach((btn) => { btn.title = label; });
     };
     try { current = localStorage.getItem(PALETTE_KEY) || 'classic'; } catch (err) { /* ignore */ }
     apply(current);
-    paletteBtn.addEventListener('click', () => {
+    paletteBtns.forEach((btn) => btn.addEventListener('click', () => {
       const idx = PALETTES.findIndex((p) => p.id === current);
       current = PALETTES[(idx + 1) % PALETTES.length].id;
       apply(current);
       try { localStorage.setItem(PALETTE_KEY, current); } catch (err) { /* ignore */ }
-    });
+    }));
   }
 
-  const explorerLink = document.getElementById('tb-explorer');
-  if (explorerLink) {
+  const explorerLinks = ['tb-explorer', 'pv-settings-explorer'].map((id) => document.getElementById(id)).filter(Boolean);
+  if (explorerLinks.length) {
     getJSON('/api/blocks').then((data) => {
-      if (data.explorerBaseUrl) explorerLink.href = data.explorerBaseUrl;
+      if (data.explorerBaseUrl) explorerLinks.forEach((a) => { a.href = data.explorerBaseUrl; });
     }).catch(() => {});
   }
 }
@@ -575,11 +582,14 @@ function wireTabs() {
   const buttons = document.querySelectorAll('[data-tabbtn]');
   if (!buttons.length) return;
   const panels = document.querySelectorAll('[data-tabpanel]');
+  const select = document.getElementById('pv-tab-select');
   function show(name) {
     panels.forEach((p) => { p.style.display = p.dataset.tabpanel === name ? '' : 'none'; });
     buttons.forEach((b) => b.classList.toggle('active', b.dataset.tabbtn === name));
+    if (select && select.value !== name) select.value = name;
   }
   buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.tabbtn)));
+  if (select) select.addEventListener('change', () => show(select.value));
 }
 
 // ---------------------------------------------------------------------------
