@@ -154,6 +154,16 @@ services:
     image: ghcr.io/tari-project/minotari_node:latest-mainnet
     restart: on-failure
     stop_grace_period: 1m
+    # The official image's default user is non-root ("tari" - confirmed via
+    # its published manifest config), but we don't control its Dockerfile to
+    # fix this the way ../docker/minotari-wallet/Dockerfile does (USER root).
+    # ${APP_DATA_DIR}/minotari-node and .../minotari-logs are created fresh
+    # by the platform and owned by root, so "tari" can't write into them -
+    # base_node.log never gets created and the app's Logs tab just shows
+    # "waiting for the process to start" forever. Run as root to sidestep
+    # that; same simplicity-over-defense-in-depth tradeoff already made for
+    # minotari-wallet.
+    user: "0:0"
     command:
       - "--base-path=/tari-data"
       - "--network=mainnet"

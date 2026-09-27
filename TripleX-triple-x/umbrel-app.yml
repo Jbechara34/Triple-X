@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v0.0.1-Dev3"
+version: "v0.0.1-Dev4"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -31,6 +31,12 @@ defaultPassword: ""
 submitter: Jbechara34
 submission: https://github.com/Jbechara34/triple-x
 releaseNotes: >-
+  v0.0.1-Dev4: fixes the Minotari (Tari base node) container never writing
+  base_node.log ("Log file not created yet" forever on the Logs tab). The
+  official minotari_node image defaults to a non-root "tari" user, but a
+  freshly created ${APP_DATA_DIR}/minotari-node volume is owned by root, so
+  it couldn't write to its own data/log directories. Now runs as root
+  (compose-only fix, no image rebuild needed).
   v0.0.1-Dev3: fixes monerod crashing with "Permission denied:
   /root/.bitmonero" (and the resulting P2Pool crash-loop) - Dev1/Dev2's
   images were published before a HOME/setpriv fix landed on this branch;
