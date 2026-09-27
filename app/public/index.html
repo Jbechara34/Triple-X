@@ -171,6 +171,13 @@
   .pv-check-status.bad { color: #e05a5a; }
   .pv-check-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
+  .pv-addr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
+  .pv-addr-card { background: var(--panel-alt); border-radius: 10px; padding: 12px 14px; }
+  .pv-addr-coin { display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 8px; }
+  .pv-addr-ticker { font-size: 11px; color: var(--muted); font-weight: 600; }
+  .pv-addr-card .copy-row input { font-size: 11px; }
+  .pv-addr-empty { font-size: 12px; color: var(--muted); font-style: italic; }
+
   .pv-hr-pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
   .pv-hr-pill {
     display: flex; align-items: center; gap: 6px;
@@ -669,6 +676,44 @@
         </div>
         <button class="primary" id="pv-settings-save">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
+      </div>
+
+      <!-- Donation addresses - static personal reference list, not wired to
+           any pool/payout logic (see the Monero Wallet Address field above
+           and the Wallet tab for the ones that actually control mining
+           payouts). -->
+      <div class="v1-full">
+        <div class="v1-label">Donation</div>
+        <div class="v1-sub" style="margin-bottom:14px;">
+          This dashboard is free and open-source, but it takes real time and effort to build and maintain. If it's
+          been useful to you, a donation to any of the addresses below is sincerely appreciated - thank you!
+        </div>
+        <div class="pv-addr-grid">
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">Monero <span class="pv-addr-ticker">XMR</span></div>
+            <div class="copy-row"><input type="text" readonly value="45n1EqTfwEjTuMyFpmmH9MZTuiY8NW334gRMdLZ7tuAPhQzz2X2ry7VKHYwzzGSSPuKsGDvYio1oZVYa97AgU2c7VU45cGV" id="pv-addr-xmr" /><button class="icon-btn" data-copy="#pv-addr-xmr">Copy</button></div>
+          </div>
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">Bitcoin <span class="pv-addr-ticker">BTC</span></div>
+            <div class="copy-row"><input type="text" readonly value="bc1qgafn9ef0s8ua2ed0pf746cc3vcxp2gt58054hs" id="pv-addr-btc" /><button class="icon-btn" data-copy="#pv-addr-btc">Copy</button></div>
+          </div>
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">Bitcoin Cash <span class="pv-addr-ticker">BCH</span></div>
+            <div class="copy-row"><input type="text" readonly value="qp0f38w9f5qcps0mjffh6awmvzjtr9pw4yd2ueyrup" id="pv-addr-bch" /><button class="icon-btn" data-copy="#pv-addr-bch">Copy</button></div>
+          </div>
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">Litecoin <span class="pv-addr-ticker">LTC</span></div>
+            <div class="copy-row"><input type="text" readonly value="ltc1qyr9t55l78agta9ecw09uc3fxjqsf4chm5n2vtd" id="pv-addr-ltc" /><button class="icon-btn" data-copy="#pv-addr-ltc">Copy</button></div>
+          </div>
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">DigiByte <span class="pv-addr-ticker">DGB</span></div>
+            <div class="copy-row"><input type="text" readonly value="DTTPtJUoxzP4cKPNMCZoWscv8eEtZfndWu" id="pv-addr-dgb" /><button class="icon-btn" data-copy="#pv-addr-dgb">Copy</button></div>
+          </div>
+          <div class="pv-addr-card">
+            <div class="pv-addr-coin">Minotari <span class="pv-addr-ticker">XTM</span></div>
+            <div class="copy-row"><input type="text" readonly value="12LountNWbH8pdXaLR9iHEkKA2giMk2CkMa6pQSZDd7eETMEZWoaFrs8hgLj6aGzKXL1Qceck4RMToKnAaTVJdKeKza" id="pv-addr-xtm" /><button class="icon-btn" data-copy="#pv-addr-xtm">Copy</button></div>
+          </div>
+        </div>
       </div>
     </div>
   </div>
