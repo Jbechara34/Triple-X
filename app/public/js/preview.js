@@ -223,6 +223,15 @@ async function refreshAll() {
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
   setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
+  setText('pv-header-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
+
+  const headerStatus = document.getElementById('pv-header-status');
+  if (headerStatus) {
+    const allReady = readyCount === checks.length;
+    headerStatus.textContent = allReady ? 'Running' : (readyCount > 0 ? 'Starting' : 'Offline');
+    headerStatus.classList.toggle('good', allReady);
+    headerStatus.classList.toggle('bad', !allReady && readyCount === 0);
+  }
   setText('pv-miner-url', pool.minerConfig?.url || '—');
   setText('pv-payout-address', settings.walletAddress || 'Not configured');
   setText('pv-worker-login', pool.minerConfig?.exampleWorkerLogin || 'Set a payout address in Settings first');

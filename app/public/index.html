@@ -11,34 +11,41 @@
      needs is visible at once, top nav bar only for identity + variant
      switcher. Denser and more "ops dashboard" than the tabbed original. */
   body { background: var(--bg); }
-  .v1-topbar {
-    height: 52px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 20px;
-    border-bottom: 1px solid var(--border);
-    background: var(--panel);
-  }
-  .v1-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); }
-  .v1-brand .dot { width: 9px; height: 9px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 8px var(--orange); }
   .v1-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
-  .v1-tabs {
-    display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
+
+  /* App header card, ckpool-style: icon + title/subtitle + status pill on
+     top, underline-style tabs below in the same card. */
+  .pv-app-header {
+    border-radius: var(--radius);
+    padding: 18px 20px 0;
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--panel), var(--panel)) padding-box,
+      linear-gradient(120deg, var(--orange) 0%, var(--orange) 45%, var(--tari) 55%, var(--tari) 100%) border-box;
+    box-shadow: -10px 0 22px -16px var(--orange), 10px 0 22px -16px var(--tari);
+    margin-bottom: 20px;
+    animation: pv-card-in 0.35s ease both;
+  }
+  .pv-app-header-top { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; padding-bottom: 16px; }
+  .pv-app-brand { display: flex; align-items: center; gap: 14px; }
+  .pv-app-icon { width: 44px; height: 44px; border-radius: 12px; background: var(--panel-alt); padding: 6px; flex-shrink: 0; }
+  .pv-app-title-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .pv-app-title { font-size: 19px; font-weight: 800; color: var(--text); }
+  .pv-app-subtitle { font-size: 12px; color: var(--muted); margin-top: 3px; }
+  .pv-app-header-actions { display: flex; align-items: center; gap: 14px; }
+
+  .pv-app-header-tabs {
+    display: flex; gap: 4px; border-top: 1px solid var(--border);
     overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
-  .v1-tabs::-webkit-scrollbar { display: none; }
-  .v1-tabs button {
-    background: none; border: 1px solid transparent; color: var(--muted);
-    font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
-    flex-shrink: 0; white-space: nowrap;
+  .pv-app-header-tabs::-webkit-scrollbar { display: none; }
+  .pv-app-header-tabs button {
+    background: none; border: none; border-bottom: 2px solid transparent; color: var(--muted);
+    font-size: 13px; padding: 12px 14px; cursor: pointer; flex-shrink: 0; white-space: nowrap;
+    margin-bottom: -1px;
   }
-  .v1-tabs button:hover { background: var(--panel-alt); color: var(--text); }
-  .v1-tabs button.active {
-    color: var(--text);
-    background: linear-gradient(120deg, rgba(255,102,0,0.15), rgba(61,220,132,0.15));
-    border-color: var(--border);
-  }
+  .pv-app-header-tabs button:hover { color: var(--text); }
+  .pv-app-header-tabs button.active { color: var(--text); font-weight: 600; border-bottom-color: var(--orange); }
   .v1-bento {
     display: grid;
     grid-template-columns: repeat(12, 1fr);
@@ -186,23 +193,34 @@
 </style>
 </head>
 <body>
-  <div class="v1-topbar">
-    <div class="v1-brand"><span class="dot"></span> Monero P2Pool Dashboard</div>
-    <div style="display:flex;align-items:center;gap:14px;">
-      <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
-      <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
-      <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
-    </div>
-  </div>
-
   <div class="v1-wrap">
-    <div class="v1-tabs">
-      <button data-tabbtn="overview" class="active">Overview</button>
-      <button data-tabbtn="pool">Pool</button>
-      <button data-tabbtn="blocks">Blocks</button>
-      <button data-tabbtn="wallet">Wallet</button>
-      <button data-tabbtn="logs">Logs</button>
-      <button data-tabbtn="settings">Settings</button>
+    <div class="pv-app-header">
+      <div class="pv-app-header-top">
+        <div class="pv-app-brand">
+          <img src="img/monero-icon.png" alt="" class="pv-app-icon" />
+          <div>
+            <div class="pv-app-title-row">
+              <span class="pv-app-title">Monero P2Pool Dashboard</span>
+              <span class="pv-pill" id="pv-header-mode">—</span>
+            </div>
+            <div class="pv-app-subtitle">P2Pool (PPLNS) + Tari (XTM) Merge-Mining</div>
+          </div>
+        </div>
+        <div class="pv-app-header-actions">
+          <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
+          <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
+          <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
+          <span class="pv-pill" id="pv-header-status">—</span>
+        </div>
+      </div>
+      <div class="pv-app-header-tabs">
+        <button data-tabbtn="overview" class="active">Overview</button>
+        <button data-tabbtn="pool">Pool</button>
+        <button data-tabbtn="blocks">Blocks</button>
+        <button data-tabbtn="wallet">Wallet</button>
+        <button data-tabbtn="logs">Logs</button>
+        <button data-tabbtn="settings">Settings</button>
+      </div>
     </div>
 
     <div class="v1-bento" data-tabpanel="overview">
