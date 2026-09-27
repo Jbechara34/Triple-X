@@ -608,8 +608,19 @@ function wireTabs() {
 const WALLET_COINS = [
   {
     apiBase: '/api/wallet/tari',
+    unit: 'XTM',
     settingsField: 'tariAddress',
     useLabel: 'Saved as your Tari merge-mining address.',
+    // Renders GET .../balance's { availableBalance, pendingIncoming, pendingOutgoing }.
+    renderBalance(data) {
+      setText('pv-wallet-tari-balance-available', `${data.availableBalance} XTM`);
+      setText('pv-wallet-tari-balance-pending-in', `${data.pendingIncoming} XTM`);
+      setText('pv-wallet-tari-balance-pending-out', `${data.pendingOutgoing} XTM`);
+    },
+    // Renders the successful POST .../send result { transactionId, amountXtm, feePerGram }.
+    sendResultText(result) {
+      return `Sent ${result.amountXtm} XTM. Transaction ID: ${result.transactionId} (fee rate used: ${result.feePerGram} µT/gram).`;
+    },
     ids: {
       address: 'pv-wallet-tari-address',
       useBtn: 'pv-wallet-tari-use',
@@ -620,12 +631,30 @@ const WALLET_COINS = [
       cancel: 'pv-wallet-reveal-cancel',
       grid: 'pv-wallet-seed-grid',
       intro: 'pv-wallet-seed-intro',
+      sendAddress: 'pv-wallet-tari-send-address',
+      sendAmount: 'pv-wallet-tari-send-amount',
+      sendStep1: 'pv-wallet-tari-send-step1',
+      sendConfirm: 'pv-wallet-tari-send-confirm',
+      sendConfirmText: 'pv-wallet-tari-send-confirm-text',
+      sendStep2: 'pv-wallet-tari-send-step2',
+      sendCancel: 'pv-wallet-tari-send-cancel',
+      sendStatus: 'pv-wallet-tari-send-status',
     },
   },
   {
     apiBase: '/api/wallet/monero',
+    unit: 'XMR',
     settingsField: 'walletAddress',
     useLabel: 'Saved as your Monero payout address.',
+    // Renders GET .../balance's { balance, unlockedBalance } (both XMR decimal strings).
+    renderBalance(data) {
+      setText('pv-wallet-xmr-balance-available', `${data.unlockedBalance} XMR`);
+      setText('pv-wallet-xmr-balance-total', `${data.balance} XMR`);
+    },
+    // Renders the successful POST .../send result { txHash, amountXmr, feeXmr }.
+    sendResultText(result) {
+      return `Sent ${result.amountXmr} XMR (fee ${result.feeXmr} XMR). Tx hash: ${result.txHash}`;
+    },
     ids: {
       address: 'pv-wallet-xmr-address',
       useBtn: 'pv-wallet-xmr-use',
@@ -635,6 +664,14 @@ const WALLET_COINS = [
       step2: 'pv-wallet-xmr-reveal-step2',
       cancel: 'pv-wallet-xmr-reveal-cancel',
       grid: 'pv-wallet-xmr-seed-grid',
+      sendAddress: 'pv-wallet-xmr-send-address',
+      sendAmount: 'pv-wallet-xmr-send-amount',
+      sendStep1: 'pv-wallet-xmr-send-step1',
+      sendConfirm: 'pv-wallet-xmr-send-confirm',
+      sendConfirmText: 'pv-wallet-xmr-send-confirm-text',
+      sendStep2: 'pv-wallet-xmr-send-step2',
+      sendCancel: 'pv-wallet-xmr-send-cancel',
+      sendStatus: 'pv-wallet-xmr-send-status',
       intro: 'pv-wallet-xmr-seed-intro',
     },
   },
@@ -656,6 +693,15 @@ async function refreshWalletTab() {
     if (revealBtn && !data.seedAvailable) {
       revealBtn.style.display = 'none';
       if (intro) intro.textContent = 'No seed backup is available - it was already revealed once, or this wallet was restored from an existing seed rather than freshly created.';
+    }
+
+    if (document.getElementById(coin.ids.sendAddress)) {
+      try {
+        const balance = await getJSON(`${coin.apiBase}/balance`);
+        coin.renderBalance(balance);
+      } catch (err) {
+        // Wallet balance not reachable yet - leave the "—" placeholders.
+      }
     }
   }
 }
@@ -711,7 +757,70 @@ function wireWalletTab() {
         }
       });
     }
+
+    wireWalletSend(coin);
   }
+}
+
+// Two-step confirm for sending funds - deliberately no "estimate fee first"
+// round trip (Tari's Transfer RPC doesn't expose one, and adding a Monero
+// do_not_relay/relay two-phase flow just for this would be a lot of added
+// complexity for a home dashboard). The address and amount are shown back to
+// the user in the confirmation step so there's still a real chance to catch
+// a typo before anything irreversible happens.
+function wireWalletSend(coin) {
+  const addressInput = document.getElementById(coin.ids.sendAddress);
+  const amountInput = document.getElementById(coin.ids.sendAmount);
+  const step1 = document.getElementById(coin.ids.sendStep1);
+  const confirmBox = document.getElementById(coin.ids.sendConfirm);
+  const confirmText = document.getElementById(coin.ids.sendConfirmText);
+  const step2 = document.getElementById(coin.ids.sendStep2);
+  const cancelBtn = document.getElementById(coin.ids.sendCancel);
+  const status = document.getElementById(coin.ids.sendStatus);
+  if (!addressInput || !step1 || !confirmBox || !step2 || !cancelBtn) return;
+
+  step1.addEventListener('click', () => {
+    const address = addressInput.value.trim();
+    const amount = amountInput.value.trim();
+    if (status) status.textContent = '';
+    if (!address || !amount) {
+      if (status) status.textContent = 'Enter a recipient address and an amount first.';
+      return;
+    }
+    confirmText.textContent = `Send ${amount} ${coin.unit} to ${address}? This cannot be undone.`;
+    step1.style.display = 'none';
+    confirmBox.style.display = '';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    confirmBox.style.display = 'none';
+    step1.style.display = '';
+  });
+
+  step2.addEventListener('click', async () => {
+    step2.disabled = true;
+    const address = addressInput.value.trim();
+    const amount = amountInput.value.trim();
+    try {
+      const res = await fetch(`${coin.apiBase}/send`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ address, amount }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Send failed');
+      if (status) status.textContent = coin.sendResultText(body);
+      addressInput.value = '';
+      amountInput.value = '';
+      confirmBox.style.display = 'none';
+      step1.style.display = '';
+      refreshWalletTab();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      step2.disabled = false;
+    }
+  });
 }
 
 wireTabs();

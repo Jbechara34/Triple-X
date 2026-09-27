@@ -32,6 +32,20 @@ const logs = require('./lib/logs');
 const app = express();
 app.use(express.json());
 
+// Real RPC/validation errors (bad address, insufficient funds, transfer
+// rejected, etc.) are useful to show the user verbatim. A raw network
+// failure (Node's "fetch failed", or gRPC's "UNAVAILABLE: Name resolution
+// failed") just means the wallet container isn't reachable yet - show that
+// instead of the underlying library's low-level wording.
+function friendlyWalletError(err, walletLabel) {
+  if (err.statusCode) return err.message; // a validation error we threw ourselves
+  const raw = err.message || String(err);
+  if (/fetch failed|ECONNREFUSED|ENOTFOUND|UNAVAILABLE|Name resolution failed/i.test(raw)) {
+    return `${walletLabel} wallet not reachable - it may still be starting up. Try again in a moment.`;
+  }
+  return raw;
+}
+
 const PORT = process.env.PORT || 3000;
 
 // Clearnet block explorer used to let you independently verify a found block
@@ -391,6 +405,33 @@ app.post('/api/wallet/tari/reveal-seed', (req, res) => {
   res.json({ words });
 });
 
+app.get('/api/wallet/tari/balance', async (req, res) => {
+  try {
+    const balance = await minotariWalletRpc.getBalance();
+    res.json(balance);
+  } catch (err) {
+    res.status(502).json({ error: 'Tari wallet not reachable yet.' });
+  }
+});
+
+// Real funds-moving endpoint - see lib/minotariWalletRpc.js's transfer().
+// Recipient address and amount are the only inputs trusted from the
+// request; the actual fee rate is fetched fresh from the network, never
+// taken from the client.
+app.post('/api/wallet/tari/send', async (req, res) => {
+  const { address, amount } = req.body || {};
+  if (typeof address !== 'string' || !address.trim()) {
+    res.status(400).json({ error: 'A recipient address is required.' });
+    return;
+  }
+  try {
+    const result = await minotariWalletRpc.transfer(address.trim(), amount);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 502).json({ error: friendlyWalletError(err, 'Tari') });
+  }
+});
+
 app.get('/api/wallet/monero', async (req, res) => {
   let address = null;
   try {
@@ -416,6 +457,33 @@ app.post('/api/wallet/monero/reveal-seed', async (req, res) => {
     res.json({ words });
   } catch (err) {
     res.status(502).json({ error: err.message });
+  }
+});
+
+app.get('/api/wallet/monero/balance', async (req, res) => {
+  try {
+    const balance = await moneroWalletRpc.getBalance();
+    res.json(balance);
+  } catch (err) {
+    res.status(502).json({ error: 'Monero wallet not reachable yet.' });
+  }
+});
+
+// Real funds-moving endpoint - see lib/moneroWalletRpc.js's transfer().
+app.post('/api/wallet/monero/send', async (req, res) => {
+  const { address, amount } = req.body || {};
+  if (!config.isPlausibleMoneroAddress(address)) {
+    res.status(400).json({
+      error: 'That does not look like a valid Monero primary address (should be 95 characters, starting with 4). ' +
+        'Subaddresses (starting with 8) are not supported.',
+    });
+    return;
+  }
+  try {
+    const result = await moneroWalletRpc.transfer(address.trim(), amount);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 502).json({ error: friendlyWalletError(err, 'Monero') });
   }
 });
 

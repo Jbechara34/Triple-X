@@ -1,16 +1,20 @@
 syntax = "proto3";
 
-// Minimal subset of tari-project/tari's applications/minotari_app_grpc/proto/wallet.proto
-// (service Wallet, package tari.rpc) - only the one RPC this dashboard needs
-// (the wallet's own address, for the Wallet tab). Field numbers and names
-// are copied verbatim from the upstream proto so this decodes correctly
-// against a real minotari_console_wallet; unrelated RPCs/messages (balance,
-// transactions, etc.) are omitted on purpose - this dashboard never touches
-// funds, only reads the receive address.
+// Subset of tari-project/tari's applications/minotari_app_grpc/proto/wallet.proto
+// (service Wallet, package tari.rpc) - address, balance, and send/transfer,
+// for the Wallet tab. Field numbers and names are copied verbatim from the
+// upstream proto (checked directly against tari-project/tari's development
+// branch) so this decodes correctly against a real minotari_console_wallet.
+// Fields/messages this dashboard doesn't use (e.g. TransactionInfo nested in
+// TransferResult) are omitted - proto3 silently ignores unknown field
+// numbers on the wire, so this is safe to leave out.
 package tari.rpc;
 
 service Wallet {
   rpc GetCompleteAddress (Empty) returns (GetCompleteAddressResponse);
+  rpc GetBalance (GetBalanceRequest) returns (GetBalanceResponse);
+  rpc GetFeePerGramStats (GetFeePerGramStatsRequest) returns (GetFeePerGramStatsResponse);
+  rpc Transfer (TransferRequest) returns (TransferResponse);
 }
 
 message Empty {}
@@ -22,4 +26,66 @@ message GetCompleteAddressResponse {
   string one_sided_address_base58 = 4;
   string interactive_address_emoji = 5;
   string one_sided_address_emoji = 6;
+}
+
+message UserPaymentId {
+  bytes u256 = 1;
+  string utf8_string = 2;
+  bytes user_bytes = 3;
+}
+
+message GetBalanceRequest {
+  UserPaymentId payment_id = 1;
+}
+
+message GetBalanceResponse {
+  uint64 available_balance = 1;
+  uint64 pending_incoming_balance = 2;
+  uint64 pending_outgoing_balance = 3;
+  uint64 timelocked_balance = 4;
+}
+
+message PaymentRecipient {
+  string address = 1;
+  uint64 amount = 2;
+  uint64 fee_per_gram = 3;
+  enum PaymentType {
+    STANDARD_MIMBLEWIMBLE = 0 [deprecated = true];
+    ONE_SIDED = 1 [deprecated = true];
+    ONE_SIDED_TO_STEALTH_ADDRESS = 2;
+  }
+  PaymentType payment_type = 5;
+  bytes raw_payment_id = 6;
+  UserPaymentId user_payment_id = 7;
+}
+
+message TransferRequest {
+  repeated PaymentRecipient recipients = 1;
+  bool single_tx = 2;
+  repeated bytes excluded_commitments = 3;
+}
+
+message TransferResult {
+  string address = 1;
+  uint64 transaction_id = 2;
+  bool is_success = 3;
+  string failure_message = 4;
+}
+
+message TransferResponse {
+  repeated TransferResult results = 1;
+}
+
+message GetFeePerGramStatsRequest {
+  uint64 block_count = 1;
+}
+
+message FeePerGramStat {
+  uint64 average_fee_per_gram = 1;
+  uint64 min_fee_per_gram = 2;
+  uint64 max_fee_per_gram = 3;
+}
+
+message GetFeePerGramStatsResponse {
+  repeated FeePerGramStat fee_per_gram_stats = 1;
 }

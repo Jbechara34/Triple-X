@@ -573,6 +573,35 @@
         <div class="hint" id="pv-wallet-tari-use-status"></div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Balance</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-available">—</div><div class="v1-sub">Available</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-in">—</div><div class="v1-sub">Pending In</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-out">—</div><div class="v1-sub">Pending Out</div></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Send XTM</div>
+          <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
+          <div class="field" style="margin-top:10px;">
+            <label>Recipient Address</label>
+            <input type="text" id="pv-wallet-tari-send-address" placeholder="Tari address" />
+          </div>
+          <div class="field">
+            <label>Amount (XTM)</label>
+            <input type="text" id="pv-wallet-tari-send-amount" placeholder="0.0" />
+          </div>
+          <button class="icon-btn" id="pv-wallet-tari-send-step1">Send</button>
+          <div id="pv-wallet-tari-send-confirm" style="display:none; margin-top:10px;">
+            <div class="hint warn" id="pv-wallet-tari-send-confirm-text"></div>
+            <button class="primary" id="pv-wallet-tari-send-step2" style="margin-top:8px;">Yes, send it</button>
+            <button class="icon-btn" id="pv-wallet-tari-send-cancel">Cancel</button>
+          </div>
+          <div class="hint" id="pv-wallet-tari-send-status"></div>
+        </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Seed Phrase Backup</div>
           <div class="v1-sub" id="pv-wallet-seed-intro">
             A one-time backup of this wallet's seed phrase is available. Revealing it deletes the backup file from
@@ -602,6 +631,34 @@
         <div class="hint" id="pv-wallet-xmr-use-status"></div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Balance</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-xmr-balance-available">—</div><div class="v1-sub">Unlocked</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-xmr-balance-total">—</div><div class="v1-sub">Total</div></div>
+          </div>
+        </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Send XMR</div>
+          <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
+          <div class="field" style="margin-top:10px;">
+            <label>Recipient Address</label>
+            <input type="text" id="pv-wallet-xmr-send-address" placeholder="4..." />
+          </div>
+          <div class="field">
+            <label>Amount (XMR)</label>
+            <input type="text" id="pv-wallet-xmr-send-amount" placeholder="0.0" />
+          </div>
+          <button class="icon-btn" id="pv-wallet-xmr-send-step1">Send</button>
+          <div id="pv-wallet-xmr-send-confirm" style="display:none; margin-top:10px;">
+            <div class="hint warn" id="pv-wallet-xmr-send-confirm-text"></div>
+            <button class="primary" id="pv-wallet-xmr-send-step2" style="margin-top:8px;">Yes, send it</button>
+            <button class="icon-btn" id="pv-wallet-xmr-send-cancel">Cancel</button>
+          </div>
+          <div class="hint" id="pv-wallet-xmr-send-status"></div>
+        </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Seed Phrase Backup</div>
           <div class="v1-sub" id="pv-wallet-xmr-seed-intro">
             A one-time reveal of this wallet's 25-word seed phrase is available. Once shown, this dashboard will
@@ -623,11 +680,11 @@
       <div class="v1-full">
         <div class="v1-label">Logs (live)</div>
         <div class="v1-label" style="margin-top:10px;">monerod</div>
-        <pre class="log-box" id="pv-logs-monerod" style="max-height:120px;">—</pre>
+        <pre class="log-box" id="pv-logs-monerod" style="max-height:400px;">—</pre>
         <div class="v1-label" style="margin-top:10px;">p2pool</div>
-        <pre class="log-box" id="pv-logs-p2pool" style="max-height:120px;">—</pre>
+        <pre class="log-box" id="pv-logs-p2pool" style="max-height:400px;">—</pre>
         <div class="v1-label" style="margin-top:10px;">minotari <span class="badge-experimental">beta</span></div>
-        <pre class="log-box" id="pv-logs-minotari" style="max-height:120px;">—</pre>
+        <pre class="log-box" id="pv-logs-minotari" style="max-height:400px;">—</pre>
       </div>
     </div>
 
@@ -674,38 +731,39 @@
           <label class="checkbox-label"><input type="checkbox" id="pv-settings-logs-tab-enabled" /> Show Logs tab</label>
           <div class="hint">Hide the Logs tab from the navigation if you don't need it day-to-day. On by default.</div>
         </div>
+      </div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">P2Pool Memory Usage</div>
-          <div class="v1-sub" style="margin-bottom:14px;">
-            Optional flags that reduce P2Pool's memory footprint. Each takes effect within a few seconds of saving,
-            no restart needed. All off by default - P2Pool's normal behavior is unchanged unless you enable one.
-          </div>
-
-          <div class="flag-box">
-            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-light-mode" /> --light-mode</label>
-            <div class="hint">Skips building RandomX's ~2GB lookup table, cutting P2Pool's memory use to roughly
-              0.6GB. The only cost is slower verification of shares submitted by other miners on the P2Pool network -
-              negligible for a home node, especially on Mini/Nano pools.</div>
-          </div>
-
-          <div class="flag-box">
-            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-randomx" /> --no-randomx</label>
-            <div class="hint">Disables P2Pool's internal RandomX hasher entirely and asks monerod over RPC to verify
-              each share instead. Only safe when monerod is local or on a fast LAN - true here, since monerod runs
-              alongside P2Pool in this same stack. Makes --light-mode redundant if both are enabled.</div>
-          </div>
-
-          <div class="flag-box">
-            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-cache" /> --no-cache</label>
-            <div class="hint warn">Disables P2Pool's local chain-state cache. Saves a small amount of memory/disk,
-              but P2Pool will resync more slowly from peers after every restart.</div>
-          </div>
-
-          <div class="hint">Combining --no-randomx and --no-cache brings memory use under 100MB.</div>
+      <!-- P2Pool memory flags - their own separate box, one sub-box per flag. -->
+      <div class="v1-full">
+        <div class="v1-label">P2Pool Memory Usage</div>
+        <div class="v1-sub" style="margin-bottom:14px;">
+          Optional flags that reduce P2Pool's memory footprint. Each takes effect within a few seconds of saving,
+          no restart needed. All off by default - P2Pool's normal behavior is unchanged unless you enable one.
         </div>
 
-        <button class="primary" id="pv-settings-save" style="margin-top:18px;">Save Settings</button>
+        <div class="flag-box">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-light-mode" /> --light-mode</label>
+          <div class="hint">Skips building RandomX's ~2GB lookup table, cutting P2Pool's memory use to roughly
+            0.6GB. The only cost is slower verification of shares submitted by other miners on the P2Pool network -
+            negligible for a home node, especially on Mini/Nano pools.</div>
+        </div>
+
+        <div class="flag-box">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-randomx" /> --no-randomx</label>
+          <div class="hint">Disables P2Pool's internal RandomX hasher entirely and asks monerod over RPC to verify
+            each share instead. Only safe when monerod is local or on a fast LAN - true here, since monerod runs
+            alongside P2Pool in this same stack. Makes --light-mode redundant if both are enabled.</div>
+        </div>
+
+        <div class="flag-box">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-cache" /> --no-cache</label>
+          <div class="hint warn">Disables P2Pool's local chain-state cache. Saves a small amount of memory/disk,
+            but P2Pool will resync more slowly from peers after every restart.</div>
+        </div>
+
+        <div class="hint" style="margin-bottom:18px;">Combining --no-randomx and --no-cache brings memory use under 100MB.</div>
+
+        <button class="primary" id="pv-settings-save">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
       </div>
 
