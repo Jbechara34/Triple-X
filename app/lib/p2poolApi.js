@@ -87,6 +87,12 @@ async function getPoolStats() {
     totalHashes: num(stats.totalHashes),
     lastBlockFound: stats.lastBlockFound ?? null,
     totalBlocksFound: num(stats.totalBlocksFound),
+    // Every sidechain height increment is one share found by some miner on
+    // this P2Pool mode, ever - the PPLNS-relevant "shares found" counter,
+    // distinct from totalBlocksFound (actual Monero blocks, which is rare).
+    // See p2pool's own p2pool.cpp api_update_pool_stats() for the source.
+    sidechainSharesFound: num(stats.sidechainHeight),
+    pplnsWindowSize: num(stats.pplnsWindowSize),
     poolList: raw.pool_list || null,
   };
 }

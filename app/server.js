@@ -227,6 +227,7 @@ app.get('/api/pool', async (req, res) => {
       // from p2pool's own pool/stats file (see lib/p2poolApi.js).
       minersOnSidechain: p2pool.pool.miners,
       totalBlocksFound: p2pool.pool.totalBlocksFound,
+      sidechainSharesFound: p2pool.pool.sidechainSharesFound,
     },
     bestShare: {
       sinceBlock: p2pool.stratum.currentEffort,

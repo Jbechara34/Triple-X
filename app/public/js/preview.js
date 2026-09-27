@@ -114,6 +114,7 @@ async function refreshAll() {
   setText('pv-net-diff', fmtDifficulty(pool.network?.difficulty));
   setText('pv-net-height', pool.network?.height ?? '—');
   setText('pv-net-miners', pool.network?.minersOnSidechain ?? '—');
+  setText('pv-net-shares', fmtDifficulty(pool.network?.sidechainSharesFound));
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
