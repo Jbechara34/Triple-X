@@ -674,7 +674,38 @@
           <label class="checkbox-label"><input type="checkbox" id="pv-settings-logs-tab-enabled" /> Show Logs tab</label>
           <div class="hint">Hide the Logs tab from the navigation if you don't need it day-to-day. On by default.</div>
         </div>
-        <button class="primary" id="pv-settings-save">Save Settings</button>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">P2Pool Memory Usage</div>
+          <div class="v1-sub" style="margin-bottom:14px;">
+            Optional flags that reduce P2Pool's memory footprint. Each takes effect within a few seconds of saving,
+            no restart needed. All off by default - P2Pool's normal behavior is unchanged unless you enable one.
+          </div>
+
+          <div class="flag-box">
+            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-light-mode" /> --light-mode</label>
+            <div class="hint">Skips building RandomX's ~2GB lookup table, cutting P2Pool's memory use to roughly
+              0.6GB. The only cost is slower verification of shares submitted by other miners on the P2Pool network -
+              negligible for a home node, especially on Mini/Nano pools.</div>
+          </div>
+
+          <div class="flag-box">
+            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-randomx" /> --no-randomx</label>
+            <div class="hint">Disables P2Pool's internal RandomX hasher entirely and asks monerod over RPC to verify
+              each share instead. Only safe when monerod is local or on a fast LAN - true here, since monerod runs
+              alongside P2Pool in this same stack. Makes --light-mode redundant if both are enabled.</div>
+          </div>
+
+          <div class="flag-box">
+            <label class="checkbox-label"><input type="checkbox" id="pv-settings-p2pool-no-cache" /> --no-cache</label>
+            <div class="hint warn">Disables P2Pool's local chain-state cache. Saves a small amount of memory/disk,
+              but P2Pool will resync more slowly from peers after every restart.</div>
+          </div>
+
+          <div class="hint">Combining --no-randomx and --no-cache brings memory use under 100MB.</div>
+        </div>
+
+        <button class="primary" id="pv-settings-save" style="margin-top:18px;">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
       </div>
 

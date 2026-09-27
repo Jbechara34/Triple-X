@@ -837,6 +837,15 @@ input[type="text"], select {
 input[type="text"]:focus, select:focus { outline: none; border-color: var(--orange); }
 .field { margin-bottom: 16px; }
 
+.flag-box {
+  background: var(--panel-alt);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px 14px;
+  margin-bottom: 10px;
+}
+.flag-box .hint { margin-top: 4px; }
+
 .checkbox-label {
   display: flex;
   align-items: center;

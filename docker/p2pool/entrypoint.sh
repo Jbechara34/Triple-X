@@ -112,8 +112,15 @@ build_args() {
     ARGS="$ARGS --merge-mine tari://${MINOTARI_NODE_HOST}:${MINOTARI_NODE_GRPC_PORT} $TARI_ADDRESS"
   fi
 
+  # Optional memory-usage flags, toggled per-flag from the Settings tab (see
+  # app/lib/config.js) - each is independent and off by default, so leaving
+  # them alone keeps p2pool's normal (fast-mode, cached) behavior.
+  [ "$(read_setting '.p2poolLightMode')" = "true" ] && ARGS="$ARGS --light-mode"
+  [ "$(read_setting '.p2poolNoRandomx')" = "true" ] && ARGS="$ARGS --no-randomx"
+  [ "$(read_setting '.p2poolNoCache')" = "true" ] && ARGS="$ARGS --no-cache"
+
   # Extra flags passed straight through from docker-compose.yml, e.g.
-  # --out-peers/--in-peers tuning or --light-mode.
+  # --out-peers/--in-peers tuning.
   if [ -n "${P2POOL_EXTRA_ARGS:-}" ]; then
     ARGS="$ARGS $P2POOL_EXTRA_ARGS"
   fi

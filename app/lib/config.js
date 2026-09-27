@@ -25,6 +25,11 @@ const DEFAULTS = {
   // who don't need it hide the Logs tab from the nav instead of leaving it
   // always visible.
   logsTabEnabled: true,
+  // Optional P2Pool memory-usage flags (see docker/p2pool/entrypoint.sh) -
+  // all off by default, unchanged behavior unless a user opts in.
+  p2poolLightMode: false,
+  p2poolNoRandomx: false,
+  p2poolNoCache: false,
   updatedAt: null,
 };
 
@@ -97,6 +102,18 @@ function writeSettings(update) {
 
   if (typeof update.logsTabEnabled === 'boolean') {
     next.logsTabEnabled = update.logsTabEnabled;
+  }
+
+  if (typeof update.p2poolLightMode === 'boolean') {
+    next.p2poolLightMode = update.p2poolLightMode;
+  }
+
+  if (typeof update.p2poolNoRandomx === 'boolean') {
+    next.p2poolNoRandomx = update.p2poolNoRandomx;
+  }
+
+  if (typeof update.p2poolNoCache === 'boolean') {
+    next.p2poolNoCache = update.p2poolNoCache;
   }
 
   next.updatedAt = new Date().toISOString();

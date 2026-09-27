@@ -414,6 +414,12 @@ async function loadSettingsForm() {
   const logsTabEl = document.getElementById('pv-settings-logs-tab-enabled');
   if (logsTabEl) logsTabEl.checked = data.logsTabEnabled !== false;
   applyLogsTabVisibility(data.logsTabEnabled !== false);
+  const lightModeEl = document.getElementById('pv-settings-p2pool-light-mode');
+  if (lightModeEl) lightModeEl.checked = !!data.p2poolLightMode;
+  const noRandomxEl = document.getElementById('pv-settings-p2pool-no-randomx');
+  if (noRandomxEl) noRandomxEl.checked = !!data.p2poolNoRandomx;
+  const noCacheEl = document.getElementById('pv-settings-p2pool-no-cache');
+  if (noCacheEl) noCacheEl.checked = !!data.p2poolNoCache;
 }
 
 // Hides the Logs tab button entirely (not just its content) when disabled in
@@ -447,6 +453,9 @@ function wireSettingsSave() {
           tariAddress: document.getElementById('pv-settings-tari-address')?.value.trim() || '',
           observerEnabled: !!document.getElementById('pv-settings-observer-enabled')?.checked,
           logsTabEnabled: !!document.getElementById('pv-settings-logs-tab-enabled')?.checked,
+          p2poolLightMode: !!document.getElementById('pv-settings-p2pool-light-mode')?.checked,
+          p2poolNoRandomx: !!document.getElementById('pv-settings-p2pool-no-randomx')?.checked,
+          p2poolNoCache: !!document.getElementById('pv-settings-p2pool-no-cache')?.checked,
         }),
       });
       const body = await res.json();
