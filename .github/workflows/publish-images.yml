@@ -1,9 +1,9 @@
 name: Publish images
 
-# Builds and pushes the three images the Umbrel/5tratumOS app-store compose
-# file (yourstore-monero-p2pool/docker-compose.yml) pulls by tag - that
-# compose file uses `image:`, not `build:`, per Umbrel's app-store
-# convention, so these need to exist in a registry before the app installs.
+# Builds and pushes the images the Umbrel/5tratumOS app-store compose file
+# (TripleX-triple-x/docker-compose.yml) pulls by tag - that compose file uses
+# `image:`, not `build:`, per Umbrel's app-store convention, so these need to
+# exist in a registry before the app installs.
 #
 # NOTE on architectures: this only builds linux/amd64. The `monerod` service
 # compiles Monero from source (docker/monerod/Dockerfile), and doing that
@@ -44,6 +44,16 @@ jobs:
           - name: monerod
             context: ./docker/monerod
             dockerfile: Dockerfile
+            # Explicit - docker/monerod/Dockerfile grew a second named stage
+            # ("wallet-rpc", see below) after this one. Without a target,
+            # build-push-action builds whichever stage is LAST in the
+            # Dockerfile, which would silently start publishing wallet-rpc
+            # under the monerod tag instead.
+            target: monerod
+          - name: monero-wallet-rpc
+            context: ./docker/monerod
+            dockerfile: Dockerfile
+            target: wallet-rpc
           - name: minotari-wallet
             context: ./docker/minotari-wallet
             dockerfile: Dockerfile
@@ -62,24 +72,38 @@ jobs:
 
       - name: Determine image name
         id: meta
-        run: echo "image=${REGISTRY}/${OWNER,,}/monero-p2pool-dashboard-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
+        run: echo "image=${REGISTRY}/${OWNER,,}/triple-x-${{ matrix.name }}" >> "$GITHUB_OUTPUT"
         env:
           REGISTRY: ${{ env.REGISTRY }}
           OWNER: ${{ github.repository_owner }}
 
       - name: Build and push ${{ matrix.name }}
-        timeout-minutes: ${{ matrix.name == 'monerod' && 180 || (matrix.name == 'p2pool' && 60 || 30) }}
+        # monero-wallet-rpc gets the same generous timeout as monerod - it
+        # shares the same Dockerfile's builder stage (see cache-from/cache-to
+        # below), but on a cache miss (e.g. the very first run after this
+        # matrix entry was added) it has to compile Monero from scratch same
+        # as monerod does.
+        timeout-minutes: ${{ (matrix.name == 'monerod' || matrix.name == 'monero-wallet-rpc') && 180 || (matrix.name == 'p2pool' && 60 || 30) }}
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/${{ matrix.dockerfile }}
+          target: ${{ matrix.target }}
           platforms: linux/amd64
           push: true
           tags: |
             ${{ steps.meta.outputs.image }}:latest
             ${{ steps.meta.outputs.image }}:${{ github.ref_name }}
+          # matrix jobs run on separate runners with no shared filesystem, so
+          # without an explicit cache backend, monero-wallet-rpc (same
+          # Dockerfile/context as monerod, different final stage) would
+          # silently redo the entire multi-hour Monero compile instead of
+          # reusing monerod's builder stage. Scoping by context (not by
+          # matrix.name) lets both share one cache.
+          cache-from: type=gha,scope=${{ matrix.context }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.context }}
 
       # After this job finishes, grab the pushed digest from the GHCR
       # package page (or `docker buildx imagetools inspect <tag>`) and pin
-      # MoneroP2P-monero-p2pool/docker-compose.yml's `image:` lines to
+      # TripleX-triple-x/docker-compose.yml's `image:` lines to
       # `@sha256:<digest>`, matching how Umbrel's own apps do it.

@@ -1,7 +1,7 @@
 {
-  "name": "monero-p2pool-dashboard",
+  "name": "triple-x",
   "version": "1.0.0",
-  "description": "Self-hosted dashboard for running a Monero node + P2Pool (Standard/Mini/Nano) on Umbrel / Start9, with a Monero-GUI-styled web UI.",
+  "description": "Triple X - self-hosted dashboard for a Monero node + P2Pool (Standard/Mini/Nano) with optional Tari (XTM) merge-mining, on Umbrel / 5tratumOS.",
   "license": "MIT",
   "main": "server.js",
   "type": "commonjs",

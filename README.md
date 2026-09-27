@@ -1,8 +1,9 @@
-# Monero Node + P2Pool Dashboard
+# Triple X
 
 A self-hosted Monero full node + [P2Pool](https://github.com/SChernykh/p2pool)
-node, built from source, with a Monero-GUI-styled web dashboard for status,
-pool stats, blocks found, and settings.
+node, built from source, with optional Tari (XTM) merge-mining, and a web
+dashboard for status, pool stats, blocks found, wallet management, and
+settings.
 
 Payouts go straight to **your own wallet address** — there's no third party
 pool operator and no custody of funds at any point. 0% fee, same as running
@@ -24,7 +25,7 @@ This repo doubles as two things:
 1. **A plain Docker Compose stack** (`docker-compose.yml` at the repo root) —
    builds everything from source locally. Works anywhere Docker Compose runs.
 2. **An Umbrel / 5tratumOS Community App Store** (`umbrel-app-store.yml` +
-   `yourstore-monero-p2pool/`) — installable through the App Stores UI on
+   `TripleX-triple-x/`) — installable through the App Stores UI on
    umbrelOS or [5tratumOS](https://github.com/WillItMod/5tratum).
 
 **On 5tratumOS specifically:** its own README documents it as "the host
@@ -74,8 +75,8 @@ Three containers either way:
 ## Quick start — plain Docker Compose
 
 ```bash
-git clone https://github.com/your-github-username/monero-p2pool-dashboard
-cd monero-p2pool-dashboard
+git clone https://github.com/Jbechara34/triple-x
+cd triple-x
 docker compose up -d --build
 ```
 
@@ -90,11 +91,11 @@ Unlike the Compose file above, an installed Umbrel/5tratumOS app pulls
 prebuilt images rather than building on-device, so there's a one-time
 publishing step:
 
-1. **Rename the app folder and fix placeholders.** `yourstore-monero-p2pool/`
-   and `umbrel-app-store.yml`'s `id: yourstore` are placeholders — pick your
+1. **Rename the app folder and fix placeholders.** `TripleX-triple-x/`
+   and `umbrel-app-store.yml`'s `id: TripleX` are placeholders — pick your
    own store id, rename the folder to `<your-id>-monero-p2pool`, and update
-   `id:` inside `yourstore-monero-p2pool/umbrel-app.yml` to match. Replace
-   every `your-github-username` in both `umbrel-app.yml` and
+   `id:` inside `TripleX-triple-x/umbrel-app.yml` to match. Replace
+   every `Jbechara34` in both `umbrel-app.yml` and
    `docker-compose.yml` under that folder with wherever you'll host images
    (see next step).
 2. **Publish the three images.** Push a tag (`git tag v1.0.0 && git push
@@ -102,7 +103,7 @@ publishing step:
    and pushes `app`, `p2pool`, and `monerod` to GHCR. Read that workflow's
    header comment first — it only builds `linux/amd64` by default; arm64
    (Raspberry Pi) needs extra work explained there. Once published, pin each
-   `image:` line in `yourstore-monero-p2pool/docker-compose.yml` to
+   `image:` line in `TripleX-triple-x/docker-compose.yml` to
    `@sha256:<digest>`, the way Umbrel's own apps do.
 3. **Add your store.** On the device: `Settings → App Stores → Add store`,
    paste this repo's URL. (5tratumOS's own README documents the same flow
@@ -195,7 +196,7 @@ through it the same way).
 ```
 docker-compose.yml                          # plain Docker Compose stack (builds from source)
 umbrel-app-store.yml                        # Umbrel/5tratumOS community store manifest (top level)
-yourstore-monero-p2pool/                    # the actual installable app (rename this)
+TripleX-triple-x/                    # the actual installable app (rename this)
   umbrel-app.yml                              # app listing metadata
   docker-compose.yml                          # same 3 services, but pulls published images
 docker/monerod/                              # from-source monerod build (+ prebuilt-binary alternative)

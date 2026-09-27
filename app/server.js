@@ -431,5 +431,5 @@ blocks.start();
 tariBlocks.start();
 
 app.listen(PORT, () => {
-  console.log(`monero-p2pool-dashboard listening on :${PORT}`);
+  console.log(`Triple X listening on :${PORT}`);
 });

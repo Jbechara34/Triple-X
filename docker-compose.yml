@@ -16,7 +16,7 @@ services:
     build:
       context: ./docker/monerod
       dockerfile: Dockerfile
-    container_name: monero-p2pool-dashboard_monerod
+    container_name: triple-x_monerod
     restart: unless-stopped
     command:
       - "--zmq-pub=tcp://0.0.0.0:18083"
@@ -57,7 +57,7 @@ services:
       context: ./docker/monerod
       dockerfile: Dockerfile
       target: wallet-rpc
-    container_name: monero-p2pool-dashboard_monero-wallet-rpc
+    container_name: triple-x_monero-wallet-rpc
     restart: unless-stopped
     depends_on:
       - monerod
@@ -81,7 +81,7 @@ services:
     build:
       context: ./docker/p2pool
       dockerfile: Dockerfile
-    container_name: monero-p2pool-dashboard_p2pool
+    container_name: triple-x_p2pool
     restart: unless-stopped
     depends_on:
       - monerod
@@ -120,7 +120,7 @@ services:
   # See docker/minotari/README.md for how these settings were sourced.
   minotari-node:
     image: ghcr.io/tari-project/minotari_node:latest-mainnet
-    container_name: monero-p2pool-dashboard_minotari-node
+    container_name: triple-x_minotari-node
     restart: unless-stopped
     command:
       - "--base-path=/tari-data"
@@ -136,7 +136,10 @@ services:
       - "-p"
       - "base_node.p2p.transport.tcp.listener_address=/ip4/0.0.0.0/tcp/18189"
       - "-p"
-      - "base_node.grpc_server_allow_methods=get_version, get_tip_info, identify, get_network_state, list_headers, get_tokens_in_circulation, get_network_difficulty, get_new_block_template, get_new_block, get_new_block_with_coinbases, get_new_block_template_with_coinbases, get_new_block_blob, submit_block, submit_block_blob, submit_transaction, search_kernels, search_utxos, fetch_matching_utxos, transaction_state, list_connected_peers, get_mempool_stats"
+      # get_sync_progress added this release - lib/minotariRpc.js (the
+      # Overview tab's Minotari sync ring) calls it, and any gRPC method not
+      # in this allow-list gets rejected by the node.
+      - "base_node.grpc_server_allow_methods=get_version, get_tip_info, get_sync_progress, identify, get_network_state, list_headers, get_tokens_in_circulation, get_network_difficulty, get_new_block_template, get_new_block, get_new_block_with_coinbases, get_new_block_template_with_coinbases, get_new_block_blob, submit_block, submit_block_blob, submit_transaction, search_kernels, search_utxos, fetch_matching_utxos, transaction_state, list_connected_peers, get_mempool_stats"
     ports:
       - "18189:18189" # Tari p2p - forward this on your router for better connectivity
     expose:
@@ -151,7 +154,7 @@ services:
     build:
       context: ./docker/minotari-wallet
       dockerfile: Dockerfile
-    container_name: monero-p2pool-dashboard_minotari-wallet
+    container_name: triple-x_minotari-wallet
     restart: unless-stopped
     depends_on:
       - minotari-node
@@ -178,7 +181,7 @@ services:
     build:
       context: ./app
       dockerfile: Dockerfile
-    container_name: monero-p2pool-dashboard_app
+    container_name: triple-x_app
     restart: unless-stopped
     depends_on:
       - monerod

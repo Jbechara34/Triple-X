@@ -43,4 +43,4 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.context }}/${{ matrix.dockerfile }}
           push: false
-          tags: monero-p2pool-dashboard/${{ matrix.name }}:ci
+          tags: triple-x/${{ matrix.name }}:ci

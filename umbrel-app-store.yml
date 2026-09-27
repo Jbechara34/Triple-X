@@ -2,8 +2,7 @@
 # community app store manifest. `id` prefixes every app folder in this repo;
 # `name` is what shows up in the App Stores UI when someone adds this repo.
 #
-# CHANGE `id` before publishing - "yourstore" is a placeholder. Whatever you
-# pick, the app folder name and the `id` inside its umbrel-app.yml must be
-# `<this id>-monero-p2pool` (see yourstore-monero-p2pool/umbrel-app.yml).
-id: MoneroP2P
-name: MoneroP2P
+# The app folder name and the `id` inside its umbrel-app.yml must be
+# `<this id>-triple-x` (see TripleX-triple-x/umbrel-app.yml).
+id: TripleX
+name: TripleX

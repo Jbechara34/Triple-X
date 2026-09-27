@@ -1,0 +1,47 @@
+manifestVersion: 1
+# Must be "<your store id from umbrel-app-store.yml>-triple-x" - this
+# folder name must match it exactly.
+id: TripleX-triple-x
+category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
+name: Triple X
+version: "v0.0.1-Dev1"
+tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
+description: >-
+  Runs a full Monero node (monerod) and a P2Pool node side by side, with a
+  web dashboard for status, pool stats, blocks found, and settings. Optionally
+  merge-mines Tari (XTM) at no extra hashrate cost via the bundled Minotari
+  node/wallet containers. Choose P2Pool Standard, Mini, or Nano from the
+  Settings tab, point any RandomX miner (e.g. XMRig) at the stratum port
+  shown on the Pool tab, and payouts go straight to your own wallet address -
+  no third-party pool, no custodian, 0% fee.
+developer: Jbechara34
+website: https://github.com/Jbechara34/triple-x
+dependencies: []
+repo: https://github.com/Jbechara34/triple-x
+support: https://github.com/Jbechara34/triple-x/issues
+port: 3000
+# Add real screenshots here before publishing - these are placeholders.
+gallery:
+  - 1.jpg
+  - 2.jpg
+  - 3.jpg
+path: ""
+defaultUsername: ""
+defaultPassword: ""
+submitter: Jbechara34
+submission: https://github.com/Jbechara34/triple-x
+releaseNotes: >-
+  v0.0.1-Dev1 (first development build under the new versioning scheme and
+  the Triple X rename): brand-new "Command Center" dashboard UI - tabs for
+  Overview, Pool, Blocks, Wallet, Logs, and Settings, replacing the previous
+  single-page layout. Adds a Wallet tab with one-time "generate, show once"
+  seed-phrase backup for both the Monero and Tari wallets, an optional
+  P2Pool Observer integration for network-wide stats, a live-updating
+  mining animation, and real per-worker share/difficulty tracking. Backend
+  additions: a new monero-wallet-rpc container (bundled Monero wallet, only
+  ever queried for address/seed, never balance or transfers) and real gRPC
+  sync-progress reporting for the Minotari node and wallet. Everything
+  Tari-related remains experimental/optional - the app works exactly as
+  before if you never set a Tari address. Builds on the earlier Dev1-Dev7
+  fixes (see git history): monerod's SIGILL crash fix, P2Pool's
+  shared-library fix, live sidebar sync status, and the live-tail Logs tab.
