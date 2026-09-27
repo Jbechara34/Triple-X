@@ -135,6 +135,14 @@
   .pv-check-status.good { color: #4caf6a; }
   .pv-check-status.bad { color: #e05a5a; }
   .pv-check-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  .pv-hr-pill-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+  .pv-hr-pill {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 11px; font-weight: 600; color: #05070a;
+    padding: 4px 10px; border-radius: 999px;
+  }
+  .pv-hr-pill .pv-hr-pill-period { opacity: 0.65; text-transform: uppercase; font-size: 9px; }
 </style>
 </head>
 <body>
@@ -310,82 +318,68 @@
     </div>
 
     <div class="v1-bento" data-tabpanel="pool" style="display:none">
-      <!-- Half-width: P2Pool sidechain-wide -->
-      <div class="v1-half">
-        <div class="v1-label">P2Pool Network (Sidechain-Wide)</div>
-        <div class="v1-stat-row">
-          <div><div class="v1-big" style="font-size:20px" id="pv-net-miners">—</div><div class="v1-sub">Miners</div></div>
-          <div><div class="v1-big" style="font-size:20px" id="pv-net-shares">—</div><div class="v1-sub">Shares Found (PPLNS)</div></div>
-          <div><div class="v1-big" style="font-size:20px" id="pv-net-blocks">—</div><div class="v1-sub">Blocks Found</div></div>
-          <div><div class="v1-big" style="font-size:20px" id="pv-net-reward">—</div><div class="v1-sub">Reward</div></div>
-          <div><div class="v1-big" style="font-size:20px" id="pv-workers-count">—</div><div class="v1-sub">Your Workers</div></div>
-        </div>
-        <div class="v1-stat-row" style="margin-top:12px;">
-          <div><div class="v1-big" style="font-size:18px" id="pv-net-hashrate">—</div><div class="v1-sub">Sidechain Hash Rate</div></div>
-          <div><div class="v1-big" style="font-size:18px" id="pv-net-eta">—</div><div class="v1-sub">ETA to Find Block (Pool-Wide)</div></div>
-        </div>
-      </div>
-
-      <!-- Live rolling graphs - hashrate + network difficulty -->
-      <div class="v1-half">
-        <div class="v1-label">Hash Rate History</div>
-        <svg id="pv-graph-hashrate" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
-        <div class="v1-sub" style="margin-top:4px;">This node's 1h-avg hash rate, sampled every 10s (resets on page reload).</div>
-      </div>
-      <div class="v1-half">
-        <div class="v1-label">Network Difficulty History</div>
-        <svg id="pv-graph-difficulty" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
-        <div class="v1-sub" style="margin-top:4px;">Monero network difficulty, sampled every 10s (resets on page reload).</div>
-      </div>
-
-      <!-- Half-width: Tari merge mining -->
-      <div class="v1-half">
-        <div class="v1-label">Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></div>
-        <div class="v1-stat-row">
-          <div><div class="v1-big" style="font-size:18px" id="pv-tari-status">—</div><div class="v1-sub">Status</div></div>
-          <div><div class="v1-big" style="font-size:18px" id="pv-tari-blocks">0</div><div class="v1-sub">XTM Blocks Found</div></div>
-          <div><div class="v1-big" style="font-size:18px" id="pv-minotari-label">—</div><div class="v1-sub">Minotari Node</div></div>
-        </div>
-        <div class="progress-bar" style="margin-top:10px;"><div id="pv-minotari-bar" class="progress-bar-fill" style="width:0%"></div></div>
-        <div class="v1-sub" style="margin-top:8px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
-      </div>
+      <!-- Header, ckpool-solo-dashboard-inspired -->
       <div class="v1-full">
-        <div class="v1-label">Miner Configuration</div>
-        <div class="field">
-          <label>Pool URL</label>
-          <div class="copy-row"><input type="text" readonly id="pv-miner-url" value="—" /><button class="icon-btn" data-copy="#pv-miner-url">Copy</button></div>
-        </div>
-        <div class="field">
-          <label>Payout Address</label>
-          <div class="copy-row"><input type="text" readonly id="pv-payout-address" value="—" /><button class="icon-btn" data-copy="#pv-payout-address">Copy</button></div>
-        </div>
-        <div class="v1-stat-row">
-          <div class="field" style="flex:1;">
-            <label>Worker (example)</label>
-            <div class="copy-row"><input type="text" readonly id="pv-worker-login" value="—" /><button class="icon-btn" data-copy="#pv-worker-login">Copy</button></div>
-          </div>
-          <div class="field" style="flex:1;">
-            <label>Password</label>
-            <div class="copy-row"><input type="text" readonly value="x" /></div>
-          </div>
-        </div>
-        <div class="v1-sub">Pool mode: <span id="pv-pool-mode">—</span></div>
-        <div class="v1-sub" style="margin-top:6px;">Set your payout address in Settings. All solved blocks pay directly to that address.</div>
+        <div class="pv-kicker">P2Pool <span class="badge-experimental">PPLNS</span></div>
+        <div class="pv-status-title">Stratum</div>
+        <div class="pv-status-sub">Connect miners to <span class="mono" id="pv-pool-connect-url">—</span></div>
       </div>
 
-      <!-- Hash rate breakdown -->
-      <div class="v1-full">
-        <div class="v1-label">Hash Rate Breakdown</div>
-        <table class="v1-table">
-          <thead><tr><th>1m</th><th>15m</th><th>1h</th><th>6h</th><th>24h</th><th>7d</th></tr></thead>
-          <tbody><tr>
-            <td id="pv-hr-1m">—</td><td id="pv-hr-15m">—</td><td id="pv-hr-1h">—</td>
-            <td id="pv-hr-6h">—</td><td id="pv-hr-24h">—</td><td id="pv-hr-7d">—</td>
-          </tr></tbody>
-        </table>
-        <div class="v1-stat-row" style="margin-top:10px;">
-          <div><div class="v1-sub">Best Share — Since Block</div><div class="v1-big" style="font-size:16px" id="pv-best-since">—</div></div>
-          <div><div class="v1-sub">Best Share — All Time</div><div class="v1-big" style="font-size:16px" id="pv-best-alltime">—</div></div>
+      <!-- Left column: stacked stat cards (workers, hashrate, difficulty, best share, ETA) -->
+      <div class="v1-side" style="grid-column: span 6;">
+        <div>
+          <div class="v1-label">Workers</div>
+          <div class="v1-big" id="pv-workers-count">—</div>
+        </div>
+        <div>
+          <div class="v1-label">Last Share</div>
+          <div class="v1-big" style="font-size:18px" id="pv-last-share">—</div>
+          <div class="v1-sub">Across all workers</div>
+        </div>
+        <div>
+          <div class="v1-label">Hash Rate</div>
+          <div class="v1-big" id="pv-hr-main">—</div>
+          <div class="v1-sub">Best-effort (this node)</div>
+          <div class="pv-hr-pill-row" id="pv-hr-pills"></div>
+        </div>
+        <div>
+          <div class="v1-label">Network Difficulty (Sidechain)</div>
+          <div class="v1-big" style="font-size:20px" id="pv-net-diff-main">—</div>
+          <div class="v1-sub" id="pv-net-diff-sub">—</div>
+        </div>
+        <div>
+          <div class="v1-label">Best Share</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-sub">Since Block</div><div class="v1-big" style="font-size:16px" id="pv-best-since">—</div></div>
+            <div><div class="v1-sub">All-Time</div><div class="v1-big" style="font-size:16px" id="pv-best-alltime">—</div></div>
+          </div>
+          <div class="v1-sub" style="margin-top:6px;">Highest share difficulty seen (not a guaranteed winning share).</div>
+        </div>
+        <div>
+          <div class="v1-label">ETA to Find Block</div>
+          <div class="v1-big" style="font-size:20px" id="pv-net-eta">—</div>
+          <div class="v1-sub">Based on sidechain-wide pool hash rate</div>
+        </div>
+      </div>
+
+      <!-- Right column: live graphs + sidechain-wide network summary -->
+      <div class="v1-side" style="grid-column: span 6;">
+        <div>
+          <div class="v1-label">Hash Rate History</div>
+          <svg id="pv-graph-hashrate" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+        </div>
+        <div>
+          <div class="v1-label">Network Difficulty History</div>
+          <svg id="pv-graph-difficulty" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+        </div>
+        <div>
+          <div class="v1-label">P2Pool Network (Sidechain-Wide)</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-miners">—</div><div class="v1-sub">Miners</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-shares">—</div><div class="v1-sub">Shares (PPLNS)</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-blocks">—</div><div class="v1-sub">Blocks Found</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-reward">—</div><div class="v1-sub">Reward</div></div>
+          </div>
         </div>
       </div>
 
@@ -410,6 +404,43 @@
         </div>
         <div class="v1-sub" style="margin-top:8px;" id="pv-observer-versions">—</div>
         <a id="pv-observer-link" href="#" target="_blank" rel="noopener" class="v1-sub">View full history on p2pool.observer</a>
+      </div>
+
+      <!-- Tari merge mining -->
+      <div class="v1-full">
+        <div class="v1-label">Tari (XTM) Merge Mining <span class="badge-experimental">beta</span></div>
+        <div class="v1-stat-row">
+          <div><div class="v1-big" style="font-size:18px" id="pv-tari-status">—</div><div class="v1-sub">Status</div></div>
+          <div><div class="v1-big" style="font-size:18px" id="pv-tari-blocks">0</div><div class="v1-sub">XTM Blocks Found</div></div>
+          <div><div class="v1-big" style="font-size:18px" id="pv-minotari-label">—</div><div class="v1-sub">Minotari Node</div></div>
+        </div>
+        <div class="progress-bar" style="margin-top:10px;"><div id="pv-minotari-bar" class="progress-bar-fill" style="width:0%"></div></div>
+        <div class="v1-sub" style="margin-top:8px;">Tari payout address: <span class="mono" id="pv-tari-address">—</span></div>
+      </div>
+
+      <!-- Setup / Miner Configuration -->
+      <div class="v1-full">
+        <div class="v1-label">Setup — Miner Configuration</div>
+        <div class="field">
+          <label>Pool URL</label>
+          <div class="copy-row"><input type="text" readonly id="pv-miner-url" value="—" /><button class="icon-btn" data-copy="#pv-miner-url">Copy</button></div>
+        </div>
+        <div class="field">
+          <label>Payout Address</label>
+          <div class="copy-row"><input type="text" readonly id="pv-payout-address" value="—" /><button class="icon-btn" data-copy="#pv-payout-address">Copy</button></div>
+        </div>
+        <div class="v1-stat-row">
+          <div class="field" style="flex:1;">
+            <label>Worker (example)</label>
+            <div class="copy-row"><input type="text" readonly id="pv-worker-login" value="—" /><button class="icon-btn" data-copy="#pv-worker-login">Copy</button></div>
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Password</label>
+            <div class="copy-row"><input type="text" readonly value="x" /></div>
+          </div>
+        </div>
+        <div class="v1-sub">Pool mode: <span id="pv-pool-mode">—</span></div>
+        <div class="v1-sub" style="margin-top:6px;">Set your payout address in Settings. All solved blocks pay directly to that address.</div>
       </div>
     </div>
 

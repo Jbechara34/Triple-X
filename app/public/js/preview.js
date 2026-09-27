@@ -213,7 +213,6 @@ async function refreshAll() {
   setText('pv-net-shares', fmtDifficulty(pool.network?.sidechainSharesFound));
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
-  setText('pv-net-hashrate', fmtHashrate(pool.network?.sidechainHashrate));
   setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
   setText('pv-miner-url', pool.minerConfig?.url || '—');
@@ -260,15 +259,30 @@ async function refreshAll() {
       : '<tr><td colspan="3" class="pv-empty">No blocks found yet — normal, this can take a while.</td></tr>';
   }
 
-  // Hash rate breakdown table (1m/15m/1h/6h/24h/7d - see lib/p2poolApi.js for
-  // which columns p2pool's local API actually reports today).
+  // Hash rate pill row (1m/15m/1h/6h/24h/7d - see lib/p2poolApi.js for which
+  // columns p2pool's local API actually reports today; others render "—").
   const hr = pool.hashrate || {};
-  setText('pv-hr-1m', fmtHashrate(hr.hashrate1m));
-  setText('pv-hr-15m', fmtHashrate(hr.hashrate15m));
-  setText('pv-hr-1h', fmtHashrate(hr.hashrate1h));
-  setText('pv-hr-6h', fmtHashrate(hr.hashrate6h));
-  setText('pv-hr-24h', fmtHashrate(hr.hashrate24h));
-  setText('pv-hr-7d', fmtHashrate(hr.hashrate7d));
+  setText('pv-hr-main', fmtHashrate(hr.hashrate1h));
+  const HR_PILL_COLORS = ['var(--orange)', 'var(--tari)', '#4a9eff', '#ffb020', '#4caf6a', '#b98ce0'];
+  const hrPeriods = [
+    ['1m', hr.hashrate1m], ['15m', hr.hashrate15m], ['1h', hr.hashrate1h],
+    ['6h', hr.hashrate6h], ['24h', hr.hashrate24h], ['7d', hr.hashrate7d],
+  ];
+  const hrPills = document.getElementById('pv-hr-pills');
+  if (hrPills) {
+    hrPills.innerHTML = hrPeriods
+      .map(
+        ([label, val], i) =>
+          `<span class="pv-hr-pill" style="background:${HR_PILL_COLORS[i]}"><span class="pv-hr-pill-period">${label}</span>${fmtHashrate(val)}</span>`
+      )
+      .join('');
+  }
+
+  setText('pv-net-diff-main', fmtDifficulty(pool.network?.difficulty));
+  setText('pv-net-diff-sub', `RandomX · Height ${pool.network?.height ?? '—'}`);
+  setText('pv-pool-connect-url', `stratum+tcp://${pool.minerConfig?.url || '—'}`);
+  setText('pv-last-share', fmtTime(pool.lastShareAt));
+
   setText('pv-best-since', fmtDifficulty(pool.bestShare?.sinceBlock));
   setText('pv-best-alltime', fmtDifficulty(pool.bestShare?.allTime));
 
