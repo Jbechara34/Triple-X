@@ -30,6 +30,12 @@ const DEFAULTS = {
   p2poolLightMode: false,
   p2poolNoRandomx: false,
   p2poolNoCache: false,
+  // Hidden, off-by-default toggle - the Settings tab only shows the
+  // "Import Blockchain" section (see lib/blockchainImport.js) once this is
+  // turned on. Requires the app container to have Docker socket access
+  // (docker-compose.yml), which is real control over the host, hence
+  // opt-in rather than always visible.
+  importBlockchainEnabled: false,
   updatedAt: null,
 };
 
@@ -114,6 +120,10 @@ function writeSettings(update) {
 
   if (typeof update.p2poolNoCache === 'boolean') {
     next.p2poolNoCache = update.p2poolNoCache;
+  }
+
+  if (typeof update.importBlockchainEnabled === 'boolean') {
+    next.importBlockchainEnabled = update.importBlockchainEnabled;
   }
 
   next.updatedAt = new Date().toISOString();

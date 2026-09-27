@@ -766,6 +766,13 @@
           <label class="checkbox-label"><input type="checkbox" id="pv-settings-logs-tab-enabled" /> Show Logs tab</label>
           <div class="hint">Hide the Logs tab from the navigation if you don't need it day-to-day. On by default.</div>
         </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-import-enabled" /> Enable Blockchain Import (advanced)</label>
+          <div class="hint warn">Lets this dashboard stop monerod, pull a pre-synced blockchain from another
+            machine over SSH, and restart it - skipping a full network sync on a new install. Requires the app
+            container to have Docker socket access (see docker-compose.yml); that's real control over the host, so
+            this stays off and hidden until you turn it on here. Off by default.</div>
+        </div>
       </div>
 
       <!-- P2Pool memory flags - their own separate box, one sub-box per flag. -->
@@ -800,6 +807,70 @@
 
         <button class="primary" id="pv-settings-save">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
+      </div>
+
+      <!-- Import Blockchain - hidden entirely unless the checkbox above is
+           checked (see applyImportSectionVisibility in preview.js). -->
+      <div class="v1-full" id="pv-import-panel" style="display:none;">
+        <div class="v1-label">Import Blockchain</div>
+        <div class="hint warn" style="margin-bottom:14px;">
+          This stops monerod, copies data from the machine/path you specify below into its data directory, fixes
+          ownership, and restarts it. Point this at a pre-synced monerod data directory (the folder containing
+          <code>lmdb/</code>) on another machine you control - anything else will not work and may need to be
+          cleaned up manually afterward.
+        </div>
+
+        <div class="v1-stat-row" style="align-items:flex-start;">
+          <div class="field" style="flex:1;">
+            <label>Host</label>
+            <input type="text" id="pv-import-host" placeholder="192.168.1.50" />
+          </div>
+          <div class="field" style="width:100px;">
+            <label>Port</label>
+            <input type="text" id="pv-import-port" placeholder="22" />
+          </div>
+        </div>
+        <div class="v1-stat-row" style="align-items:flex-start;">
+          <div class="field" style="flex:1;">
+            <label>Username</label>
+            <input type="text" id="pv-import-username" placeholder="ssh username on that machine" />
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Remote Path</label>
+            <input type="text" id="pv-import-remote-path" placeholder="/home/user/.bitmonero" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Authentication</label>
+          <select id="pv-import-auth-method">
+            <option value="key">SSH private key (recommended)</option>
+            <option value="password">Password</option>
+          </select>
+        </div>
+        <div class="field" id="pv-import-key-field">
+          <label>Private Key</label>
+          <textarea id="pv-import-private-key" rows="4" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----..." style="width:100%; background:var(--panel-alt); border:1px solid var(--border); color:var(--text); padding:10px 12px; border-radius:8px; font-size:12px; font-family:monospace;"></textarea>
+          <div class="hint">Never saved to disk beyond the single import - deleted the moment the transfer finishes or fails.</div>
+        </div>
+        <div class="field" id="pv-import-password-field" style="display:none;">
+          <label>Password</label>
+          <input type="password" id="pv-import-password" placeholder="SSH password" />
+        </div>
+
+        <button class="icon-btn" id="pv-import-step1">Start Import</button>
+        <div id="pv-import-confirm" style="display:none; margin-top:10px;">
+          <div class="hint warn" id="pv-import-confirm-text"></div>
+          <button class="primary" id="pv-import-step2" style="margin-top:8px;">Yes, stop monerod and import</button>
+          <button class="icon-btn" id="pv-import-cancel">Cancel</button>
+        </div>
+
+        <div id="pv-import-progress" style="display:none; margin-top:14px;">
+          <div class="v1-sub" id="pv-import-progress-message">—</div>
+          <div style="background:var(--panel-alt); border-radius:6px; height:8px; margin-top:8px; overflow:hidden;">
+            <div id="pv-import-progress-bar" style="background:var(--orange); height:100%; width:0%; transition:width 0.4s ease;"></div>
+          </div>
+        </div>
+        <div class="hint" id="pv-import-status"></div>
       </div>
 
       <!-- Donation addresses - static personal reference list, not wired to

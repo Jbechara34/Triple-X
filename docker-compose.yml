@@ -231,6 +231,17 @@ services:
       # seed-words.txt from this volume right after showing it once.
       - minotari-wallet-data:/data/minotari-wallet
       - app-state:/data/state
+      # Settings tab's (hidden, opt-in) "Import Blockchain" feature - see
+      # lib/dockerControl.js and lib/blockchainImport.js. Needs to stop/start
+      # monerod around the copy (writing into a live LMDB environment risks
+      # corrupting it) and write the imported data straight into the same
+      # volume monerod itself reads from.
+      # SECURITY NOTE: mounting the Docker socket gives this container the
+      # same control over the host as root. Off by default
+      # (importBlockchainEnabled setting) for exactly this reason - only
+      # keep this mount if you intend to use that feature.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - monerod-data:/data/monerod-import-target
     networks:
       - internal
 

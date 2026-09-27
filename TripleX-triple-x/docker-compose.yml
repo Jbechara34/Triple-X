@@ -38,6 +38,17 @@ services:
       # Read-write (not :ro) - the Wallet tab's one-time Tari seed reveal
       # deletes seed-words.txt from this volume right after showing it once.
       - ${APP_DATA_DIR}/minotari-wallet:/data/minotari-wallet
+      # Settings tab's (hidden, opt-in) "Import Blockchain" feature - see
+      # ../app/lib/dockerControl.js and ../app/lib/blockchainImport.js. Needs
+      # to stop/start monerod around the copy (writing into a live LMDB
+      # environment risks corrupting it) and write the imported data
+      # straight into the same host path monerod itself reads from.
+      # SECURITY NOTE: mounting the Docker socket gives this container the
+      # same control over the host as root. Off by default
+      # (importBlockchainEnabled setting) for exactly this reason - only
+      # keep this mount if you intend to use that feature.
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ${APP_DATA_DIR}/monerod:/data/monerod-import-target
     environment:
       PORT: "3000"
       # Plain service name - Compose gives every service in this project a DNS

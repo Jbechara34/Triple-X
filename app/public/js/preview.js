@@ -423,6 +423,18 @@ async function loadSettingsForm() {
   if (noRandomxEl) noRandomxEl.checked = !!data.p2poolNoRandomx;
   const noCacheEl = document.getElementById('pv-settings-p2pool-no-cache');
   if (noCacheEl) noCacheEl.checked = !!data.p2poolNoCache;
+  const importEnabledEl = document.getElementById('pv-settings-import-enabled');
+  if (importEnabledEl) importEnabledEl.checked = !!data.importBlockchainEnabled;
+  applyImportSectionVisibility(!!data.importBlockchainEnabled);
+}
+
+// Shows/hides the whole Import Blockchain panel based on the hidden
+// importBlockchainEnabled setting - this isn't just cosmetic, the backend
+// refuses every /api/blockchain-import/* route unless it's actually saved
+// as true, so a hidden panel accurately reflects what will/won't work.
+function applyImportSectionVisibility(enabled) {
+  const panel = document.getElementById('pv-import-panel');
+  if (panel) panel.style.display = enabled ? '' : 'none';
 }
 
 // Hides the Logs tab button entirely (not just its content) when disabled in
@@ -459,12 +471,14 @@ function wireSettingsSave() {
           p2poolLightMode: !!document.getElementById('pv-settings-p2pool-light-mode')?.checked,
           p2poolNoRandomx: !!document.getElementById('pv-settings-p2pool-no-randomx')?.checked,
           p2poolNoCache: !!document.getElementById('pv-settings-p2pool-no-cache')?.checked,
+          importBlockchainEnabled: !!document.getElementById('pv-settings-import-enabled')?.checked,
         }),
       });
       const body = await res.json();
       if (!res.ok) throw new Error(body.error || 'Save failed');
       if (status) status.textContent = 'Saved. P2Pool will pick up the change within a few seconds.';
       applyLogsTabVisibility(!!document.getElementById('pv-settings-logs-tab-enabled')?.checked);
+      applyImportSectionVisibility(!!document.getElementById('pv-settings-import-enabled')?.checked);
       refreshAll();
     } catch (err) {
       if (status) status.textContent = err.message;
@@ -867,11 +881,146 @@ function wireWalletSend(coin) {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Import Blockchain (Settings tab, hidden until enabled) - two-step confirm
+// like the wallet Send/Reveal flows, then polls /status while the backend
+// stops monerod, copies, fixes ownership, and restarts it.
+// ---------------------------------------------------------------------------
+let importPollTimer = null;
+
+function wireImportForm() {
+  const authSelect = document.getElementById('pv-import-auth-method');
+  const keyField = document.getElementById('pv-import-key-field');
+  const passwordField = document.getElementById('pv-import-password-field');
+  if (authSelect) {
+    authSelect.addEventListener('change', () => {
+      const isKey = authSelect.value === 'key';
+      if (keyField) keyField.style.display = isKey ? '' : 'none';
+      if (passwordField) passwordField.style.display = isKey ? 'none' : '';
+    });
+  }
+
+  const step1 = document.getElementById('pv-import-step1');
+  const confirmBox = document.getElementById('pv-import-confirm');
+  const confirmText = document.getElementById('pv-import-confirm-text');
+  const step2 = document.getElementById('pv-import-step2');
+  const cancelBtn = document.getElementById('pv-import-cancel');
+  const status = document.getElementById('pv-import-status');
+  if (!step1 || !confirmBox || !step2 || !cancelBtn) return;
+
+  step1.addEventListener('click', () => {
+    const host = document.getElementById('pv-import-host').value.trim();
+    const remotePath = document.getElementById('pv-import-remote-path').value.trim();
+    if (status) status.textContent = '';
+    if (!host || !remotePath) {
+      if (status) status.textContent = 'Enter a host and remote path first.';
+      return;
+    }
+    confirmText.textContent = `This will stop monerod, copy ${remotePath} from ${host} into place, then restart monerod. Continue?`;
+    step1.style.display = 'none';
+    confirmBox.style.display = '';
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    confirmBox.style.display = 'none';
+    step1.style.display = '';
+  });
+
+  step2.addEventListener('click', async () => {
+    step2.disabled = true;
+    const authMethod = document.getElementById('pv-import-auth-method').value;
+    const payload = {
+      host: document.getElementById('pv-import-host').value.trim(),
+      port: document.getElementById('pv-import-port').value.trim() || '22',
+      username: document.getElementById('pv-import-username').value.trim(),
+      remotePath: document.getElementById('pv-import-remote-path').value.trim(),
+      authMethod,
+    };
+    if (authMethod === 'key') {
+      payload.privateKey = document.getElementById('pv-import-private-key').value;
+    } else {
+      payload.password = document.getElementById('pv-import-password').value;
+    }
+    try {
+      const res = await fetch('/api/blockchain-import/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to start import');
+      // Clear credential fields from the DOM immediately - they've been sent,
+      // no reason to leave them sitting in an input.
+      document.getElementById('pv-import-private-key').value = '';
+      document.getElementById('pv-import-password').value = '';
+      confirmBox.style.display = 'none';
+      startImportPolling();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+      step2.disabled = false;
+    }
+  });
+}
+
+function startImportPolling() {
+  const progress = document.getElementById('pv-import-progress');
+  const message = document.getElementById('pv-import-progress-message');
+  const bar = document.getElementById('pv-import-progress-bar');
+  const step1 = document.getElementById('pv-import-step1');
+  const status = document.getElementById('pv-import-status');
+  if (progress) progress.style.display = '';
+  if (step1) step1.style.display = 'none';
+  if (importPollTimer) clearInterval(importPollTimer);
+
+  const poll = async () => {
+    let data;
+    try {
+      data = await getJSON('/api/blockchain-import/status');
+    } catch (err) {
+      return; // transient - try again next tick
+    }
+    if (message) message.textContent = data.message || data.status;
+    if (bar) bar.style.width = `${data.percent ?? (data.status === 'idle' ? 0 : 10)}%`;
+    if (data.status === 'done' || data.status === 'error') {
+      clearInterval(importPollTimer);
+      importPollTimer = null;
+      if (status) status.textContent = data.status === 'error' ? `Import failed: ${data.message}` : data.message;
+      if (step1) {
+        step1.style.display = '';
+        step1.disabled = false;
+      }
+      const step2 = document.getElementById('pv-import-step2');
+      if (step2) step2.disabled = false;
+      refreshWalletTab();
+      refreshAll();
+    }
+  };
+  poll();
+  importPollTimer = setInterval(poll, 3000);
+}
+
+// In case a page reload happens mid-import, resume polling if one's already
+// running server-side rather than showing a stale "Start Import" button.
+async function resumeImportPollingIfActive() {
+  const panel = document.getElementById('pv-import-panel');
+  if (!panel) return;
+  try {
+    const data = await getJSON('/api/blockchain-import/status');
+    if (data.status && !['idle', 'done', 'error'].includes(data.status)) {
+      startImportPolling();
+    }
+  } catch {
+    // import feature not enabled/reachable - nothing to resume
+  }
+}
+
 wireTabs();
 wireWalletTab();
 wireThemeControls();
 wireSettingsSave();
+wireImportForm();
 loadSettingsForm();
+resumeImportPollingIfActive();
 startLogStreamsIfPresent();
 refreshAll();
 refreshWalletTab();

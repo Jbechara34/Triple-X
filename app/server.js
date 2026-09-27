@@ -28,6 +28,7 @@ const moneroWalletRpc = require('./lib/moneroWalletRpc');
 const moneroWalletState = require('./lib/moneroWalletState');
 const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
+const blockchainImport = require('./lib/blockchainImport');
 
 const app = express();
 app.use(express.json());
@@ -507,6 +508,74 @@ app.post('/api/wallet/monero/send', async (req, res) => {
     res.json(result);
   } catch (err) {
     res.status(err.statusCode || 502).json({ error: friendlyWalletError(err, 'Monero') });
+  }
+});
+
+// ---------------------------------------------------------------------------
+// Settings tab - hidden, opt-in "Import Blockchain" feature. See
+// lib/blockchainImport.js and lib/dockerControl.js. Every route below
+// refuses to do anything unless importBlockchainEnabled is on, even if
+// called directly - the setting isn't just a UI show/hide.
+// ---------------------------------------------------------------------------
+app.get('/api/blockchain-import/status', (req, res) => {
+  res.json(blockchainImport.getState());
+});
+
+app.post('/api/blockchain-import/start', async (req, res) => {
+  if (!config.readSettings().importBlockchainEnabled) {
+    res.status(403).json({ error: 'Blockchain import is disabled. Enable it in Settings first.' });
+    return;
+  }
+  const { host, port, username, authMethod, password, privateKey, remotePath } = req.body || {};
+  if (typeof host !== 'string' || !host.trim()) {
+    res.status(400).json({ error: 'A host is required.' });
+    return;
+  }
+  if (typeof username !== 'string' || !username.trim()) {
+    res.status(400).json({ error: 'A username is required.' });
+    return;
+  }
+  if (typeof remotePath !== 'string' || !remotePath.trim()) {
+    res.status(400).json({ error: 'A remote path is required.' });
+    return;
+  }
+  const portNum = Number(port) || 22;
+  if (authMethod === 'key') {
+    if (typeof privateKey !== 'string' || !privateKey.trim()) {
+      res.status(400).json({ error: 'A private key is required for key authentication.' });
+      return;
+    }
+  } else if (authMethod === 'password') {
+    if (typeof password !== 'string' || !password) {
+      res.status(400).json({ error: 'A password is required for password authentication.' });
+      return;
+    }
+  } else {
+    res.status(400).json({ error: "authMethod must be 'key' or 'password'." });
+    return;
+  }
+  try {
+    await blockchainImport.startImport({
+      host: host.trim(),
+      port: portNum,
+      username: username.trim(),
+      authMethod,
+      password,
+      privateKey,
+      remotePath: remotePath.trim(),
+    });
+    res.json({ started: true });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
+app.post('/api/blockchain-import/reset', (req, res) => {
+  try {
+    blockchainImport.reset();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
   }
 });
 
