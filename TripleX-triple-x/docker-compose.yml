@@ -20,14 +20,12 @@ services:
       APP_PORT: 3000
 
   web:
-    # Pinned to the Dev5 build's exact digest (not :latest) so the platform
-    # is forced to pull this specific image instead of reusing whatever it
-    # already has cached under a floating tag. Update this digest (see
-    # ../.github/workflows/publish-images.yml) every time a new version is
-    # published. TODO before shipping v0.0.1-Dev1: this is still the old
-    # Dev5 digest - re-pin to the freshly published Dev1 image once the
-    # publish workflow has run under the new triple-x-* image names.
-    image: ghcr.io/jbechara34/triple-x-app@sha256:a8034f5ef1aedae7f454a2c3569458772ccdb8b38d793df732e068f23150b97f
+    # Pinned to the v0.0.1-Dev2 build's exact digest (not :latest) so the
+    # platform is forced to pull this specific image instead of reusing
+    # whatever it already has cached under a floating tag. Update this
+    # digest (see ../.github/workflows/publish-images.yml) every time a new
+    # version is published.
+    image: ghcr.io/jbechara34/triple-x-app@sha256:9798cb22382d54925b5743ff454d0624c0d867f72e06072cc0493380b40d5c6d
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -65,8 +63,8 @@ services:
       MONERO_WALLET_STATE_FILE: /data/state/monero-wallet.json
 
   monerod:
-    # Pinned to the Dev5 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-monerod@sha256:6198db595cf9c40e2b5bd0ddae39480c2d482f665f09bb1232c0dbb33967dd8c
+    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/triple-x-monerod@sha256:330d99a891fc730de8a7e03afe6f4ee29b6ea29be1049f8dae0c5514dd28f339
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -96,10 +94,10 @@ services:
   # --disable-rpc-login - never published to the host (no `ports:` here),
   # same internal-network-only trust boundary monerod's own RPC relies on.
   monero-wallet-rpc:
-    # Pin once published - see note on web's image above. New this release
-    # (v0.0.1-Dev1); shares docker/monerod/Dockerfile's builder stage with
-    # monerod itself, just a different final target.
-    image: ghcr.io/jbechara34/triple-x-monero-wallet-rpc:latest
+    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's
+    # image above. New this release; shares docker/monerod/Dockerfile's
+    # builder stage with monerod itself, just a different final target.
+    image: ghcr.io/jbechara34/triple-x-monero-wallet-rpc@sha256:b812fc113f9d8cf6009d9602ec3c5f5a3aeef16d59006caa37d5bc7bd737c8ba
     restart: on-failure
     stop_grace_period: 1m
     depends_on:
@@ -117,8 +115,8 @@ services:
       - ${APP_DATA_DIR}/monero-wallet:/home/monero/wallet-data
 
   p2pool:
-    # Pinned to the Dev5 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-p2pool@sha256:85f015db4218e0951c38872d7da5963fdd7cc10010aae16b5a396964bd126315
+    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/triple-x-p2pool@sha256:f8f46559710428d13506fdcb3110996b1c106adaf18134b6a8111d193c0d7408
     restart: on-failure
     stop_grace_period: 1m
     environment:
@@ -176,8 +174,8 @@ services:
       - ${APP_DATA_DIR}/minotari-logs:/tari-data/mainnet/log
 
   minotari-wallet:
-    # Pinned once published - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-minotari-wallet:latest
+    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/triple-x-minotari-wallet@sha256:599455a26dad1878e28850ebfc3c33e21ede96df3264083509df9c395162a971
     restart: on-failure
     stop_grace_period: 1m
     command:
