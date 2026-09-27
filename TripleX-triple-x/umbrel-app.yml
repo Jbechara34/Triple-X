@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v0.0.1-Dev1"
+version: "v0.0.1-Dev3"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -31,8 +31,11 @@ defaultPassword: ""
 submitter: Jbechara34
 submission: https://github.com/Jbechara34/triple-x
 releaseNotes: >-
-  v0.0.1-Dev1 (first development build under the new versioning scheme and
-  the Triple X rename): brand-new "Command Center" dashboard UI - tabs for
+  v0.0.1-Dev3: fixes monerod crashing with "Permission denied:
+  /root/.bitmonero" (and the resulting P2Pool crash-loop) - Dev1/Dev2's
+  images were published before a HOME/setpriv fix landed on this branch;
+  Dev3 rebuilds all 5 images from the fixed source. No functional changes
+  from Dev1 otherwise: brand-new "Command Center" dashboard UI - tabs for
   Overview, Pool, Blocks, Wallet, Logs, and Settings, replacing the previous
   single-page layout. Adds a Wallet tab with one-time "generate, show once"
   seed-phrase backup for both the Monero and Tari wallets, an optional

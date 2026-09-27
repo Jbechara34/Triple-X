@@ -20,12 +20,12 @@ services:
       APP_PORT: 3000
 
   web:
-    # Pinned to the v0.0.1-Dev2 build's exact digest (not :latest) so the
+    # Pinned to the v0.0.1-Dev3 build's exact digest (not :latest) so the
     # platform is forced to pull this specific image instead of reusing
     # whatever it already has cached under a floating tag. Update this
     # digest (see ../.github/workflows/publish-images.yml) every time a new
     # version is published.
-    image: ghcr.io/jbechara34/triple-x-app@sha256:9798cb22382d54925b5743ff454d0624c0d867f72e06072cc0493380b40d5c6d
+    image: ghcr.io/jbechara34/triple-x-app@sha256:292eaa972f52212a4d0259217c6973525eed8a56304da5bd0d9a4bed3b3c4e0b
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -63,8 +63,11 @@ services:
       MONERO_WALLET_STATE_FILE: /data/state/monero-wallet.json
 
   monerod:
-    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-monerod@sha256:330d99a891fc730de8a7e03afe6f4ee29b6ea29be1049f8dae0c5514dd28f339
+    # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
+    # Dev3 rebuilds with the merged HOME/setpriv fix (previously only on
+    # main, missing from Dev1/Dev2) - fixes "Permission denied:
+    # /root/.bitmonero" at runtime.
+    image: ghcr.io/jbechara34/triple-x-monerod@sha256:cd95f92a394e3b7ced8794568a5ec7064a948ce89babb97d0927c4dbded4efd5
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -94,10 +97,10 @@ services:
   # --disable-rpc-login - never published to the host (no `ports:` here),
   # same internal-network-only trust boundary monerod's own RPC relies on.
   monero-wallet-rpc:
-    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's
-    # image above. New this release; shares docker/monerod/Dockerfile's
-    # builder stage with monerod itself, just a different final target.
-    image: ghcr.io/jbechara34/triple-x-monero-wallet-rpc@sha256:b812fc113f9d8cf6009d9602ec3c5f5a3aeef16d59006caa37d5bc7bd737c8ba
+    # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's
+    # image above. Shares docker/monerod/Dockerfile's builder stage with
+    # monerod itself, just a different final target.
+    image: ghcr.io/jbechara34/triple-x-monero-wallet-rpc@sha256:ec6ae0531933690a2343b5d1554cacb36e5afe4819beb459ccc32d329736ca25
     restart: on-failure
     stop_grace_period: 1m
     depends_on:
@@ -115,8 +118,10 @@ services:
       - ${APP_DATA_DIR}/monero-wallet:/home/monero/wallet-data
 
   p2pool:
-    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-p2pool@sha256:f8f46559710428d13506fdcb3110996b1c106adaf18134b6a8111d193c0d7408
+    # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
+    # Dev3 rebuilds with the merged HOME/setpriv fix - fixes the crash-loop
+    # caused by monerod being unreachable/permission-denied.
+    image: ghcr.io/jbechara34/triple-x-p2pool@sha256:42f6cfc69a07184206f40b7438c373a52514186bad7aad95c3053754d944730f
     restart: on-failure
     stop_grace_period: 1m
     environment:
@@ -174,8 +179,8 @@ services:
       - ${APP_DATA_DIR}/minotari-logs:/tari-data/mainnet/log
 
   minotari-wallet:
-    # Pinned to the v0.0.1-Dev2 build's exact digest - see note on web's image above.
-    image: ghcr.io/jbechara34/triple-x-minotari-wallet@sha256:599455a26dad1878e28850ebfc3c33e21ede96df3264083509df9c395162a971
+    # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
+    image: ghcr.io/jbechara34/triple-x-minotari-wallet@sha256:a7ffc498697df1405b9b42138ac096183a0f8e1a628b3a67a67dfa47dbfc864e
     restart: on-failure
     stop_grace_period: 1m
     command:
