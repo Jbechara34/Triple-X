@@ -228,6 +228,16 @@ app.get('/api/pool', async (req, res) => {
       minersOnSidechain: p2pool.pool.miners,
       totalBlocksFound: p2pool.pool.totalBlocksFound,
       sidechainSharesFound: p2pool.pool.sidechainSharesFound,
+      // Sidechain-wide hashrate (all miners), not just this node's - the
+      // right denominator for a pool-wide "time to find a block" estimate.
+      sidechainHashrate: p2pool.pool.hashRate,
+      // Standard mining ETA formula: expected seconds = difficulty / hashrate
+      // (hashes/sec). Null if either input is missing/zero rather than
+      // dividing by zero or showing a nonsense number.
+      etaSeconds:
+        p2pool.network.difficulty && p2pool.pool.hashRate
+          ? p2pool.network.difficulty / p2pool.pool.hashRate
+          : null,
     },
     bestShare: {
       sinceBlock: p2pool.stratum.currentEffort,
@@ -242,10 +252,24 @@ app.get('/api/pool', async (req, res) => {
     lastShareAt: workers.length
       ? workers.reduce((a, b) => (a.lastSeen > b.lastSeen ? a : b)).lastSeen
       : null,
-    workers,
+    // sharePercent: this worker's proportion of shares among your own
+    // connected workers (not sidechain-wide) - a real, honest stat straight
+    // from what we actually track (see lib/blocks.js), unlike a per-worker
+    // "odds of finding a block" which P2Pool's PPLNS payout model doesn't
+    // really support computing per-worker.
+    workers: (() => {
+      const totalShares = workers.reduce((sum, w) => sum + w.shares, 0);
+      return workers.map((w) => ({
+        ...w,
+        sharePercent: totalShares ? (w.shares / totalShares) * 100 : 0,
+      }));
+    })(),
     minerConfig: {
       url: `${req.hostname}:${STRATUM_PORT}`,
       payoutAddress: settings.walletAddress || null,
+      // Example worker login, so the Miner Configuration card can show a
+      // ready-to-copy value instead of just prose describing the format.
+      exampleWorkerLogin: settings.walletAddress ? `${settings.walletAddress}.worker-name` : null,
       instructions: [
         'Point your miner (e.g. XMRig) at the URL above.',
         'Use any username you like to identify this worker - it is not checked or validated.',

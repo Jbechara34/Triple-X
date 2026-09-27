@@ -21,6 +21,18 @@ function toggleClass(id, cls, on) {
   if (el) el.classList.toggle(cls, !!on);
 }
 
+const RING_CIRCUMFERENCE = 188.5; // 2 * PI * r, r=30 (see .pv-ring-fill / the SVG's r="30")
+function setRing(fillId, labelId, pct, isGood) {
+  const fill = document.getElementById(fillId);
+  const label = document.getElementById(labelId);
+  const clamped = Math.max(0, Math.min(100, pct));
+  if (fill) {
+    fill.style.strokeDashoffset = String(RING_CIRCUMFERENCE * (1 - clamped / 100));
+    fill.style.stroke = isGood ? '#4caf6a' : 'var(--orange)';
+  }
+  if (label) label.textContent = `${clamped.toFixed(0)}%`;
+}
+
 function fmtHashrate(h) {
   if (h === null || h === undefined) return '—';
   const units = ['H/s', 'KH/s', 'MH/s', 'GH/s'];
@@ -45,10 +57,56 @@ function fmtTime(t) {
   return d.toLocaleString();
 }
 
+function fmtDuration(seconds) {
+  if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return '—';
+  const days = Math.floor(seconds / 86400);
+  const hours = Math.floor((seconds % 86400) / 3600);
+  if (days > 0) return `${days}d ${hours}h`;
+  const minutes = Math.floor((seconds % 3600) / 60);
+  if (hours > 0) return `${hours}h ${minutes}m`;
+  return `${minutes}m`;
+}
+
 async function getJSON(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
   return res.json();
+}
+
+// ---------------------------------------------------------------------------
+// Rolling-history sparklines (Pool tab) - kept in-memory client-side only, no
+// backend time-series storage. Resets on page reload; that's an accepted
+// trade-off to avoid adding a database for two small graphs.
+// ---------------------------------------------------------------------------
+const MAX_SPARK_POINTS = 60; // 10 minutes at the 10s refresh interval
+const sparkHistory = { hashrate: [], difficulty: [] };
+
+function pushSparkPoint(key, value) {
+  if (value === null || value === undefined || !Number.isFinite(value)) return;
+  const arr = sparkHistory[key];
+  arr.push(value);
+  if (arr.length > MAX_SPARK_POINTS) arr.shift();
+}
+
+function renderSparkline(svgId, values) {
+  const svg = document.getElementById(svgId);
+  if (!svg) return;
+  if (values.length < 2) {
+    svg.innerHTML = '';
+    return;
+  }
+  const [w, h] = [300, 70];
+  const min = Math.min(...values);
+  const max = Math.max(...values);
+  const range = max - min || 1;
+  const points = values.map((v, i) => {
+    const x = (i / (values.length - 1)) * w;
+    const y = h - ((v - min) / range) * (h - 6) - 3;
+    return [x, y];
+  });
+  const lineD = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  const fillD = `${lineD} L${w},${h} L0,${h} Z`;
+  svg.innerHTML = `<path class="pv-spark-fill" d="${fillD}" /><path class="pv-spark-line" d="${lineD}" />`;
 }
 
 function renderMiningScene(xmrActive, xtmEnabled) {
@@ -85,30 +143,68 @@ async function refreshAll() {
   }
 
   const sync = status.sync || {};
+  const node = status.node || {};
   if (sync.error) {
-    setText('pv-sync-value', 'Node unreachable');
-    setText('pv-sync-sub', sync.error);
-    setWidth('pv-sync-bar', 0);
+    setText('pv-bc-title', 'Unreachable');
+    setText('pv-bc-sub', sync.error);
+    setRing('pv-bc-ring', 'pv-bc-ring-label', 0, false);
   } else {
     const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
-    setText('pv-sync-value', sync.synchronized ? 'Synchronized' : 'Synchronizing…');
-    setText('pv-sync-sub', `Height ${sync.height ?? '—'} / ${sync.targetHeight ?? '—'} (${pct.toFixed(1)}%)`);
-    setWidth('pv-sync-bar', pct);
+    setText('pv-bc-title', sync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
+    setText('pv-bc-sub', node.version ? `Monero ${node.version}${node.nettype ? ` · ${node.nettype}` : ''}` : '—');
+    setRing('pv-bc-ring', 'pv-bc-ring-label', pct, sync.synchronized);
+    setText('pv-bc-height', sync.height ?? '—');
+    setText('pv-bc-target', sync.targetHeight ?? '—');
   }
+  setText('pv-bc-peers', node.connectionsIn != null ? `${node.connectionsIn} / ${node.connectionsOut ?? '—'}` : '—');
+  setText('pv-bc-txpool', node.txPoolSize != null ? `${node.txPoolSize} txs` : '—');
 
-  setText('pv-hashrate', fmtHashrate(status.hashrate?.hashrate1h));
-  setText('pv-diff', fmtDifficulty(status.difficulty?.bestShare));
-  setText('pv-diff-sub', `Network: ${fmtDifficulty(status.difficulty?.network)}`);
+  const p2poolRunning = !!status.p2pool?.running;
+  setText('pv-p2p-sub', p2poolRunning ? `${status.p2pool?.connections ?? 0} connections · Port ${(pool.minerConfig?.url || '').split(':').pop() || '—'}` : 'Not running');
+  const p2pPill = document.getElementById('pv-p2p-pill');
+  if (p2pPill) {
+    p2pPill.textContent = p2poolRunning ? 'Open' : 'Closed';
+    p2pPill.classList.toggle('good', p2poolRunning);
+    p2pPill.classList.toggle('bad', !p2poolRunning);
+  }
+  setText('pv-p2p-workers', pool.workersConnected ?? '—');
+  setText('pv-p2p-hashrate', fmtHashrate(status.hashrate?.hashrate1h));
+  setText('pv-p2p-diff', fmtDifficulty(pool.network?.difficulty));
+  setText('pv-p2p-eta', fmtDuration(pool.network?.etaSeconds));
 
-  const node = status.node || {};
-  setText('pv-peers-out', node.connectionsOut ?? '—');
-  setText('pv-peers-in', node.connectionsIn ?? '—');
-  setText('pv-peers-sub', node.whitePeers != null ? `${node.whitePeers} known peers` : '—');
-  setText('pv-node-version', node.version ? `Monero ${node.version}${node.nettype ? ` · ${node.nettype}` : ''}` : '—');
-
-  setText('pv-p2pool-connections', status.p2pool?.connections ?? '—');
-  setText('pv-shares-found', status.p2pool?.sharesFound ?? '—');
-  setText('pv-shares-failed', status.p2pool?.sharesFailed ?? '—');
+  const checks = [
+    { key: 'nodeRpc', label: 'Node RPC', good: 'Synced', bad: 'Unreachable', desc: 'Node RPC is online and synchronized.', badDesc: 'Node RPC is not reachable yet.' },
+    { key: 'blockchainSynced', label: 'Blockchain Sync', good: 'Synchronized', bad: 'Syncing', desc: 'Chain is synchronized and ready for pool traffic.', badDesc: 'Still catching up to the network tip.' },
+    { key: 'payoutAddressConfigured', label: 'Payout Address', good: 'Configured', bad: 'Missing', desc: 'Block rewards have a payout target.', badDesc: 'Set a wallet address in Settings.' },
+    { key: 'stratumRunning', label: 'Stratum', good: 'Open', bad: 'Closed', desc: 'Remote miners can connect.', badDesc: 'P2Pool is not running yet.' },
+  ];
+  const readiness = status.readiness || {};
+  const readyCount = checks.filter((c) => readiness[c.key]).length;
+  const checkGrid = document.getElementById('pv-check-grid');
+  if (checkGrid) {
+    checkGrid.innerHTML = checks
+      .map((c) => {
+        const ok = !!readiness[c.key];
+        return `<div class="pv-check-item">
+          <div class="pv-check-head"><span class="pv-check-label">${c.label}</span></div>
+          <div class="pv-check-status ${ok ? 'good' : 'bad'}">${ok ? c.good : c.bad}</div>
+          <div class="pv-check-desc">${ok ? c.desc : c.badDesc}</div>
+        </div>`;
+      })
+      .join('');
+  }
+  const readyPill = document.getElementById('pv-ready-pill');
+  if (readyPill) {
+    readyPill.textContent = `${readyCount}/${checks.length} checks ready`;
+    readyPill.classList.toggle('good', readyCount === checks.length);
+    readyPill.classList.toggle('bad', readyCount < checks.length);
+  }
+  setText(
+    'pv-ready-summary',
+    readyCount === checks.length
+      ? 'Node, pool, and Stratum are all ready.'
+      : `${checks.length - readyCount} of ${checks.length} checks still need attention - see below.`
+  );
 
   setText('pv-workers-count', pool.workersConnected ?? '—');
   setText('pv-net-diff', fmtDifficulty(pool.network?.difficulty));
@@ -117,9 +213,17 @@ async function refreshAll() {
   setText('pv-net-shares', fmtDifficulty(pool.network?.sidechainSharesFound));
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
+  setText('pv-net-hashrate', fmtHashrate(pool.network?.sidechainHashrate));
+  setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
   setText('pv-miner-url', pool.minerConfig?.url || '—');
   setText('pv-payout-address', settings.walletAddress || 'Not configured');
+  setText('pv-worker-login', pool.minerConfig?.exampleWorkerLogin || 'Set a payout address in Settings first');
+
+  pushSparkPoint('hashrate', pool.hashrate?.hashrate1h);
+  pushSparkPoint('difficulty', pool.network?.difficulty);
+  renderSparkline('pv-graph-hashrate', sparkHistory.hashrate);
+  renderSparkline('pv-graph-difficulty', sparkHistory.difficulty);
 
   const tari = status.tari || {};
   setText('pv-tari-status', tari.enabled ? (status.p2pool?.running ? 'Merge mining' : 'Waiting on XMR mining') : 'Not configured');
@@ -128,17 +232,10 @@ async function refreshAll() {
   if (!nodeSync) {
     setText('pv-minotari-label', 'Not running');
     setWidth('pv-minotari-bar', 0);
-    setText('pv-tari-sync-value', tari.enabled ? 'Not running' : 'Not configured');
-    setText('pv-tari-sync-sub', '—');
-    setWidth('pv-tari-sync-bar', 0);
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
-    const label = nodeSync.synchronized ? 'Synchronized' : 'Synchronizing';
-    setText('pv-minotari-label', label);
+    setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
     setWidth('pv-minotari-bar', pct);
-    setText('pv-tari-sync-value', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing…');
-    setText('pv-tari-sync-sub', `Height ${nodeSync.height ?? '—'} / ${nodeSync.targetHeight ?? '—'} (${pct.toFixed(1)}%)`);
-    setWidth('pv-tari-sync-bar', pct);
   }
 
   const blocksBody = document.getElementById('pv-blocks-body');
@@ -172,9 +269,17 @@ async function refreshAll() {
   if (workersBody) {
     workersBody.innerHTML = (pool.workers || []).length
       ? pool.workers
-          .map((w) => `<tr><td>${escapeHtml(w.name)}</td><td>${w.shares}</td><td>${fmtTime(w.lastSeen)}</td></tr>`)
+          .map((w) => {
+            const pct = w.sharePercent ?? 0;
+            return `<tr><td>${escapeHtml(w.name)}</td><td>${w.shares}</td><td>
+              <div class="pv-share-cell">
+                <div class="pv-share-bar-track"><div class="pv-share-bar-fill" style="width:${pct.toFixed(1)}%"></div></div>
+                <span class="pv-share-pct">${pct.toFixed(1)}%</span>
+              </div>
+            </td><td>${fmtTime(w.lastSeen)}</td></tr>`;
+          })
           .join('')
-      : '<tr><td colspan="3" class="pv-empty">No workers connected yet.</td></tr>';
+      : '<tr><td colspan="4" class="pv-empty">No workers connected yet.</td></tr>';
   }
 
   // Tari payout address + XTM blocks table
