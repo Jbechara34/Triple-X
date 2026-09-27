@@ -9,9 +9,20 @@ package tari.rpc;
 
 service BaseNode {
   rpc GetSyncProgress(Empty) returns (SyncProgressResponse);
+  rpc GetNetworkState(GetNetworkStateRequest) returns (GetNetworkStateResponse);
 }
 
 message Empty {}
+
+message GetNetworkStateRequest {}
+
+// Minimal subset - the real response has several more fields (metadata,
+// hash rate estimates, etc.) we don't need. Field number for num_connections
+// (8) copied verbatim from upstream; proto3 safely skips the fields we don't
+// declare instead of erroring.
+message GetNetworkStateResponse {
+  uint64 num_connections = 8;
+}
 
 message SyncProgressResponse {
   uint64 tip_height = 1;

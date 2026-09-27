@@ -185,7 +185,9 @@ async function refreshAll() {
     { key: 'blockchainSynced', label: 'Blockchain Sync', good: 'Synchronized', bad: 'Syncing', desc: 'Chain is synchronized and ready for pool traffic.', badDesc: 'Still catching up to the network tip.' },
     { key: 'payoutAddressConfigured', label: 'Payout Address', good: 'Configured', bad: 'Missing', desc: 'Block rewards have a payout target.', badDesc: 'Set a wallet address in Settings.' },
     { key: 'stratumRunning', label: 'Stratum', good: 'Open', bad: 'Closed', desc: 'Remote miners can connect.', badDesc: 'P2Pool is not running yet.' },
-    { key: 'nodePortOpen', label: 'P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18080 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18080 on your router.' },
+    { key: 'moneroPortOpen', label: 'Monero P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18080 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18080 on your router.' },
+    { key: 'p2poolPortOpen', label: 'P2Pool P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound sidechain peer connections - your P2Pool port is forwarded correctly.', badDesc: 'No inbound P2Pool peers yet - forward your P2Pool p2p port (37889 Standard / 37888 Mini / 37890 Nano) on your router.' },
+    { key: 'minotariPortOpen', label: 'Tari P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18189 is forwarded correctly (or Tari merge-mining is off).', badDesc: 'No inbound peer connections yet - forward port 18189 on your router.' },
   ];
   const readiness = status.readiness || {};
   const readyCount = checks.filter((c) => readiness[c.key]).length;

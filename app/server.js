@@ -90,6 +90,13 @@ app.get('/api/status', async (req, res) => {
     minotariSync = null;
   }
 
+  let minotariNetworkState = null;
+  try {
+    minotariNetworkState = await minotariRpc.getNetworkState();
+  } catch {
+    minotariNetworkState = null;
+  }
+
   const rpcOk = !!nodeInfo && nodeInfo.status === 'OK';
   const syncOk = rpcOk && nodeInfo.synchronized === true;
   const payoutConfigured = !!settings.walletAddress;
@@ -98,13 +105,18 @@ app.get('/api/status', async (req, res) => {
   const bestShareDifficulty = p2pool.stratum.currentEffort; // best-effort proxy, see p2poolApi.js
   const networkDifficulty = p2pool.network.difficulty ?? (nodeInfo ? nodeInfo.difficulty : null);
 
-  // Best-effort "is my p2p port actually reachable from the internet"
-  // signal - monerod can't test its own external reachability, but a
-  // node accepting *inbound* peer connections (not just making outbound
-  // ones itself) is strong evidence the port is open and forwarded
-  // correctly. Right after startup this can read false for a while even on
-  // a correctly forwarded port, simply because no peer has connected in yet.
-  const nodePortOpen = rpcOk && (nodeInfo.incoming_connections_count ?? 0) > 0;
+  // Best-effort "is this port actually reachable from the internet" signal
+  // for each p2p-facing service - none of them can test their own external
+  // reachability, but a service accepting *inbound* connections (not just
+  // making outbound ones itself) is strong evidence its port is open and
+  // forwarded correctly. Right after startup these can read false for a
+  // while even on a correctly forwarded port, simply because no peer has
+  // connected in yet.
+  const moneroPortOpen = rpcOk && (nodeInfo.incoming_connections_count ?? 0) > 0;
+  const p2poolPortOpen = !!p2pool.p2p.connected && (p2pool.p2p.incomingConnections ?? 0) > 0;
+  // Tari merge-mining is optional - don't fail this check for someone who
+  // has never enabled it (settings.tariAddress blank).
+  const minotariPortOpen = !settings.tariAddress || (!!minotariNetworkState && minotariNetworkState.numConnections > 0);
 
   res.json({
     readiness: {
@@ -112,7 +124,9 @@ app.get('/api/status', async (req, res) => {
       payoutAddressConfigured: payoutConfigured,
       blockchainSynced: syncOk,
       stratumRunning: stratumOk,
-      nodePortOpen,
+      moneroPortOpen,
+      p2poolPortOpen,
+      minotariPortOpen,
     },
     sync: nodeInfo
       ? {

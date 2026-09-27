@@ -61,6 +61,22 @@ async function getLocalStratum() {
   };
 }
 
+// local/p2p carries this node's OWN sidechain p2p connection state - not to
+// be confused with local/stratum's connections (miners connecting to this
+// node's stratum port). Field names confirmed directly against p2pool's own
+// source (src/p2p_server.cpp, api_update_local_stats()).
+async function getLocalP2p() {
+  const raw = await readJsonFile('local/p2p');
+  if (!raw) return { raw: null, connected: false };
+  return {
+    raw,
+    connected: true,
+    connections: num(raw.connections),
+    incomingConnections: num(raw.incoming_connections),
+    peerListSize: num(raw.peer_list_size),
+  };
+}
+
 async function getNetworkStats() {
   const raw = await readJsonFile('network/stats');
   if (!raw) return { raw: null, connected: false };
@@ -98,12 +114,13 @@ async function getPoolStats() {
 }
 
 async function getAll() {
-  const [stratum, network, pool] = await Promise.all([
+  const [stratum, network, pool, p2p] = await Promise.all([
     getLocalStratum(),
     getNetworkStats(),
     getPoolStats(),
+    getLocalP2p(),
   ]);
-  return { stratum, network, pool, dataApiDir: DATA_API_DIR };
+  return { stratum, network, pool, p2p, dataApiDir: DATA_API_DIR };
 }
 
 module.exports = {
@@ -111,5 +128,6 @@ module.exports = {
   getLocalStratum,
   getNetworkStats,
   getPoolStats,
+  getLocalP2p,
   getAll,
 };

@@ -52,6 +52,24 @@ function getSyncProgress() {
   });
 }
 
+// { numConnections } or throws. Used as a best-effort "is the p2p port
+// (18189) actually reachable from the internet" signal - minotari_node can't
+// test its own external reachability, so a peer count > 0 is the same proxy
+// used for monerod's own port check (see server.js).
+function getNetworkState() {
+  return new Promise((resolve, reject) => {
+    const deadline = new Date(Date.now() + TIMEOUT_MS);
+    getClient().GetNetworkState({}, { deadline }, (err, res) => {
+      if (err) {
+        reject(err);
+        return;
+      }
+      resolve({ numConnections: Number(res.num_connections) || 0 });
+    });
+  });
+}
+
 module.exports = {
   getSyncProgress,
+  getNetworkState,
 };
