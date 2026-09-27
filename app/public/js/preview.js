@@ -232,10 +232,18 @@ async function refreshAll() {
   if (!nodeSync) {
     setText('pv-minotari-label', 'Not running');
     setWidth('pv-minotari-bar', 0);
+    setText('pv-tari-bc-title', tari.enabled ? 'Not running' : 'Not configured');
+    setText('pv-tari-bc-sub', '—');
+    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', 0, false);
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
     setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
     setWidth('pv-minotari-bar', pct);
+    setText('pv-tari-bc-title', nodeSync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
+    setText('pv-tari-bc-sub', 'Minotari Node · mainnet');
+    setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', pct, nodeSync.synchronized);
+    setText('pv-tari-bc-height', nodeSync.height ?? '—');
+    setText('pv-tari-bc-target', nodeSync.targetHeight ?? '—');
   }
 
   const blocksBody = document.getElementById('pv-blocks-body');

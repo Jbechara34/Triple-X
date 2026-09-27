@@ -248,6 +248,29 @@
         </div>
       </div>
 
+      <!-- Blockchain status card - Tari (a separate blockchain from Monero,
+           gets its own sync card here rather than being folded into Monero's) -->
+      <div class="v1-half">
+        <div class="pv-status-head">
+          <div>
+            <div class="pv-kicker">Blockchain <span class="badge-experimental">beta</span></div>
+            <div class="pv-status-title" id="pv-tari-bc-title">—</div>
+            <div class="pv-status-sub" id="pv-tari-bc-sub">—</div>
+          </div>
+          <div class="pv-ring">
+            <svg viewBox="0 0 70 70">
+              <circle class="pv-ring-track" cx="35" cy="35" r="30" />
+              <circle class="pv-ring-fill" id="pv-tari-bc-ring" cx="35" cy="35" r="30" />
+            </svg>
+            <div class="pv-ring-label" id="pv-tari-bc-ring-label">0%</div>
+          </div>
+        </div>
+        <div class="pv-tile-grid">
+          <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-tari-bc-height">—</div></div>
+          <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-tari-bc-target">—</div></div>
+        </div>
+      </div>
+
       <!-- P2Pool status card -->
       <div class="v1-half">
         <div class="pv-status-head">
