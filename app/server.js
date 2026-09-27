@@ -22,6 +22,8 @@ const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
 const tariBlocks = require('./lib/tariBlocks');
 const minotariRpc = require('./lib/minotariRpc');
+const minotariWalletRpc = require('./lib/minotariWalletRpc');
+const tariWallet = require('./lib/tariWallet');
 const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 
@@ -324,6 +326,34 @@ app.post('/api/settings', (req, res) => {
   } catch (err) {
     res.status(err.statusCode || 500).json({ error: err.message });
   }
+});
+
+// ---------------------------------------------------------------------------
+// Wallet tab - EXPERIMENTAL "generate-once, show-once" wallet creation.
+// This dashboard never holds funds and never re-shows a seed phrase once
+// revealed - see lib/tariWallet.js and docker-compose.yml's
+// --seed-words-file-name flag on minotari-wallet for how that's enforced.
+// ---------------------------------------------------------------------------
+app.get('/api/wallet/tari', async (req, res) => {
+  let address = null;
+  try {
+    ({ address } = await minotariWalletRpc.getAddress());
+  } catch (err) {
+    // Wallet not reachable yet (still starting, or not run in this stack) -
+    // not an error the user needs a stack trace for.
+  }
+  res.json({ address, seedAvailable: tariWallet.seedAvailable() });
+});
+
+// POST (not GET) because this is a one-time, side-effecting reveal - it
+// deletes the seed file from disk as part of returning it.
+app.post('/api/wallet/tari/reveal-seed', (req, res) => {
+  const words = tariWallet.revealSeedWords();
+  if (!words) {
+    res.status(404).json({ error: 'No seed phrase available - it was already revealed, or this wallet was restored rather than freshly created.' });
+    return;
+  }
+  res.json({ words });
 });
 
 // ---------------------------------------------------------------------------

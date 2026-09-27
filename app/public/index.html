@@ -91,6 +91,7 @@
       <button data-tabbtn="overview" class="active">Overview</button>
       <button data-tabbtn="pool">Pool</button>
       <button data-tabbtn="blocks">Blocks</button>
+      <button data-tabbtn="wallet">Wallet</button>
       <button data-tabbtn="logs">Logs</button>
       <button data-tabbtn="settings">Settings</button>
     </div>
@@ -304,6 +305,42 @@
           <thead><tr><th>Height</th><th>Detected</th><th>Log Line</th></tr></thead>
           <tbody id="pv-tari-blocks-body"><tr><td colspan="3" class="pv-empty">No XTM blocks found yet.</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <div class="v1-bento" data-tabpanel="wallet" style="display:none">
+      <div class="v1-full">
+        <div class="v1-label">Tari (XTM) Wallet <span class="badge-experimental">beta</span></div>
+        <div class="v1-sub">
+          This wallet was created automatically by the bundled Minotari node/wallet containers - this dashboard
+          never holds funds itself, it just gives you a one-time look at the receive address and backup phrase.
+        </div>
+        <div class="field" style="margin-top:14px;">
+          <label>Receive Address</label>
+          <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-address">Copy</button></div>
+        </div>
+        <button class="primary" id="pv-wallet-tari-use">Use this address for merge-mining</button>
+        <div class="hint" id="pv-wallet-tari-use-status"></div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Seed Phrase Backup</div>
+          <div class="v1-sub" id="pv-wallet-seed-intro">
+            A one-time backup of this wallet's seed phrase is available. Revealing it deletes the backup file from
+            disk immediately after - it can only be shown once, so make sure you can write it down before confirming.
+          </div>
+          <button class="icon-btn" id="pv-wallet-reveal-step1" style="margin-top:10px;">Reveal Seed Phrase (one-time)</button>
+          <div id="pv-wallet-reveal-confirm" style="display:none; margin-top:10px;">
+            <div class="hint warn">This is your only chance to see this seed phrase from this dashboard. Have a pen and paper (or a password manager) ready.</div>
+            <button class="primary" id="pv-wallet-reveal-step2" style="margin-top:8px;">Yes, show it and delete the backup file</button>
+            <button class="icon-btn" id="pv-wallet-reveal-cancel">Cancel</button>
+          </div>
+          <div id="pv-wallet-seed-grid" class="mono" style="display:none; margin-top:12px; padding:12px; background:var(--panel-alt); border-radius:8px; line-height:2;"></div>
+        </div>
+      </div>
+
+      <div class="v1-full">
+        <div class="v1-label">Monero (XMR) Wallet</div>
+        <div class="v1-sub">Not implemented yet - planned as a follow-up using the same one-time reveal approach as Tari above, via a monero-wallet-rpc container.</div>
       </div>
     </div>
 

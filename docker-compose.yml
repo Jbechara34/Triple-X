@@ -129,6 +129,12 @@ services:
       - "--non-interactive"
       - "--grpc-enabled"
       - "--grpc-address=/ip4/0.0.0.0/tcp/18143"
+      # Only written once, on first-ever wallet creation (a restart with an
+      # existing wallet DB does not rewrite it) - the app container reads
+      # this file exactly once via the Wallet tab's "Reveal Seed Phrase" and
+      # deletes it immediately after, so the seed is never shown twice and
+      # never sits on disk beyond that first reveal. See lib/tariWallet.js.
+      - "--seed-words-file-name=/tari-data/seed-words.txt"
     expose:
       - "18143" # gRPC - internal only
     volumes:
@@ -157,6 +163,9 @@ services:
       EXPLORER_BASE_URL: "https://xmrchain.net"
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
       MINOTARI_LOG_FILE: /data/minotari-logs/base_node.log
+      MINOTARI_WALLET_HOST: minotari-wallet
+      MINOTARI_WALLET_GRPC_PORT: "18143"
+      MINOTARI_WALLET_SEED_FILE: /data/minotari-wallet/seed-words.txt
     ports:
       - "3000:3000" # the dashboard itself - this is the app's main UI port
     volumes:
@@ -165,6 +174,9 @@ services:
       - p2pool-logs:/data/p2pool-logs:ro
       - monerod-logs:/data/monerod-logs:ro
       - minotari-node-logs:/data/minotari-logs:ro
+      # Read-write (not :ro) - the Wallet tab's one-time seed reveal deletes
+      # seed-words.txt from this volume right after showing it once.
+      - minotari-wallet-data:/data/minotari-wallet
       - app-state:/data/state
     networks:
       - internal

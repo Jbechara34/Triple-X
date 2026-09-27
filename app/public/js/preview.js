@@ -391,10 +391,87 @@ function wireTabs() {
   buttons.forEach((b) => b.addEventListener('click', () => show(b.dataset.tabbtn)));
 }
 
+// ---------------------------------------------------------------------------
+// Wallet tab - Tari address display + one-time seed-phrase reveal. Present
+// only on variants that include these elements.
+// ---------------------------------------------------------------------------
+async function refreshWalletTab() {
+  const addressEl = document.getElementById('pv-wallet-tari-address');
+  if (!addressEl) return; // this variant has no Wallet tab
+  let data;
+  try {
+    data = await getJSON('/api/wallet/tari');
+  } catch (err) {
+    return;
+  }
+  addressEl.value = data.address || 'Wallet not reachable yet';
+  const revealBtn = document.getElementById('pv-wallet-reveal-step1');
+  const intro = document.getElementById('pv-wallet-seed-intro');
+  if (revealBtn && !data.seedAvailable) {
+    revealBtn.style.display = 'none';
+    if (intro) intro.textContent = 'No seed backup is available - it was already revealed once, or this wallet was restored from an existing seed rather than freshly created.';
+  }
+}
+
+function wireWalletTab() {
+  const useBtn = document.getElementById('pv-wallet-tari-use');
+  if (useBtn) {
+    useBtn.addEventListener('click', async () => {
+      const status = document.getElementById('pv-wallet-tari-use-status');
+      const address = document.getElementById('pv-wallet-tari-address').value;
+      if (!address || address === 'Wallet not reachable yet') return;
+      try {
+        await fetch('/api/settings', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tariAddress: address }),
+        });
+        if (status) status.textContent = 'Saved as your Tari merge-mining address.';
+        refreshAll();
+      } catch (err) {
+        if (status) status.textContent = 'Failed to save - try again.';
+      }
+    });
+  }
+
+  const step1 = document.getElementById('pv-wallet-reveal-step1');
+  const confirmBox = document.getElementById('pv-wallet-reveal-confirm');
+  const step2 = document.getElementById('pv-wallet-reveal-step2');
+  const cancelBtn = document.getElementById('pv-wallet-reveal-cancel');
+  if (step1 && confirmBox && step2 && cancelBtn) {
+    step1.addEventListener('click', () => {
+      step1.style.display = 'none';
+      confirmBox.style.display = '';
+    });
+    cancelBtn.addEventListener('click', () => {
+      confirmBox.style.display = 'none';
+      step1.style.display = '';
+    });
+    step2.addEventListener('click', async () => {
+      step2.disabled = true;
+      try {
+        const res = await fetch('/api/wallet/tari/reveal-seed', { method: 'POST' });
+        const body = await res.json();
+        if (!res.ok) throw new Error(body.error || 'Reveal failed');
+        const grid = document.getElementById('pv-wallet-seed-grid');
+        grid.innerHTML = body.words.map((w, i) => `<span style="display:inline-block;width:110px;">${i + 1}. ${escapeHtml(w)}</span>`).join('');
+        grid.style.display = '';
+        confirmBox.style.display = 'none';
+      } catch (err) {
+        confirmBox.querySelector('.hint').textContent = err.message;
+        step2.disabled = false;
+      }
+    });
+  }
+}
+
 wireTabs();
+wireWalletTab();
 wireThemeControls();
 wireSettingsSave();
 loadSettingsForm();
 startLogStreamsIfPresent();
 refreshAll();
+refreshWalletTab();
 setInterval(refreshAll, 10000);
+setInterval(refreshWalletTab, 15000);

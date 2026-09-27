@@ -1,0 +1,25 @@
+syntax = "proto3";
+
+// Minimal subset of tari-project/tari's applications/minotari_app_grpc/proto/wallet.proto
+// (service Wallet, package tari.rpc) - only the one RPC this dashboard needs
+// (the wallet's own address, for the Wallet tab). Field numbers and names
+// are copied verbatim from the upstream proto so this decodes correctly
+// against a real minotari_console_wallet; unrelated RPCs/messages (balance,
+// transactions, etc.) are omitted on purpose - this dashboard never touches
+// funds, only reads the receive address.
+package tari.rpc;
+
+service Wallet {
+  rpc GetCompleteAddress (Empty) returns (GetCompleteAddressResponse);
+}
+
+message Empty {}
+
+message GetCompleteAddressResponse {
+  bytes interactive_address = 1;
+  bytes one_sided_address = 2;
+  string interactive_address_base58 = 3;
+  string one_sided_address_base58 = 4;
+  string interactive_address_emoji = 5;
+  string one_sided_address_emoji = 6;
+}
