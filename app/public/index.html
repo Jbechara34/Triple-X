@@ -25,10 +25,13 @@
   .v1-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
   .v1-tabs {
     display: flex; gap: 6px; margin-bottom: 18px; border-bottom: 1px solid var(--border); padding-bottom: 10px;
+    overflow-x: auto; -webkit-overflow-scrolling: touch; scrollbar-width: none;
   }
+  .v1-tabs::-webkit-scrollbar { display: none; }
   .v1-tabs button {
     background: none; border: 1px solid transparent; color: var(--muted);
     font-size: 13px; padding: 8px 14px; border-radius: 8px; cursor: pointer;
+    flex-shrink: 0; white-space: nowrap;
   }
   .v1-tabs button:hover { background: var(--panel-alt); color: var(--text); }
   .v1-tabs button.active {
@@ -41,7 +44,7 @@
     grid-template-columns: repeat(12, 1fr);
     gap: 14px;
   }
-  .v1-bento > *, .v1-side > * {
+  .v1-bento > *, .v1-side > *, .v1-side-half > * {
     border-radius: var(--radius);
     padding: 16px;
     border: 1px solid transparent;
@@ -51,7 +54,7 @@
     box-shadow: -10px 0 22px -16px var(--orange), 10px 0 22px -16px var(--tari);
     transition: box-shadow 0.25s ease, transform 0.25s ease;
   }
-  .v1-bento > *:hover, .v1-side > *:hover {
+  .v1-bento > *:hover, .v1-side > *:hover, .v1-side-half > *:hover {
     box-shadow: -10px 0 26px -12px var(--orange), 10px 0 26px -12px var(--tari);
   }
   .v1-hero { grid-column: span 12; }
@@ -59,9 +62,10 @@
   .v1-quarter { grid-column: span 3; }
   .v1-third { grid-column: span 4; }
   .v1-half { grid-column: span 6; }
+  .v1-side-half { grid-column: span 6; display: flex; flex-direction: column; gap: 14px; }
   .v1-full { grid-column: span 12; }
   @media (max-width: 900px) {
-    .v1-hero, .v1-side, .v1-quarter, .v1-third, .v1-half, .v1-full { grid-column: span 12; }
+    .v1-hero, .v1-side, .v1-side-half, .v1-quarter, .v1-third, .v1-half, .v1-full { grid-column: span 12; }
   }
   .v1-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
   .v1-big { font-size: 28px; font-weight: 700; color: var(--text); }
@@ -169,8 +173,8 @@
 
   /* General "more alive" animation pass */
   @keyframes pv-card-in { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: translateY(0); } }
-  .v1-bento > *, .v1-side > * { animation: pv-card-in 0.35s ease both; }
-  .v1-bento > *:hover, .v1-side > *:hover { transform: translateY(-3px); }
+  .v1-bento > *, .v1-side > *, .v1-side-half > * { animation: pv-card-in 0.35s ease both; }
+  .v1-bento > *:hover, .v1-side > *:hover, .v1-side-half > *:hover { transform: translateY(-3px); }
 
   @keyframes pv-flash { 0% { color: var(--text); } 25% { color: var(--orange); text-shadow: 0 0 8px rgba(255,102,0,0.5); } 100% { color: var(--text); text-shadow: none; } }
   .pv-value-flash { animation: pv-flash 0.7s ease; }
@@ -362,7 +366,7 @@
       </div>
 
       <!-- Left column: stacked stat cards (workers, hashrate, difficulty, best share, ETA) -->
-      <div class="v1-side" style="grid-column: span 6;">
+      <div class="v1-side-half">
         <div>
           <div class="v1-label">Workers</div>
           <div class="v1-big" id="pv-workers-count">—</div>
@@ -399,7 +403,7 @@
       </div>
 
       <!-- Right column: live graphs + sidechain-wide network summary -->
-      <div class="v1-side" style="grid-column: span 6;">
+      <div class="v1-side-half">
         <div>
           <div class="v1-label">Hash Rate History</div>
           <svg id="pv-graph-hashrate" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
