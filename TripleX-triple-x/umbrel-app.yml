@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v0.0.1-Dev5"
+version: "v0.0.1-Dev7"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -14,11 +14,11 @@ description: >-
   Settings tab, point any RandomX miner (e.g. XMRig) at the stratum port
   shown on the Pool tab, and payouts go straight to your own wallet address -
   no third-party pool, no custodian, 0% fee.
-developer: Jbechara34
-website: https://github.com/Jbechara34/triple-x
+developer: SIlver765
+website: https://github.com/SIlver765/Triple-X
 dependencies: []
-repo: https://github.com/Jbechara34/triple-x
-support: https://github.com/Jbechara34/triple-x/issues
+repo: https://github.com/SIlver765/Triple-X
+support: https://github.com/SIlver765/Triple-X/issues
 port: 3000
 # Add real screenshots here before publishing - these are placeholders.
 gallery:
@@ -28,9 +28,18 @@ gallery:
 path: ""
 defaultUsername: ""
 defaultPassword: ""
-submitter: Jbechara34
-submission: https://github.com/Jbechara34/triple-x
+submitter: SIlver765
+submission: https://github.com/SIlver765/Triple-X
 releaseNotes: >-
+  v0.0.1-Dev7: per-flag P2Pool memory-usage toggles in Settings
+  (--light-mode, --no-randomx, --no-cache, each independently switchable
+  with an explanation). Wallet tab now shows real balances and can send
+  XMR and XTM (reversing the prior read-only design), with both wallets
+  redesigned as real card-shaped widgets (official Monero GUI art / your
+  own Tari brand art) with a masked address and a show/hide toggle. The
+  Startup Checklist's P2P port check is now three separate checks -
+  Monero, P2Pool, and Tari - instead of just Monero, each turning green
+  once that service is actually receiving inbound connections.
   v0.0.1-Dev5: fixes the Minotari (Tari base node) container crash-looping
   instantly on every start with "the argument '--base-path <BASE_PATH>'
   cannot be used multiple times". The official image's own startup wrapper
