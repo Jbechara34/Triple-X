@@ -131,8 +131,14 @@ services:
     # start" forever. Run as root to sidestep that; same simplicity-over-
     # defense-in-depth tradeoff already made for minotari-wallet.
     user: "0:0"
+    # No --base-path here - the image's own start_tari_app.sh wrapper
+    # already hardcodes "--base-path /var/tari/node" ahead of whatever we
+    # pass in `command`, and minotari_node rejects a duplicate --base-path
+    # outright ("cannot be used multiple times"), crash-looping instantly
+    # every time (confirmed directly in the container's own startup log:
+    # "base folder (in container): /var/tari/node" printed before our args
+    # are even applied). Our volumes below target that fixed path instead.
     command:
-      - "--base-path=/tari-data"
       - "--network=mainnet"
       - "--non-interactive"
       - "--init"
@@ -154,8 +160,8 @@ services:
     expose:
       - "18142" # gRPC - internal only (read by p2pool's --merge-mine and this app)
     volumes:
-      - minotari-node-data:/tari-data
-      - minotari-node-logs:/tari-data/mainnet/log
+      - minotari-node-data:/var/tari/node
+      - minotari-node-logs:/var/tari/node/mainnet/log
     networks:
       - internal
 

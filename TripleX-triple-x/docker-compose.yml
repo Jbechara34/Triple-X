@@ -164,8 +164,14 @@ services:
     # that; same simplicity-over-defense-in-depth tradeoff already made for
     # minotari-wallet.
     user: "0:0"
+    # No --base-path here - the image's own start_tari_app.sh wrapper
+    # already hardcodes "--base-path /var/tari/node" ahead of whatever we
+    # pass in `command`, and minotari_node rejects a duplicate --base-path
+    # outright ("cannot be used multiple times"), crash-looping instantly
+    # every time (confirmed directly in the container's own startup log:
+    # "base folder (in container): /var/tari/node" printed before our args
+    # are even applied). Our volumes below target that fixed path instead.
     command:
-      - "--base-path=/tari-data"
       - "--network=mainnet"
       - "--non-interactive"
       - "--init"
@@ -185,8 +191,8 @@ services:
     ports:
       - "18189:18189" # Tari p2p - forward this on your router for better connectivity
     volumes:
-      - ${APP_DATA_DIR}/minotari-node:/tari-data
-      - ${APP_DATA_DIR}/minotari-logs:/tari-data/mainnet/log
+      - ${APP_DATA_DIR}/minotari-node:/var/tari/node
+      - ${APP_DATA_DIR}/minotari-logs:/var/tari/node/mainnet/log
 
   minotari-wallet:
     # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
