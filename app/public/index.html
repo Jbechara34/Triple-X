@@ -820,6 +820,26 @@
           cleaned up manually afterward.
         </div>
 
+        <div class="instructions" style="background:var(--panel-alt); border-radius:8px; padding:14px 16px; margin-bottom:18px;">
+          <strong style="color:var(--text);">Instructions</strong>
+          <ol style="margin:8px 0 0; padding-left:20px;">
+            <li>On the <em>other</em> machine (the one with the already-synced blockchain), make sure SSH access is
+              enabled and you have a username/password or an SSH key that can log in.</li>
+            <li>Find that machine's monerod data directory - the folder that directly contains an <code>lmdb</code>
+              subfolder (e.g. <code>~/.bitmonero</code> on Linux, or wherever you pointed <code>--data-dir</code>).</li>
+            <li>Make sure monerod is <strong>stopped</strong> on that other machine before starting the transfer -
+              copying files out of a running node's data directory can grab an inconsistent snapshot.</li>
+            <li>Fill in the fields below: that machine's IP/hostname, SSH port (default <code>22</code>), the SSH
+              username, and the full path to the data directory from step 2.</li>
+            <li>Choose <strong>SSH private key</strong> (recommended - your password is never sent) or
+              <strong>Password</strong> authentication, and provide the matching key/password.</li>
+            <li>Click <strong>Start Import</strong> and confirm. This node's monerod will stop, the data will copy
+              over the network (this can take from minutes to hours depending on size and connection speed), and
+              monerod will restart automatically when it's done. You can navigate away - the transfer keeps running
+              on the server and this page will pick the progress back up when you return.</li>
+          </ol>
+        </div>
+
         <div class="v1-stat-row" style="align-items:flex-start;">
           <div class="field" style="flex:1;">
             <label>Host</label>
