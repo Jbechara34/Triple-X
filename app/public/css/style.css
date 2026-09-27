@@ -868,8 +868,9 @@ button.primary:disabled { opacity: 0.5; cursor: default; }
 
 .copy-row { display: flex; gap: 8px; align-items: center; }
 .copy-row input { flex: 1; }
-button.icon-btn {
+.icon-btn {
   all: unset;
+  display: inline-block;
   cursor: pointer;
   color: var(--muted);
   padding: 8px 10px;
@@ -877,7 +878,7 @@ button.icon-btn {
   border-radius: 8px;
   font-size: 12px;
 }
-button.icon-btn:hover { color: var(--text); border-color: var(--orange); }
+.icon-btn:hover { color: var(--text); border-color: var(--orange); }
 
 .toast {
   position: fixed;

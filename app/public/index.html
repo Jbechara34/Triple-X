@@ -65,13 +65,7 @@
   @media (max-width: 900px) {
     .pv-app-header-tabs { display: none; }
     .pv-tab-select { display: block; }
-    /* Explorer/palette/theme move into Settings on small screens - see the
-       matching #pv-settings-explorer/-palette/-theme controls there. */
-    .pv-app-header-actions #tb-explorer,
-    .pv-app-header-actions #tb-palette,
-    .pv-app-header-actions #tb-theme { display: none; }
     #pv-header-status { position: absolute; top: 16px; right: 16px; }
-    .pv-app-header-actions { min-height: 1px; }
   }
   .v1-bento {
     display: grid;
@@ -234,9 +228,6 @@
           </div>
         </div>
         <div class="pv-app-header-actions">
-          <a class="tb-icon" id="tb-explorer" href="#" target="_blank" rel="noopener" title="Block explorer">&#127760;</a>
-          <button class="tb-icon" id="tb-palette" title="Cycle color theme">&#127912;</button>
-          <button class="tb-icon" id="tb-theme" title="Toggle light/dark">&#127769;</button>
           <span class="pv-pill" id="pv-header-status">—</span>
         </div>
       </div>
