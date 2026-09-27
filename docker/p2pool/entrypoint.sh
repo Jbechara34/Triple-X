@@ -20,6 +20,13 @@ LOG_FILE="${LOG_FILE:-$LOG_DIR/p2pool.log}"
 if [ "$(id -u)" = "0" ]; then
   mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
   chown p2pool:p2pool "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
+  # setpriv only changes the process's UID/GID - unlike `su`/`sudo -i`, it
+  # does NOT reset HOME, which would otherwise stay HOME=/root (inherited
+  # from this root shell) and could point anything that defaults to
+  # $HOME at the wrong, inaccessible directory. Confirmed as the cause of
+  # monerod's near-identical "Permission denied: /root/.bitmonero" crash -
+  # see docker/monerod/entrypoint.sh.
+  export HOME=/home/p2pool
   exec setpriv --reuid=p2pool --regid=p2pool --init-groups "$0" "$@"
 fi
 
