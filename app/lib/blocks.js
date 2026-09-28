@@ -121,6 +121,14 @@ function parseLine(line) {
     if (diff !== null && diff > (entry.bestDifficulty || 0)) {
       entry.bestDifficulty = diff;
     }
+    // The difficulty this specific share was submitted at - P2Pool's stratum
+    // uses vardiff (auto-adjusts each worker's target over time), so this is
+    // the closest thing to "what difficulty is this worker mining at right
+    // now", as opposed to bestDifficulty (their all-time highest, which only
+    // trends upward and doesn't reflect a worker's current setting).
+    if (diff !== null) {
+      entry.currentDifficulty = diff;
+    }
     state.workers[name] = entry;
 
     if (config.readSettings().discordNotifyShares) {
@@ -191,6 +199,7 @@ function getWorkers() {
     lastSeen: w.lastSeen,
     active: now - new Date(w.lastSeen).getTime() < WORKER_STALE_MS,
     bestDifficulty: w.bestDifficulty || 0,
+    currentDifficulty: w.currentDifficulty || 0,
   }));
 }
 

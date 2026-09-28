@@ -442,6 +442,7 @@ async function refreshAll() {
                   <span class="pv-worker-meta-item"><strong>${w.shares}</strong> shares</span>
                   <span class="pv-worker-meta-item">Last seen <strong>${fmtTime(w.lastSeen)}</strong></span>
                   <span class="pv-worker-meta-item">${sharePct.toFixed(1)}% of your total shares</span>
+                  ${w.currentDifficulty ? `<span class="pv-worker-meta-item">Current difficulty <strong>${fmtDifficulty(w.currentDifficulty)}</strong></span>` : ''}
                 </div>
                 <div class="pv-worker-share-bar-track"><div class="pv-worker-share-bar-fill" style="width:${sharePct.toFixed(1)}%"></div></div>
               </div>

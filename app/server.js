@@ -304,6 +304,11 @@ app.get('/api/pool', async (req, res) => {
     // stats above, just tracked per worker via the SHARE FOUND log lines
     // (see lib/blocks.js SHARE_DIFF_RE). Expect this to sit near 0% for a
     // typical home miner - that's normal, not a bug.
+    // currentDifficulty (passed through from lib/blocks.js via the ...w
+    // spread below): the difficulty of this worker's most recent share -
+    // P2Pool's stratum uses vardiff, so this approximates the difficulty
+    // target this worker is mining at right now, distinct from
+    // bestDifficulty (their all-time record, which only trends upward).
     workers: (() => {
       const totalShares = workers.reduce((sum, w) => sum + w.shares, 0);
       const networkDiff = p2pool.network.difficulty;
