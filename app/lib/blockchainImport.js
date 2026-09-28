@@ -50,6 +50,21 @@ function setState(patch) {
   state = { ...state, ...patch };
 }
 
+// Accepts a remote path as typed by a human on the source machine. If it
+// looks like a Windows drive path (`F:\...` or `F:/...`), rewrite it to the
+// Cygwin form (`/cygdrive/f/...`) that a Cygwin-based rsync (e.g. the
+// Chocolatey `rsync` package on Windows) actually expects - rsync itself is
+// a Unix program and doesn't understand drive letters, so a raw `F:\...`
+// path gets misread as relative and silently appended to the SSH login's
+// home directory instead of failing loudly. Left untouched if it doesn't
+// match a drive-letter path (already Unix-style, or a Linux/macOS source).
+function normalizeRemotePath(remotePath) {
+  const driveMatch = remotePath.match(/^([A-Za-z]):[\\/](.*)$/);
+  if (!driveMatch) return remotePath;
+  const [, drive, rest] = driveMatch;
+  return `/cygdrive/${drive.toLowerCase()}/${rest.replace(/\\/g, '/')}`;
+}
+
 function appendOutputLine(line) {
   const trimmed = line.trim();
   if (!trimmed) return;
@@ -107,7 +122,8 @@ function runRsync({ host, port, username, authMethod, password, privateKey, remo
       sshCommand = ['sshpass', '-e', 'ssh', ...sshBaseArgs].join(' ');
     }
 
-    const remoteSpec = `${username}@${host}:${remotePath.replace(/\/+$/, '')}/`;
+    const normalizedRemotePath = normalizeRemotePath(remotePath);
+    const remoteSpec = `${username}@${host}:${normalizedRemotePath.replace(/\/+$/, '')}/`;
     const rsyncArgs = ['-a', '--info=progress2', '-e', sshCommand, remoteSpec, `${IMPORT_TARGET_DIR}/`];
 
     const child = spawn('rsync', rsyncArgs, { env });

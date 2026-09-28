@@ -253,6 +253,40 @@ routed through a Tor proxy in your environment (Umbrel and 5tratumOS both
 already run Tor for other apps; wire this container's outbound traffic
 through it the same way).
 
+## Import Blockchain (SSH)
+
+Settings tab's opt-in "Import Blockchain" feature rsyncs a pre-synced Monero
+blockchain from a remote host over SSH, so `monerod` doesn't have to sync
+from scratch. It shells out to the system `ssh`/`rsync`/`sshpass` binaries
+against whatever host/username/auth you give it, so the **remote** machine
+needs to actually be reachable and rsync-capable — a few gotchas we hit
+getting this working against a Windows source machine:
+
+- **Username** — use the login account you sign into that machine's Windows
+  session with (run `whoami` there; use the part after the `\`). If you sign
+  in with a Microsoft account, `whoami` shows `MicrosoftAccount\you@email.com`
+  — try the part before the `@`, but Windows OpenSSH Server can be picky
+  about Microsoft accounts, so a local Windows account is more reliable.
+- **`rsync` must be installed on the remote host** — it's not part of Windows
+  or its bundled OpenSSH Server. `rsync exited with code 12` /
+  `'rsync' is not recognized as an internal or external command` means it's
+  missing. Easiest fix on Windows: install
+  [Chocolatey](https://chocolatey.org/install) (elevated PowerShell), then
+  `choco install rsync -y`. Make sure it lands on the **system-wide** PATH
+  (Chocolatey's default) since the SSH session's environment isn't the same
+  as an interactive login shell.
+- **KEX mismatch** — a "Connection reset" before any auth is attempted means
+  the client and Windows' bundled OpenSSH Server couldn't agree on a key
+  exchange algorithm (this app pins to classical algorithms to avoid it —
+  see `app/lib/blockchainImport.js`). Nothing to do on your end; flagging in
+  case you see it from a different SSH client while testing the source host
+  manually.
+- **Password auth silently not prompting** — if the connection gets past
+  KEX (you'll see "Permanently added ... to known hosts" first) but still
+  resets, that used to be caused by `BatchMode=yes` disabling SSH's password
+  prompt entirely; fixed in `blockchainImport.js` by scoping it to key-based
+  auth only.
+
 ## Repo layout
 
 ```

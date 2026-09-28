@@ -1161,6 +1161,7 @@ function startImportPolling() {
   const progress = document.getElementById('pv-import-progress');
   const message = document.getElementById('pv-import-progress-message');
   const bar = document.getElementById('pv-import-progress-bar');
+  const percentEl = document.getElementById('pv-import-progress-percent');
   const step1 = document.getElementById('pv-import-step1');
   const status = document.getElementById('pv-import-status');
   if (progress) progress.style.display = '';
@@ -1176,6 +1177,7 @@ function startImportPolling() {
     }
     if (message) message.textContent = data.message || data.status;
     if (bar) bar.style.width = `${data.percent ?? (data.status === 'idle' ? 0 : 10)}%`;
+    if (percentEl) percentEl.textContent = data.percent != null ? `${data.percent}%` : '';
     if (data.status === 'done' || data.status === 'error') {
       clearInterval(importPollTimer);
       importPollTimer = null;
