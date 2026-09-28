@@ -822,17 +822,41 @@
 
         <div class="instructions" style="background:var(--panel-alt); border-radius:8px; padding:14px 16px; margin-bottom:18px;">
           <strong style="color:var(--text);">Instructions</strong>
+          <div class="hint warn" style="margin:8px 0 0;">
+            This dashboard connects <em>out</em> to the other machine to pull the data (rather than that machine
+            pushing to it), so that machine needs an SSH <strong>server</strong> running and reachable on your
+            local network - not just an SSH client. You only need this on your LAN; there's no need to forward
+            SSH to the internet or expose it publicly for this to work.
+          </div>
           <ol style="margin:8px 0 0; padding-left:20px;">
-            <li>On the <em>other</em> machine (the one with the already-synced blockchain), make sure SSH access is
-              enabled and you have a username/password or an SSH key that can log in.</li>
+            <li>Enable an SSH server on the <em>other</em> machine (the one with the already-synced blockchain), if
+              it doesn't already have one running:
+              <ul style="margin:6px 0; padding-left:18px;">
+                <li><strong>Windows</strong> doesn't have this on by default - having used <code>scp</code>/<code>pscp</code>
+                  before only means you have the SSH <em>client</em>. To also accept incoming connections: Settings
+                  &rarr; Apps &rarr; Optional Features &rarr; Add a feature &rarr; install
+                  <strong>OpenSSH Server</strong>, then open a PowerShell window as Administrator and run
+                  <code>Start-Service sshd</code> (and, so it starts automatically next time,
+                  <code>Set-Service -Name sshd -StartupType Automatic</code>).</li>
+                <li><strong>Linux</strong> usually just needs it enabled if it's already installed:
+                  <code>sudo systemctl enable --now ssh</code> (Debian/Ubuntu) or
+                  <code>sudo systemctl enable --now sshd</code> (Fedora/RHEL/Arch).</li>
+                <li><strong>macOS</strong>: System Settings &rarr; General &rarr; Sharing &rarr; turn on
+                  <strong>Remote Login</strong>.</li>
+              </ul>
+              Use whatever username/password (or SSH key) you'd normally use to log into that machine - this
+              dashboard doesn't create a separate account for it.
+            </li>
             <li>Find that machine's monerod data directory - the folder that directly contains an <code>lmdb</code>
               subfolder (e.g. <code>~/.bitmonero</code> on Linux, or wherever you pointed <code>--data-dir</code>).</li>
             <li>Make sure monerod is <strong>stopped</strong> on that other machine before starting the transfer -
               copying files out of a running node's data directory can grab an inconsistent snapshot.</li>
-            <li>Fill in the fields below: that machine's IP/hostname, SSH port (default <code>22</code>), the SSH
-              username, and the full path to the data directory from step 2.</li>
-            <li>Choose <strong>SSH private key</strong> (recommended - your password is never sent) or
-              <strong>Password</strong> authentication, and provide the matching key/password.</li>
+            <li>Fill in the Host/Port/Username fields below and choose <strong>SSH private key</strong>
+              (recommended - your password is never sent) or <strong>Password</strong> authentication, providing
+              the matching key/password.</li>
+            <li>For Remote Path, either type the full path from step 2 directly, or click <strong>Browse...</strong>
+              to click through that machine's actual folders instead - it connects with the Host/Username/auth
+              details you just filled in and lets you navigate to the right folder visually.</li>
             <li>Click <strong>Start Import</strong> and confirm. This node's monerod will stop, the data will copy
               over the network (this can take from minutes to hours depending on size and connection speed), and
               monerod will restart automatically when it's done. You can navigate away - the transfer keeps running
@@ -857,7 +881,10 @@
           </div>
           <div class="field" style="flex:1;">
             <label>Remote Path</label>
-            <input type="text" id="pv-import-remote-path" placeholder="/home/user/.bitmonero" />
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="pv-import-remote-path" placeholder="/home/user/.bitmonero" style="flex:1;" />
+              <button class="icon-btn" type="button" id="pv-import-browse-btn" style="flex-shrink:0;">Browse...</button>
+            </div>
           </div>
         </div>
         <div class="field">
@@ -891,6 +918,23 @@
           </div>
         </div>
         <div class="hint" id="pv-import-status"></div>
+      </div>
+
+      <!-- Remote folder browser popup for the "Browse..." button above - a
+           real listing of the OTHER machine's folders over SFTP, since a
+           native browser file picker could only ever show files from
+           whatever machine is running the browser, not the remote one. -->
+      <div id="pv-browse-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
+        <div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; width:90%; max-width:520px; max-height:75vh; display:flex; flex-direction:column;">
+          <div class="v1-label">Browse Remote Folders</div>
+          <div class="mono" id="pv-browse-current-path" style="font-size:12px; color:var(--muted); margin-bottom:10px; word-break:break-all;">—</div>
+          <div id="pv-browse-list" style="flex:1; overflow-y:auto; background:var(--panel-alt); border-radius:8px; padding:6px; min-height:200px;"></div>
+          <div class="hint" id="pv-browse-status" style="margin-top:8px; min-height:16px;"></div>
+          <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end;">
+            <button class="icon-btn" type="button" id="pv-browse-cancel">Cancel</button>
+            <button class="primary" type="button" id="pv-browse-select">Select This Folder</button>
+          </div>
+        </div>
       </div>
 
       <!-- Donation addresses - static personal reference list, not wired to

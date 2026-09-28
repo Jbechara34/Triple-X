@@ -846,6 +846,15 @@ input[type="text"]:focus, input[type="password"]:focus, textarea:focus, select:f
 }
 .flag-box .hint { margin-top: 4px; }
 
+.pv-browse-item {
+  padding: 8px 10px;
+  cursor: pointer;
+  border-radius: 6px;
+  font-size: 13px;
+  color: var(--text);
+}
+.pv-browse-item:hover { background: var(--panel); color: var(--orange); }
+
 /* Wallet card - a real card-shaped widget (like a phone Wallet app entry),
    not just a banner strip. Fixed aspect ratio so the background art never
    distorts regardless of panel width. */

@@ -29,6 +29,7 @@ const moneroWalletState = require('./lib/moneroWalletState');
 const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 const blockchainImport = require('./lib/blockchainImport');
+const remoteBrowse = require('./lib/remoteBrowse');
 
 const app = express();
 app.use(express.json());
@@ -576,6 +577,40 @@ app.post('/api/blockchain-import/reset', (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(409).json({ error: err.message });
+  }
+});
+
+// Lets the "Browse..." button in the Import Blockchain form click through
+// the OTHER machine's real folders instead of the user typing a path blind -
+// see lib/remoteBrowse.js. remotePath empty/omitted lists the SSH user's
+// home directory, same starting point a fresh login would land in.
+app.post('/api/blockchain-import/browse', async (req, res) => {
+  if (!config.readSettings().importBlockchainEnabled) {
+    res.status(403).json({ error: 'Blockchain import is disabled. Enable it in Settings first.' });
+    return;
+  }
+  const { host, port, username, authMethod, password, privateKey, remotePath } = req.body || {};
+  if (typeof host !== 'string' || !host.trim()) {
+    res.status(400).json({ error: 'A host is required.' });
+    return;
+  }
+  if (typeof username !== 'string' || !username.trim()) {
+    res.status(400).json({ error: 'A username is required.' });
+    return;
+  }
+  try {
+    const result = await remoteBrowse.listRemoteDirectory({
+      host: host.trim(),
+      port: Number(port) || 22,
+      username: username.trim(),
+      authMethod,
+      password,
+      privateKey,
+      remotePath,
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: err.message });
   }
 });
 

@@ -928,19 +928,7 @@ function wireImportForm() {
 
   step2.addEventListener('click', async () => {
     step2.disabled = true;
-    const authMethod = document.getElementById('pv-import-auth-method').value;
-    const payload = {
-      host: document.getElementById('pv-import-host').value.trim(),
-      port: document.getElementById('pv-import-port').value.trim() || '22',
-      username: document.getElementById('pv-import-username').value.trim(),
-      remotePath: document.getElementById('pv-import-remote-path').value.trim(),
-      authMethod,
-    };
-    if (authMethod === 'key') {
-      payload.privateKey = document.getElementById('pv-import-private-key').value;
-    } else {
-      payload.password = document.getElementById('pv-import-password').value;
-    }
+    const payload = importFormPayload({ remotePath: document.getElementById('pv-import-remote-path').value.trim() });
     try {
       const res = await fetch('/api/blockchain-import/start', {
         method: 'POST',
@@ -1014,11 +1002,118 @@ async function resumeImportPollingIfActive() {
   }
 }
 
+// ---------------------------------------------------------------------------
+// Remote folder browser (Import Blockchain's "Browse..." button) - a real
+// listing of the OTHER machine's folders over SFTP (see
+// /api/blockchain-import/browse), since a native browser file picker could
+// only ever show files from whatever machine is running the browser.
+// ---------------------------------------------------------------------------
+let browseCurrentPath = '';
+
+function importFormPayload(extra) {
+  const authMethod = document.getElementById('pv-import-auth-method').value;
+  const payload = {
+    host: document.getElementById('pv-import-host').value.trim(),
+    port: document.getElementById('pv-import-port').value.trim() || '22',
+    username: document.getElementById('pv-import-username').value.trim(),
+    authMethod,
+    ...extra,
+  };
+  if (authMethod === 'key') {
+    payload.privateKey = document.getElementById('pv-import-private-key').value;
+  } else {
+    payload.password = document.getElementById('pv-import-password').value;
+  }
+  return payload;
+}
+
+async function browseFetch(remotePath) {
+  const status = document.getElementById('pv-browse-status');
+  const list = document.getElementById('pv-browse-list');
+  if (status) status.textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/blockchain-import/browse', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(importFormPayload({ remotePath })),
+    });
+    const body = await res.json();
+    if (!res.ok) throw new Error(body.error || 'Failed to browse');
+    browseCurrentPath = body.path;
+    renderBrowseList(body.path, body.entries);
+    if (status) status.textContent = '';
+  } catch (err) {
+    if (status) status.textContent = err.message;
+    if (list) list.innerHTML = '';
+  }
+}
+
+function renderBrowseList(path, entries) {
+  const pathEl = document.getElementById('pv-browse-current-path');
+  if (pathEl) pathEl.textContent = path;
+  const list = document.getElementById('pv-browse-list');
+  if (!list) return;
+
+  const rows = [];
+  const trimmed = path.replace(/\/+$/, '');
+  if (trimmed && trimmed !== '') {
+    const parent = trimmed.split('/').slice(0, -1).join('/') || '/';
+    rows.push({ label: '.. (up one level)', path: parent });
+  }
+  entries.filter((e) => e.isDirectory).forEach((e) => {
+    rows.push({ label: `${e.name}/`, path: `${trimmed}/${e.name}` });
+  });
+
+  if (rows.length === 0) {
+    list.innerHTML = '<div class="hint" style="padding:8px;">No subfolders here.</div>';
+    return;
+  }
+  list.innerHTML = rows
+    .map((r, i) => `<div class="pv-browse-item" data-idx="${i}">${escapeHtml(r.label)}</div>`)
+    .join('');
+  list.querySelectorAll('.pv-browse-item').forEach((el, i) => {
+    el.addEventListener('click', () => browseFetch(rows[i].path));
+  });
+}
+
+function wireBrowseModal() {
+  const browseBtn = document.getElementById('pv-import-browse-btn');
+  const modal = document.getElementById('pv-browse-modal');
+  const cancelBtn = document.getElementById('pv-browse-cancel');
+  const selectBtn = document.getElementById('pv-browse-select');
+  if (!browseBtn || !modal || !cancelBtn || !selectBtn) return;
+
+  browseBtn.addEventListener('click', () => {
+    const host = document.getElementById('pv-import-host').value.trim();
+    const username = document.getElementById('pv-import-username').value.trim();
+    const status = document.getElementById('pv-import-status');
+    if (!host || !username) {
+      if (status) status.textContent = 'Enter Host and Username first, then Browse.';
+      return;
+    }
+    modal.style.display = 'flex';
+    document.getElementById('pv-browse-list').innerHTML = '';
+    browseFetch(document.getElementById('pv-import-remote-path').value.trim());
+  });
+
+  cancelBtn.addEventListener('click', () => {
+    modal.style.display = 'none';
+  });
+
+  selectBtn.addEventListener('click', () => {
+    if (browseCurrentPath) {
+      document.getElementById('pv-import-remote-path').value = browseCurrentPath;
+    }
+    modal.style.display = 'none';
+  });
+}
+
 wireTabs();
 wireWalletTab();
 wireThemeControls();
 wireSettingsSave();
 wireImportForm();
+wireBrowseModal();
 loadSettingsForm();
 resumeImportPollingIfActive();
 startLogStreamsIfPresent();
