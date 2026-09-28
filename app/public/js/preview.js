@@ -740,13 +740,6 @@ function wireThemeControls() {
       try { localStorage.setItem(PALETTE_KEY, current); } catch (err) { /* ignore */ }
     }));
   }
-
-  const explorerLinks = ['tb-explorer', 'pv-settings-explorer'].map((id) => document.getElementById(id)).filter(Boolean);
-  if (explorerLinks.length) {
-    getJSON('/api/blocks').then((data) => {
-      if (data.explorerBaseUrl) explorerLinks.forEach((a) => { a.href = data.explorerBaseUrl; });
-    }).catch(() => {});
-  }
 }
 
 // ---------------------------------------------------------------------------

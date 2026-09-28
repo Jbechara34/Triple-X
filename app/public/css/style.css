@@ -16,13 +16,20 @@
   --titlebar-h: 40px;
 }
 
+/* Toned down from a near-white/pure-white panel, which read as glaringly
+   bright next to this app's heavy orange accent and dark-mode-tuned glow
+   effects (box-shadows, text-shadows) that were designed against a dark
+   backdrop and only get harsher on white. Panels are now an off-white
+   rather than pure #ffffff, and bg/border are a shade darker so there's
+   still visible depth between bg/panel/panel-alt instead of everything
+   reading as one flat bright surface. */
 :root.light {
-  --bg: #eef0f2;
-  --panel: #ffffff;
-  --panel-alt: #f2f3f5;
-  --border: #dbdde1;
+  --bg: #dfe2e6;
+  --panel: #f6f7f9;
+  --panel-alt: #e9ebee;
+  --border: #cbced4;
   --text: #1c1e21;
-  --muted: #6b7076;
+  --muted: #666b71;
 }
 
 /* Alternate accent presets - same layout/structure, different palette.
@@ -39,10 +46,10 @@
   --tari: #ff9f4a;
 }
 :root[data-theme="tari"].light {
-  --bg: #f2eefc;
-  --panel: #ffffff;
-  --panel-alt: #f6f2ff;
-  --border: #ddd2f7;
+  --bg: #e2dbf5;
+  --panel: #f8f5fd;
+  --panel-alt: #ece4fb;
+  --border: #cbbdf0;
 }
 
 :root[data-theme="molten"] {
@@ -55,10 +62,10 @@
   --tari: #ffb020;
 }
 :root[data-theme="molten"].light {
-  --bg: #fdf1ea;
-  --panel: #ffffff;
-  --panel-alt: #fbe9df;
-  --border: #f0cdbb;
+  --bg: #f5e2d5;
+  --panel: #fcf4ee;
+  --panel-alt: #f5ddcd;
+  --border: #e6b79f;
 }
 
 * { box-sizing: border-box; }
