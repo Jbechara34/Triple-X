@@ -26,6 +26,12 @@ P2Pool directly.
 
 ## Recent additions
 
+- **Import Blockchain: Windows drive-path fix + visible progress percent** —
+  a remote path typed as a Windows drive letter (`F:\folder\subfolder`) was
+  silently misread as relative by a Cygwin-based rsync install (`rsync
+  exited with code 12/23`); it's now auto-converted to the Cygwin form
+  (`/cygdrive/f/folder/subfolder`) rsync actually expects. The progress bar
+  also now shows the transfer percentage as text underneath it.
 - **Entered Alpha** — versioning moved from the numbered `v0.0.1-DevN` builds
   to `v1.0-AlphaN`. Also fixed the on-screen version badge, which had been
   hardcoded to "Dev1" since the very first build and silently never bumped
