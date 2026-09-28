@@ -19,7 +19,10 @@ name: Publish images
 
 on:
   push:
-    tags: ["v*.*.*", "Dev*"]
+    # "v*.*.*" only matched two-dot semver tags (v0.0.1-Dev9) - it silently
+    # never fired for "v1.0-Alpha1" (one dot), which is why that tag alone
+    # didn't trigger a build. "v*" covers every version scheme used here.
+    tags: ["v*", "Dev*"]
   workflow_dispatch:
 
 env:
