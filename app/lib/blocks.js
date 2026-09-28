@@ -29,6 +29,13 @@
 const fs = require('fs');
 const fsp = require('fs/promises');
 const path = require('path');
+const config = require('./config');
+const discordNotify = require('./discordNotify');
+
+// Same default this app's server.js uses for building explorer links - kept
+// here too so a block-found Discord alert can include one without server.js
+// having to reach into this module's internals.
+const EXPLORER_BASE_URL = process.env.EXPLORER_BASE_URL || 'https://xmrchain.net';
 
 const LOG_FILE = process.env.P2POOL_LOG_FILE || '/data/p2pool-logs/p2pool.log';
 const STATE_DIR = process.env.STATE_DIR || '/data/state';
@@ -91,13 +98,15 @@ function parseLine(line) {
   if (/BLOCK FOUND/i.test(line)) {
     const heightMatch = line.match(BLOCK_FOUND_RE) || line.match(HEIGHT_ONLY_RE);
     const hashMatch = line.match(HASH_RE);
-    state.blocks.unshift({
-      height: heightMatch ? Number(heightMatch[1]) : null,
-      hash: hashMatch ? hashMatch[1] : null,
-      detectedAt,
-      raw: line.trim(),
-    });
+    const height = heightMatch ? Number(heightMatch[1]) : null;
+    const hash = hashMatch ? hashMatch[1] : null;
+    state.blocks.unshift({ height, hash, detectedAt, raw: line.trim() });
     state.blocks = state.blocks.slice(0, MAX_BLOCKS);
+
+    if (config.readSettings().discordNotifyXmrBlocks) {
+      const link = hash ? `${EXPLORER_BASE_URL}/search?value=${hash}` : (height ? `${EXPLORER_BASE_URL}/block/${height}` : null);
+      discordNotify.send(`🟠 **Monero block found!**${height ? ` Height ${height}` : ''}${link ? `\n${link}` : ''}`);
+    }
     return;
   }
 
@@ -113,6 +122,10 @@ function parseLine(line) {
       entry.bestDifficulty = diff;
     }
     state.workers[name] = entry;
+
+    if (config.readSettings().discordNotifyShares) {
+      discordNotify.send(`🟡 **P2Pool share found!** Worker \`${name}\`${diff ? ` (difficulty ${diff})` : ''} - counts toward your next PPLNS payout.`);
+    }
   }
 }
 

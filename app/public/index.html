@@ -111,6 +111,17 @@
     .pv-split-col + .pv-split-col { padding-left: 0; padding-top: 18px; border-left: none; border-top: 1px solid var(--border); }
   }
   .v1-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
+
+  /* Collapsible Settings sections (native <details>) - the Settings tab
+     accumulated enough sub-sections that showing all of them expanded at
+     once made it a very long scroll. Reference/optional ones collapse by
+     default; the core Settings fields above them stay always-visible. */
+  .v1-full > details > summary.v1-label { cursor: pointer; user-select: none; list-style: none; margin-bottom: 0; }
+  .v1-full > details > summary.v1-label::-webkit-details-marker { display: none; }
+  .v1-full > details > summary.v1-label::before { content: '\25B8  '; color: var(--muted); }
+  .v1-full > details[open] > summary.v1-label::before { content: '\25BE  '; }
+  .v1-full > details[open] > summary.v1-label { margin-bottom: 8px; }
+  .v1-full > details > summary.v1-label:hover { color: var(--text); }
   .v1-big { font-size: 28px; font-weight: 700; color: var(--text); }
   .v1-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
   .v1-pillrow { display: flex; gap: 8px; margin-top: 10px; }
@@ -182,6 +193,7 @@
   .pv-check-status { font-size: 15px; font-weight: 700; margin-top: 5px; }
   .pv-check-status.good { color: #4caf6a; }
   .pv-check-status.bad { color: #e05a5a; }
+  .pv-check-status.warn { color: #e0a15a; }
   .pv-check-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
 
   /* Status light - a live red/orange/green dot, as opposed to
@@ -571,6 +583,7 @@
           <div class="field" style="flex:1;">
             <label>Password</label>
             <div class="copy-row"><input type="text" readonly value="x" /></div>
+            <div class="hint">Any value works here - P2Pool's stratum doesn't check the password, it's only required by the Stratum protocol format.</div>
           </div>
         </div>
         <div class="v1-sub">Pool mode: <span id="pv-pool-mode">—</span></div>
@@ -866,12 +879,44 @@
         </div>
       </div>
 
+      <!-- Discord webhook notifications - off by default, nothing is ever
+           sent until a URL is saved (see lib/discordNotify.js). Collapsed by
+           default (opt-in feature, not part of the core setup flow). -->
+      <div class="v1-full">
+        <details>
+        <summary class="v1-label">Discord Notifications</summary>
+        <div class="v1-sub" style="margin-bottom:14px;">
+          Get pinged in a Discord channel whenever a block is found. In Discord: Server Settings &rarr;
+          Integrations &rarr; Webhooks &rarr; New Webhook, then copy its URL and paste it below. Leave this blank
+          to keep notifications off - nothing is ever sent without a URL saved here.
+        </div>
+        <div class="field">
+          <label>Webhook URL</label>
+          <input type="text" id="pv-settings-discord-webhook" placeholder="https://discord.com/api/webhooks/..." />
+        </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-discord-notify-xmr" /> Notify on Monero (XMR) blocks found</label>
+        </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-discord-notify-xtm" /> Notify on Tari (XTM) blocks found</label>
+        </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-discord-notify-shares" /> Notify on P2Pool shares found</label>
+          <div class="hint">Every share you find counts toward your next PPLNS payout - but shares happen far more often than blocks, so this can be noisy. Off by default.</div>
+        </div>
+        <button class="icon-btn" id="pv-discord-test">Send Test Notification</button>
+        <div class="hint" id="pv-discord-test-status"></div>
+        </details>
+      </div>
+
       <!-- Pool-type advisor - static facts (PPLNS window is a fixed protocol
            constant, safe to hardcode) plus a rule-of-thumb hashrate guide
            and a small calculator pre-filled from this node's own locally
-           tracked miner hashrate (never an external/live pull). -->
+           tracked miner hashrate (never an external/live pull). Collapsed by
+           default - reference material, not something changed often. -->
       <div class="v1-full">
-        <div class="v1-label">Which Pool Type Should I Use?</div>
+        <details>
+        <summary class="v1-label">Which Pool Type Should I Use?</summary>
         <div class="v1-sub" style="margin-bottom:14px;">
           The hashrate brackets below are a rule of thumb, not a fixed rule - the actual "worth switching" point
           moves with how much total hashrate each P2Pool chain has at any given time. For an exact, live answer,
@@ -906,11 +951,14 @@
           <div class="hint" id="pv-pool-advisor-hint"></div>
           <div class="hint" id="pv-pool-advisor-result"></div>
         </div>
+        </details>
       </div>
 
-      <!-- P2Pool memory flags - their own separate box, one sub-box per flag. -->
+      <!-- P2Pool memory flags - their own separate box, one sub-box per flag.
+           Collapsed by default - advanced/optional, not part of core setup. -->
       <div class="v1-full">
-        <div class="v1-label">P2Pool Memory Usage</div>
+        <details>
+        <summary class="v1-label">P2Pool Memory Usage</summary>
         <div class="v1-sub" style="margin-bottom:14px;">
           Optional flags that reduce P2Pool's memory footprint. Each takes effect within a few seconds of saving,
           no restart needed. All off by default - P2Pool's normal behavior is unchanged unless you enable one.
@@ -937,7 +985,13 @@
         </div>
 
         <div class="hint" style="margin-bottom:18px;">Combining --no-randomx and --no-cache brings memory use under 100MB.</div>
+        </details>
+      </div>
 
+      <!-- Always visible (not inside any collapsed section above) - saves
+           every field across all the Settings sections regardless of which
+           ones are currently expanded. -->
+      <div class="v1-full">
         <button class="primary" id="pv-settings-save">Save Settings</button>
         <div class="hint" id="pv-settings-status"></div>
       </div>

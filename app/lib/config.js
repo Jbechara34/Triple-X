@@ -36,6 +36,16 @@ const DEFAULTS = {
   // (docker-compose.yml), which is real control over the host, hence
   // opt-in rather than always visible.
   importBlockchainEnabled: false,
+  // Discord webhook notifications (see lib/discordNotify.js) - off by
+  // default, nothing is ever sent until a URL is saved here. The two
+  // per-coin toggles only matter once a URL is set.
+  discordWebhookUrl: '',
+  discordNotifyXmrBlocks: true,
+  discordNotifyXtmBlocks: true,
+  // Off by default, unlike the block-found toggles above - shares happen far
+  // more often than blocks (that's the point of P2Pool's PPLNS scheme), so
+  // this would be noisy for anyone who doesn't specifically want it.
+  discordNotifyShares: false,
   updatedAt: null,
 };
 
@@ -124,6 +134,28 @@ function writeSettings(update) {
 
   if (typeof update.importBlockchainEnabled === 'boolean') {
     next.importBlockchainEnabled = update.importBlockchainEnabled;
+  }
+
+  if (typeof update.discordWebhookUrl === 'string') {
+    const url = update.discordWebhookUrl.trim();
+    if (url && !/^https:\/\//i.test(url)) {
+      const err = new Error('Discord webhook URL must start with https://');
+      err.statusCode = 400;
+      throw err;
+    }
+    next.discordWebhookUrl = url;
+  }
+
+  if (typeof update.discordNotifyXmrBlocks === 'boolean') {
+    next.discordNotifyXmrBlocks = update.discordNotifyXmrBlocks;
+  }
+
+  if (typeof update.discordNotifyXtmBlocks === 'boolean') {
+    next.discordNotifyXtmBlocks = update.discordNotifyXtmBlocks;
+  }
+
+  if (typeof update.discordNotifyShares === 'boolean') {
+    next.discordNotifyShares = update.discordNotifyShares;
   }
 
   next.updatedAt = new Date().toISOString();

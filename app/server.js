@@ -20,6 +20,7 @@ const config = require('./lib/config');
 const moneroRpc = require('./lib/moneroRpc');
 const p2poolApi = require('./lib/p2poolApi');
 const blocks = require('./lib/blocks');
+const discordNotify = require('./lib/discordNotify');
 const tariBlocks = require('./lib/tariBlocks');
 const minotariRpc = require('./lib/minotariRpc');
 const minotariWalletRpc = require('./lib/minotariWalletRpc');
@@ -400,6 +401,19 @@ app.post('/api/settings', (req, res) => {
     res.json(updated);
   } catch (err) {
     res.status(err.statusCode || 500).json({ error: err.message });
+  }
+});
+
+// Settings tab's "Send Test Notification" button - accepts an explicit URL
+// so a webhook can be tried before it's saved, falling back to whatever's
+// already in Settings if none is given.
+app.post('/api/discord/test', async (req, res) => {
+  const { webhookUrl } = req.body || {};
+  try {
+    await discordNotify.sendTest(typeof webhookUrl === 'string' ? webhookUrl.trim() : undefined);
+    res.json({ sent: true });
+  } catch (err) {
+    res.status(err.statusCode || 502).json({ error: err.message });
   }
 });
 

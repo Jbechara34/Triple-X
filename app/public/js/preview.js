@@ -219,6 +219,24 @@ async function refreshAll() {
   if (checkGrid) {
     checkGrid.innerHTML = checks
       .map((c) => {
+        // Blockchain Sync gets a three-way state instead of just good/bad -
+        // "not running" (monerod unreachable) is a different problem than
+        // "still syncing" (monerod is up, just not caught up yet), and
+        // collapsing both into one red "Syncing" was misleading.
+        if (c.key === 'blockchainSynced') {
+          const nodeUp = !!readiness.nodeRpc;
+          const synced = !!readiness.blockchainSynced;
+          const cls = !nodeUp ? 'bad' : (synced ? 'good' : 'warn');
+          const text = !nodeUp ? 'Not Running' : (synced ? 'Synced' : 'Syncing');
+          const desc = !nodeUp
+            ? 'monerod is not reachable yet.'
+            : (synced ? 'Chain is synchronized and ready for pool traffic.' : 'Still catching up to the network tip.');
+          return `<div class="pv-check-item">
+            <div class="pv-check-head"><span class="pv-check-label">${c.label}</span></div>
+            <div class="pv-check-status ${cls}">${text}</div>
+            <div class="pv-check-desc">${desc}</div>
+          </div>`;
+        }
         const ok = !!readiness[c.key];
         return `<div class="pv-check-item">
           <div class="pv-check-head"><span class="pv-check-label">${c.label}</span></div>
@@ -518,6 +536,14 @@ async function loadSettingsForm() {
   const importEnabledEl = document.getElementById('pv-settings-import-enabled');
   if (importEnabledEl) importEnabledEl.checked = !!data.importBlockchainEnabled;
   applyImportSectionVisibility(!!data.importBlockchainEnabled);
+  const discordWebhookEl = document.getElementById('pv-settings-discord-webhook');
+  if (discordWebhookEl) discordWebhookEl.value = data.discordWebhookUrl || '';
+  const discordXmrEl = document.getElementById('pv-settings-discord-notify-xmr');
+  if (discordXmrEl) discordXmrEl.checked = data.discordNotifyXmrBlocks !== false;
+  const discordXtmEl = document.getElementById('pv-settings-discord-notify-xtm');
+  if (discordXtmEl) discordXtmEl.checked = data.discordNotifyXtmBlocks !== false;
+  const discordSharesEl = document.getElementById('pv-settings-discord-notify-shares');
+  if (discordSharesEl) discordSharesEl.checked = !!data.discordNotifyShares;
 }
 
 // Shows/hides the whole Import Blockchain panel based on the hidden
@@ -564,6 +590,10 @@ function wireSettingsSave() {
           p2poolNoRandomx: !!document.getElementById('pv-settings-p2pool-no-randomx')?.checked,
           p2poolNoCache: !!document.getElementById('pv-settings-p2pool-no-cache')?.checked,
           importBlockchainEnabled: !!document.getElementById('pv-settings-import-enabled')?.checked,
+          discordWebhookUrl: document.getElementById('pv-settings-discord-webhook')?.value.trim() || '',
+          discordNotifyXmrBlocks: !!document.getElementById('pv-settings-discord-notify-xmr')?.checked,
+          discordNotifyXtmBlocks: !!document.getElementById('pv-settings-discord-notify-xtm')?.checked,
+          discordNotifyShares: !!document.getElementById('pv-settings-discord-notify-shares')?.checked,
         }),
       });
       const body = await res.json();
@@ -572,6 +602,33 @@ function wireSettingsSave() {
       applyLogsTabVisibility(!!document.getElementById('pv-settings-logs-tab-enabled')?.checked);
       applyImportSectionVisibility(!!document.getElementById('pv-settings-import-enabled')?.checked);
       refreshAll();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// Settings tab's "Send Test Notification" button - tests whatever URL is
+// currently typed in the field, even if it hasn't been saved yet.
+function wireDiscordTest() {
+  const btn = document.getElementById('pv-discord-test');
+  const status = document.getElementById('pv-discord-test-status');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    const webhookUrl = document.getElementById('pv-settings-discord-webhook')?.value.trim() || '';
+    btn.disabled = true;
+    if (status) status.textContent = 'Sending...';
+    try {
+      const res = await fetch('/api/discord/test', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ webhookUrl }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to send test notification');
+      if (status) status.textContent = 'Sent - check your Discord channel.';
     } catch (err) {
       if (status) status.textContent = err.message;
     } finally {
@@ -1462,6 +1519,7 @@ wireBrowseModal();
 wireMoneroRecovery();
 wireTariRecovery();
 wirePoolAdvisor();
+wireDiscordTest();
 loadSettingsForm();
 resumeImportPollingIfActive();
 resumeTariRecoveryPollingIfActive();

@@ -17,6 +17,8 @@
 
 const fsp = require('fs/promises');
 const path = require('path');
+const config = require('./config');
+const discordNotify = require('./discordNotify');
 
 const LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node.log';
 const STATE_DIR = process.env.STATE_DIR || '/data/state';
@@ -71,6 +73,10 @@ function parseLine(line) {
 
   state.blocks.unshift({ height, detectedAt, raw: line.trim() });
   state.blocks = state.blocks.slice(0, MAX_BLOCKS);
+
+  if (config.readSettings().discordNotifyXtmBlocks) {
+    discordNotify.send(`🟢 **Tari (XTM) block found!**${height ? ` Height ${height}` : ''}`);
+  }
 }
 
 async function pollOnce() {
