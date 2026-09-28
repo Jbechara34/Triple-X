@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v0.0.1-Dev9"
+version: "v0.0.1-Dev10"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -31,6 +31,14 @@ defaultPassword: ""
 submitter: SIlver765
 submission: https://github.com/SIlver765/Triple-X
 releaseNotes: >-
+  v0.0.1-Dev10: fixes the Import Blockchain feature's rsync transfer
+  failing against Windows' bundled OpenSSH Server ("rsync exited with code
+  255" / "Connection reset by <host> port 22"). This container's ssh
+  client tries a post-quantum hybrid key exchange first; Windows' older
+  bundled OpenSSH Server doesn't support it and resets the connection
+  instead of falling back cleanly. Now forces classical-only key exchange
+  for this transfer, which every OpenSSH version in practical use
+  supports.
   v0.0.1-Dev9: Discord webhook notifications (Settings tab) - get pinged
   when a Monero block, a Tari block, or (off by default) a P2Pool share is
   found, with a "Send Test Notification" button to confirm it's wired up.
