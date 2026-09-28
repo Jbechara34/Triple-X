@@ -91,11 +91,24 @@
   .v1-side { grid-column: span 4; display: flex; flex-direction: column; gap: 14px; }
   .v1-quarter { grid-column: span 3; }
   .v1-third { grid-column: span 4; }
+  .v1-two-thirds { grid-column: span 8; }
   .v1-half { grid-column: span 6; }
   .v1-side-half { grid-column: span 6; display: flex; flex-direction: column; gap: 14px; }
   .v1-full { grid-column: span 12; }
   @media (max-width: 900px) {
-    .v1-hero, .v1-side, .v1-side-half, .v1-quarter, .v1-third, .v1-half, .v1-full { grid-column: span 12; }
+    .v1-hero, .v1-side, .v1-side-half, .v1-quarter, .v1-third, .v1-two-thirds, .v1-half, .v1-full { grid-column: span 12; }
+  }
+
+  /* Two blockchains, one box - saves a full card's worth of vertical space
+     on narrow screens compared to each getting its own .v1-third. Divides
+     with a vertical line side-by-side; drops to a stacked layout with a
+     horizontal divider once there's not enough width for both. */
+  .pv-split { display: flex; gap: 20px; }
+  .pv-split-col { flex: 1 1 0; min-width: 0; }
+  .pv-split-col + .pv-split-col { padding-left: 20px; border-left: 1px solid var(--border); }
+  @media (max-width: 640px) {
+    .pv-split { flex-direction: column; gap: 18px; }
+    .pv-split-col + .pv-split-col { padding-left: 0; padding-top: 18px; border-left: none; border-top: 1px solid var(--border); }
   }
   .v1-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); margin-bottom: 8px; }
   .v1-big { font-size: 28px; font-weight: 700; color: var(--text); }
@@ -170,6 +183,24 @@
   .pv-check-status.good { color: #4caf6a; }
   .pv-check-status.bad { color: #e05a5a; }
   .pv-check-desc { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* Status light - a live red/orange/green dot, as opposed to
+     .mining-coin-dot's fixed per-coin brand color. Defaults to the same
+     muted gray as .mining-coin-dot's own default until JS sets a state. */
+  .status-light { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; background: var(--muted); }
+  .status-light.status-red { background: #e05a5a; }
+  .status-light.status-orange { background: #e0a15a; }
+  .status-light.status-green { background: #4caf6a; }
+
+  /* Network Ports - each port gets its own stacked row with a status
+     light, instead of being one card among the general checklist grid. */
+  .pv-port-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+  .pv-port-row { display: flex; align-items: center; flex-wrap: wrap; gap: 10px; background: var(--panel-alt); border-radius: 8px; padding: 10px 12px; }
+  .pv-port-label { font-size: 13px; font-weight: 600; color: var(--text); flex: 1; }
+  .pv-port-status-text { font-size: 12px; font-weight: 700; color: var(--muted); }
+  .pv-port-status-text.good { color: #4caf6a; }
+  .pv-port-status-text.bad { color: #e05a5a; }
+  .pv-port-desc { font-size: 11px; color: var(--muted); width: 100%; margin-top: -2px; }
 
   .pv-addr-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; }
   .pv-addr-card { background: var(--panel-alt); border-radius: 10px; padding: 12px 14px; }
@@ -331,51 +362,55 @@
         </div>
       </div>
 
-      <!-- Blockchain status card - Monero (XMR), ckpool-solo-dashboard-inspired -->
-      <div class="v1-third">
-        <div class="pv-status-head">
-          <div>
-            <div class="pv-kicker"><span class="mining-coin-dot mining-dot-xmr"></span> Blockchain · Monero (XMR)</div>
-            <div class="pv-status-title" id="pv-bc-title">—</div>
-            <div class="pv-status-sub" id="pv-bc-sub">—</div>
+      <!-- Blockchain status - Monero (XMR) and Minotari (XTM) share one box
+           (side-by-side, own divider) instead of two separate cards, since
+           they're both small enough that giving each its own full card just
+           wastes vertical space, especially on mobile where cards stack. -->
+      <div class="v1-two-thirds">
+        <div class="pv-split">
+          <div class="pv-split-col">
+            <div class="pv-status-head">
+              <div>
+                <div class="pv-kicker"><span class="status-light" id="pv-bc-status-dot"></span> Blockchain · Monero (XMR)</div>
+                <div class="pv-status-title" id="pv-bc-title">—</div>
+                <div class="pv-status-sub" id="pv-bc-sub">—</div>
+              </div>
+              <div class="pv-ring">
+                <svg viewBox="0 0 70 70">
+                  <circle class="pv-ring-track" cx="35" cy="35" r="30" />
+                  <circle class="pv-ring-fill pv-ring-xmr" id="pv-bc-ring" cx="35" cy="35" r="30" />
+                </svg>
+                <div class="pv-ring-label" id="pv-bc-ring-label">0%</div>
+              </div>
+            </div>
+            <div class="pv-tile-grid">
+              <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-bc-height">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-bc-target">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Peers (in/out)</div><div class="pv-tile-value" id="pv-bc-peers">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Tx Pool</div><div class="pv-tile-value" id="pv-bc-txpool">—</div></div>
+            </div>
           </div>
-          <div class="pv-ring">
-            <svg viewBox="0 0 70 70">
-              <circle class="pv-ring-track" cx="35" cy="35" r="30" />
-              <circle class="pv-ring-fill pv-ring-xmr" id="pv-bc-ring" cx="35" cy="35" r="30" />
-            </svg>
-            <div class="pv-ring-label" id="pv-bc-ring-label">0%</div>
-          </div>
-        </div>
-        <div class="pv-tile-grid">
-          <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-bc-height">—</div></div>
-          <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-bc-target">—</div></div>
-          <div class="pv-tile"><div class="pv-tile-label">Peers (in/out)</div><div class="pv-tile-value" id="pv-bc-peers">—</div></div>
-          <div class="pv-tile"><div class="pv-tile-label">Tx Pool</div><div class="pv-tile-value" id="pv-bc-txpool">—</div></div>
-        </div>
-      </div>
 
-      <!-- Blockchain status card - Minotari (XTM), a separate blockchain from
-           Monero, gets its own sync card here rather than being folded into
-           Monero's -->
-      <div class="v1-third">
-        <div class="pv-status-head">
-          <div>
-            <div class="pv-kicker"><span class="mining-coin-dot mining-dot-xtm"></span> Blockchain · Minotari (XTM) <span class="badge-experimental">beta</span></div>
-            <div class="pv-status-title" id="pv-tari-bc-title">—</div>
-            <div class="pv-status-sub" id="pv-tari-bc-sub">—</div>
+          <div class="pv-split-col">
+            <div class="pv-status-head">
+              <div>
+                <div class="pv-kicker"><span class="status-light" id="pv-tari-bc-status-dot"></span> Blockchain · Minotari (XTM) <span class="badge-experimental">beta</span></div>
+                <div class="pv-status-title" id="pv-tari-bc-title">—</div>
+                <div class="pv-status-sub" id="pv-tari-bc-sub">—</div>
+              </div>
+              <div class="pv-ring">
+                <svg viewBox="0 0 70 70">
+                  <circle class="pv-ring-track" cx="35" cy="35" r="30" />
+                  <circle class="pv-ring-fill pv-ring-xtm" id="pv-tari-bc-ring" cx="35" cy="35" r="30" />
+                </svg>
+                <div class="pv-ring-label" id="pv-tari-bc-ring-label">0%</div>
+              </div>
+            </div>
+            <div class="pv-tile-grid">
+              <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-tari-bc-height">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-tari-bc-target">—</div></div>
+            </div>
           </div>
-          <div class="pv-ring">
-            <svg viewBox="0 0 70 70">
-              <circle class="pv-ring-track" cx="35" cy="35" r="30" />
-              <circle class="pv-ring-fill pv-ring-xtm" id="pv-tari-bc-ring" cx="35" cy="35" r="30" />
-            </svg>
-            <div class="pv-ring-label" id="pv-tari-bc-ring-label">0%</div>
-          </div>
-        </div>
-        <div class="pv-tile-grid">
-          <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-tari-bc-height">—</div></div>
-          <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-tari-bc-target">—</div></div>
         </div>
       </div>
 
@@ -412,6 +447,8 @@
         </div>
         <div class="pv-summary-bar" id="pv-ready-summary">—</div>
         <div class="pv-check-grid" id="pv-check-grid"></div>
+        <div class="v1-label" style="margin-top:18px;">Network Ports</div>
+        <div class="pv-port-list" id="pv-port-list"></div>
       </div>
     </div>
 
@@ -577,15 +614,17 @@
             <button class="wallet-card-toggle" id="pv-wallet-tari-card-toggle" title="Show address">&#128065;</button>
           </div>
         </div>
-        <div class="v1-sub">
-          This wallet was created automatically by the bundled Minotari node/wallet containers - this dashboard
-          never holds funds itself, it just gives you a one-time look at the receive address and backup phrase.
+        <div class="v1-sub" id="pv-wallet-tari-intro">
+          This dashboard never holds funds itself - it just talks to the bundled Minotari wallet container. No
+          wallet is created until you ask for one.
         </div>
-        <div class="field" style="margin-top:14px;">
+        <button class="primary" id="pv-wallet-tari-create" style="margin-top:10px;">Create Wallet</button>
+        <div class="hint" id="pv-wallet-tari-create-status"></div>
+        <div class="field" id="pv-wallet-tari-address-field" style="margin-top:14px; display:none;">
           <label>Receive Address</label>
           <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-address">Copy</button></div>
         </div>
-        <button class="primary" id="pv-wallet-tari-use">Use this address for merge-mining</button>
+        <button class="primary" id="pv-wallet-tari-use" style="display:none;">Use this address for merge-mining</button>
         <div class="hint" id="pv-wallet-tari-use-status"></div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
@@ -634,6 +673,30 @@
           </div>
           <div id="pv-wallet-seed-grid" class="mono" style="display:none; margin-top:12px; padding:12px; background:var(--panel-alt); border-radius:8px; line-height:2;"></div>
         </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Recover Wallet</div>
+          <div class="v1-sub">
+            Lost this wallet (a fresh install, a wiped volume, moving to a new box)? Enter its seed phrase to
+            restore it. This requires Docker socket access (see the Settings tab's Import Blockchain instructions
+            for how to enable it) since the Tari wallet has to be restarted with the seed words to recover it -
+            <strong>this replaces the current Tari wallet on this dashboard</strong>, so only do this if you mean to.
+          </div>
+          <button class="icon-btn" id="pv-wallet-tari-recover-step1" style="margin-top:10px;">Recover Wallet from Seed Phrase</button>
+          <div id="pv-wallet-tari-recover-form" style="display:none; margin-top:10px;">
+            <div class="hint warn">This restarts the Tari wallet and replaces its current data with the wallet from this seed phrase. Any existing wallet on this dashboard not backed up elsewhere will no longer be reachable here.</div>
+            <div class="field" style="margin-top:10px;">
+              <label>Seed Phrase (space-separated)</label>
+              <textarea id="pv-wallet-tari-recover-seed" rows="3" placeholder="word1 word2 word3 ..."></textarea>
+            </div>
+            <button class="primary" id="pv-wallet-tari-recover-step2">Yes, recover it</button>
+            <button class="icon-btn" id="pv-wallet-tari-recover-cancel">Cancel</button>
+          </div>
+          <div id="pv-wallet-tari-recover-progress" style="display:none; margin-top:12px;">
+            <div class="hint" id="pv-wallet-tari-recover-progress-message">—</div>
+          </div>
+          <div class="hint" id="pv-wallet-tari-recover-status"></div>
+        </div>
       </div>
 
       <div class="v1-full">
@@ -651,15 +714,17 @@
             <button class="wallet-card-toggle" id="pv-wallet-xmr-card-toggle" title="Show address">&#128065;</button>
           </div>
         </div>
-        <div class="v1-sub">
-          Created automatically by the bundled monero-wallet-rpc container on first use - same one-time reveal
-          approach as the Tari wallet above.
+        <div class="v1-sub" id="pv-wallet-xmr-intro">
+          This dashboard never holds funds itself - it just talks to the bundled monero-wallet-rpc container. No
+          wallet is created until you ask for one.
         </div>
-        <div class="field" style="margin-top:14px;">
+        <button class="primary" id="pv-wallet-xmr-create" style="margin-top:10px;">Create Wallet</button>
+        <div class="hint" id="pv-wallet-xmr-create-status"></div>
+        <div class="field" id="pv-wallet-xmr-address-field" style="margin-top:14px; display:none;">
           <label>Receive Address</label>
           <div class="copy-row"><input type="text" readonly id="pv-wallet-xmr-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-xmr-address">Copy</button></div>
         </div>
-        <button class="primary" id="pv-wallet-xmr-use">Use this address as my payout address</button>
+        <button class="primary" id="pv-wallet-xmr-use" style="display:none;">Use this address as my payout address</button>
         <div class="hint" id="pv-wallet-xmr-use-status"></div>
 
         <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
@@ -707,6 +772,31 @@
           </div>
           <div id="pv-wallet-xmr-seed-grid" class="mono" style="display:none; margin-top:12px; padding:12px; background:var(--panel-alt); border-radius:8px; line-height:2;"></div>
         </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Recover Wallet</div>
+          <div class="v1-sub">
+            Lost this wallet (a fresh install, a wiped volume, moving to a new box)? Enter its 25-word seed phrase
+            to restore it. A restore height (the block height the wallet was created at, if you know it) speeds up
+            rescanning - leave it blank to scan from the beginning. Your current wallet's files are never deleted,
+            only switched away from.
+          </div>
+          <button class="icon-btn" id="pv-wallet-xmr-recover-step1" style="margin-top:10px;">Recover Wallet from Seed Phrase</button>
+          <div id="pv-wallet-xmr-recover-form" style="display:none; margin-top:10px;">
+            <div class="hint warn">This switches this dashboard over to the wallet restored from this seed phrase.</div>
+            <div class="field" style="margin-top:10px;">
+              <label>Seed Phrase (25 words, space-separated)</label>
+              <textarea id="pv-wallet-xmr-recover-seed" rows="3" placeholder="word1 word2 word3 ..."></textarea>
+            </div>
+            <div class="field">
+              <label>Restore Height (optional)</label>
+              <input type="text" id="pv-wallet-xmr-recover-height" placeholder="0" />
+            </div>
+            <button class="primary" id="pv-wallet-xmr-recover-step2">Yes, recover it</button>
+            <button class="icon-btn" id="pv-wallet-xmr-recover-cancel">Cancel</button>
+          </div>
+          <div class="hint" id="pv-wallet-xmr-recover-status"></div>
+        </div>
       </div>
     </div>
 
@@ -748,10 +838,11 @@
           <div class="field" style="flex:1;">
             <label>Pool Type</label>
             <select id="pv-settings-pool-mode">
-              <option value="standard">Standard</option>
+              <option value="standard">Standard (Main Chain)</option>
               <option value="mini">Mini</option>
               <option value="nano">Nano</option>
             </select>
+            <div class="hint">Changing this restarts P2Pool automatically within about 10 seconds - no manual restart needed. See "Which Pool Type Should I Use?" below.</div>
           </div>
         </div>
         <div class="field">
@@ -772,6 +863,48 @@
             machine over SSH, and restart it - skipping a full network sync on a new install. Requires the app
             container to have Docker socket access (see docker-compose.yml); that's real control over the host, so
             this stays off and hidden until you turn it on here. Off by default.</div>
+        </div>
+      </div>
+
+      <!-- Pool-type advisor - static facts (PPLNS window is a fixed protocol
+           constant, safe to hardcode) plus a rule-of-thumb hashrate guide
+           and a small calculator pre-filled from this node's own locally
+           tracked miner hashrate (never an external/live pull). -->
+      <div class="v1-full">
+        <div class="v1-label">Which Pool Type Should I Use?</div>
+        <div class="v1-sub" style="margin-bottom:14px;">
+          The hashrate brackets below are a rule of thumb, not a fixed rule - the actual "worth switching" point
+          moves with how much total hashrate each P2Pool chain has at any given time. For an exact, live answer,
+          use P2Pool's own <a href="https://p2pool.observer/calculate-share-time" target="_blank" rel="noopener">Average Share Time Calculator</a>.
+          The PPLNS payout window lengths, on the other hand, are fixed by the protocol and don't change.
+        </div>
+        <table class="v1-table">
+          <thead><tr><th>Pool Type</th><th>Rule-of-thumb Hashrate</th><th>PPLNS Payout Window</th></tr></thead>
+          <tbody>
+            <tr><td>Nano</td><td>Under ~5 kH/s</td><td>~18 hours</td></tr>
+            <tr><td>Mini</td><td>~5 kH/s - 40 kH/s</td><td>~6 hours</td></tr>
+            <tr><td>Standard (Main Chain)</td><td>Over ~40 kH/s</td><td>~6 hours</td></tr>
+          </tbody>
+        </table>
+        <div class="hint" style="margin-top:8px;">
+          Lower hashrate on a busier chain means longer waits between shares - each share needs the pool to then
+          find a Monero block before it pays out. If shares are regularly taking more than a day to find, switch to
+          a smaller chain (Mini or Nano) for steadier, more frequent (if smaller) payouts.
+        </div>
+
+        <div class="field" style="margin-top:14px;">
+          <label>Check Your Own Hashrate</label>
+          <div class="copy-row">
+            <input type="text" id="pv-pool-advisor-hashrate" placeholder="e.g. 12" />
+            <select id="pv-pool-advisor-unit" style="max-width:110px;">
+              <option value="1">H/s</option>
+              <option value="1000" selected>kH/s</option>
+              <option value="1000000">MH/s</option>
+            </select>
+            <button class="icon-btn" id="pv-pool-advisor-check">Check</button>
+          </div>
+          <div class="hint" id="pv-pool-advisor-hint"></div>
+          <div class="hint" id="pv-pool-advisor-result"></div>
         </div>
       </div>
 

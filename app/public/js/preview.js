@@ -29,6 +29,17 @@ function toggleClass(id, cls, on) {
   if (el) el.classList.toggle(cls, !!on);
 }
 
+// Drives a .status-light dot: 'red' (offline/unreachable), 'orange'
+// (starting up/syncing), 'green' (running and good). Passing null/undefined
+// clears all state classes, leaving the light at its default muted gray -
+// used for "not applicable" states like a disabled optional feature.
+function setStatusLight(id, state) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('status-red', 'status-orange', 'status-green');
+  if (state) el.classList.add(`status-${state}`);
+}
+
 const RING_CIRCUMFERENCE = 188.5; // 2 * PI * r, r=30 (see .pv-ring-fill / the SVG's r="30")
 function setRing(fillId, labelId, pct, isGood, inProgressColor) {
   const fill = document.getElementById(fillId);
@@ -156,6 +167,7 @@ async function refreshAll() {
     setText('pv-bc-title', 'Unreachable');
     setText('pv-bc-sub', sync.error);
     setRing('pv-bc-ring', 'pv-bc-ring-label', 0, false);
+    setStatusLight('pv-bc-status-dot', 'red');
   } else {
     const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
     setText('pv-bc-title', sync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
@@ -163,6 +175,7 @@ async function refreshAll() {
     setRing('pv-bc-ring', 'pv-bc-ring-label', pct, sync.synchronized);
     setText('pv-bc-height', sync.height ?? '—');
     setText('pv-bc-target', sync.targetHeight ?? '—');
+    setStatusLight('pv-bc-status-dot', sync.synchronized ? 'green' : 'orange');
   }
   setText('pv-bc-peers', node.connectionsIn != null ? `${node.connectionsIn} / ${node.connectionsOut ?? '—'}` : '—');
   setText('pv-bc-txpool', node.txPoolSize != null ? `${node.txPoolSize} txs` : '—');
@@ -185,12 +198,23 @@ async function refreshAll() {
     { key: 'blockchainSynced', label: 'Blockchain Sync', good: 'Synchronized', bad: 'Syncing', desc: 'Chain is synchronized and ready for pool traffic.', badDesc: 'Still catching up to the network tip.' },
     { key: 'payoutAddressConfigured', label: 'Payout Address', good: 'Configured', bad: 'Missing', desc: 'Block rewards have a payout target.', badDesc: 'Set a wallet address in Settings.' },
     { key: 'stratumRunning', label: 'Stratum', good: 'Open', bad: 'Closed', desc: 'Remote miners can connect.', badDesc: 'P2Pool is not running yet.' },
-    { key: 'moneroPortOpen', label: 'Monero P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18080 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18080 on your router.' },
-    { key: 'p2poolPortOpen', label: 'P2Pool P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound sidechain peer connections - your P2Pool port is forwarded correctly.', badDesc: 'No inbound P2Pool peers yet - forward your P2Pool p2p port (37889 Standard / 37888 Mini / 37890 Nano) on your router.' },
-    { key: 'minotariPortOpen', label: 'Tari P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18189 is forwarded correctly (or Tari merge-mining is off).', badDesc: 'No inbound peer connections yet - forward port 18189 on your router.' },
   ];
+  // Each port gets its own stacked row with a status light (red = closed,
+  // green = open) rather than being a card among the general checks above.
+  // The Tari row only appears once Tari merge-mining is actually configured
+  // (a wallet address is set) - before that there's no real port to check,
+  // and showing a permanently-green light for a feature that's off would be
+  // misleading rather than reassuring.
+  const portChecks = [
+    { key: 'moneroPortOpen', label: 'Monero P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18080 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18080 on your router.' },
+    { key: 'p2poolPortOpen', label: 'P2Pool P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound sidechain peer connections - your P2Pool port is forwarded correctly.', badDesc: 'No inbound P2Pool peers yet - forward your P2Pool p2p port on your router.' },
+    ...(settings.tariAddress
+      ? [{ key: 'minotariPortOpen', label: 'Tari P2P Port', good: 'Open (Ready)', bad: 'Closed', desc: 'Accepting inbound peer connections - port 18189 is forwarded correctly.', badDesc: 'No inbound peer connections yet - forward port 18189 on your router.' }]
+      : []),
+  ];
+  const allChecks = [...checks, ...portChecks];
   const readiness = status.readiness || {};
-  const readyCount = checks.filter((c) => readiness[c.key]).length;
+  const readyCount = allChecks.filter((c) => readiness[c.key]).length;
   const checkGrid = document.getElementById('pv-check-grid');
   if (checkGrid) {
     checkGrid.innerHTML = checks
@@ -204,17 +228,80 @@ async function refreshAll() {
       })
       .join('');
   }
+
+  // P2Pool only ever listens on ONE p2p port at a time - whichever matches
+  // the active Pool Type (see docker/p2pool/entrypoint.sh's --mini/--nano
+  // case block). The other two are expected to be closed, not a problem to
+  // fix, so they get a neutral "not in use" light instead of a false-alarm
+  // red one. This is display-only - only the active mode's port counts
+  // toward the readiness check above (there's only one p2poolPortOpen key).
+  const P2POOL_PORTS = {
+    standard: { name: 'Standard', port: 37889 },
+    mini: { name: 'Mini', port: 37888 },
+    nano: { name: 'Nano', port: 37890 },
+  };
+  const activePoolMode = P2POOL_PORTS[settings.poolMode] ? settings.poolMode : 'standard';
+  const p2poolOk = !!readiness.p2poolPortOpen;
+  const p2poolRows = Object.entries(P2POOL_PORTS).map(([mode, info]) => {
+    if (mode !== activePoolMode) {
+      return {
+        light: null,
+        label: `P2Pool P2P Port (${info.name})`,
+        statusClass: '',
+        statusText: 'Not in use',
+        desc: `Pool Type is set to ${P2POOL_PORTS[activePoolMode].name} - this port isn't being listened on.`,
+      };
+    }
+    return {
+      light: p2poolOk ? 'status-green' : 'status-red',
+      label: `P2Pool P2P Port (${info.name})`,
+      statusClass: p2poolOk ? 'good' : 'bad',
+      statusText: p2poolOk ? 'Open (Ready)' : 'Closed',
+      desc: p2poolOk
+        ? `Accepting inbound sidechain peer connections - port ${info.port} is forwarded correctly.`
+        : `No inbound P2Pool peers yet - forward port ${info.port} on your router.`,
+    };
+  });
+
+  const portList = document.getElementById('pv-port-list');
+  if (portList) {
+    const otherRows = portChecks
+      .filter((c) => c.key !== 'p2poolPortOpen')
+      .map((c) => {
+        const ok = !!readiness[c.key];
+        return {
+          light: ok ? 'status-green' : 'status-red',
+          label: c.label,
+          statusClass: ok ? 'good' : 'bad',
+          statusText: ok ? c.good : c.bad,
+          desc: ok ? c.desc : c.badDesc,
+        };
+      });
+    // Monero's port row first, then the 3 P2Pool port rows together, then
+    // Tari (if configured) - keeps the stack grouped by what it's checking.
+    const rows = [otherRows[0], ...p2poolRows, ...otherRows.slice(1)].filter(Boolean);
+    portList.innerHTML = rows
+      .map(
+        (r) => `<div class="pv-port-row">
+          <span class="status-light ${r.light || ''}"></span>
+          <span class="pv-port-label">${r.label}</span>
+          <span class="pv-port-status-text ${r.statusClass}">${r.statusText}</span>
+          <span class="pv-port-desc">${r.desc}</span>
+        </div>`
+      )
+      .join('');
+  }
   const readyPill = document.getElementById('pv-ready-pill');
   if (readyPill) {
-    readyPill.textContent = `${readyCount}/${checks.length} checks ready`;
-    readyPill.classList.toggle('good', readyCount === checks.length);
-    readyPill.classList.toggle('bad', readyCount < checks.length);
+    readyPill.textContent = `${readyCount}/${allChecks.length} checks ready`;
+    readyPill.classList.toggle('good', readyCount === allChecks.length);
+    readyPill.classList.toggle('bad', readyCount < allChecks.length);
   }
   setText(
     'pv-ready-summary',
-    readyCount === checks.length
+    readyCount === allChecks.length
       ? 'Node, pool, and Stratum are all ready.'
-      : `${checks.length - readyCount} of ${checks.length} checks still need attention - see below.`
+      : `${allChecks.length - readyCount} of ${allChecks.length} checks still need attention - see below.`
   );
 
   setText('pv-workers-count', pool.workersConnected ?? '—');
@@ -230,7 +317,7 @@ async function refreshAll() {
 
   const headerStatus = document.getElementById('pv-header-status');
   if (headerStatus) {
-    const allReady = readyCount === checks.length;
+    const allReady = readyCount === allChecks.length;
     headerStatus.textContent = allReady ? 'Running' : (readyCount > 0 ? 'Starting' : 'Offline');
     headerStatus.classList.toggle('good', allReady);
     headerStatus.classList.toggle('bad', !allReady && readyCount === 0);
@@ -254,6 +341,10 @@ async function refreshAll() {
     setText('pv-tari-bc-title', tari.enabled ? 'Not running' : 'Not configured');
     setText('pv-tari-bc-sub', '—');
     setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', 0, false, 'var(--tari)');
+    // Not configured is a deliberate, non-error state (Tari merge-mining is
+    // optional) - leave the light at its neutral default rather than red,
+    // same reasoning as minotariPortOpen always reading "good" in that case.
+    setStatusLight('pv-tari-bc-status-dot', tari.enabled ? 'red' : null);
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
     setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
@@ -263,6 +354,7 @@ async function refreshAll() {
     setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', pct, nodeSync.synchronized, 'var(--tari)');
     setText('pv-tari-bc-height', nodeSync.height ?? '—');
     setText('pv-tari-bc-target', nodeSync.targetHeight ?? '—');
+    setStatusLight('pv-tari-bc-status-dot', nodeSync.synchronized ? 'green' : 'orange');
   }
 
   const blocksBody = document.getElementById('pv-blocks-body');
@@ -645,6 +737,9 @@ const WALLET_COINS = [
     },
     ids: {
       address: 'pv-wallet-tari-address',
+      addressField: 'pv-wallet-tari-address-field',
+      createBtn: 'pv-wallet-tari-create',
+      createStatus: 'pv-wallet-tari-create-status',
       useBtn: 'pv-wallet-tari-use',
       useStatus: 'pv-wallet-tari-use-status',
       step1: 'pv-wallet-reveal-step1',
@@ -682,6 +777,9 @@ const WALLET_COINS = [
     },
     ids: {
       address: 'pv-wallet-xmr-address',
+      addressField: 'pv-wallet-xmr-address-field',
+      createBtn: 'pv-wallet-xmr-create',
+      createStatus: 'pv-wallet-xmr-create-status',
       useBtn: 'pv-wallet-xmr-use',
       useStatus: 'pv-wallet-xmr-use-status',
       step1: 'pv-wallet-xmr-reveal-step1',
@@ -713,6 +811,19 @@ async function refreshWalletTab() {
       continue;
     }
     addressEl.value = data.address || 'Wallet not reachable yet';
+
+    // No wallet exists yet (as opposed to "exists but RPC is unreachable") -
+    // show the Create Wallet button instead of the address/use-address UI.
+    const createBtn = document.getElementById(coin.ids.createBtn);
+    const addressField = document.getElementById(coin.ids.addressField);
+    const useBtn = document.getElementById(coin.ids.useBtn);
+    if (createBtn && addressField && useBtn) {
+      const hasWallet = !!data.address;
+      createBtn.style.display = hasWallet ? 'none' : '';
+      addressField.style.display = hasWallet ? '' : 'none';
+      useBtn.style.display = hasWallet ? '' : 'none';
+    }
+
     if (coin.cardAddressId) {
       const cardAddressEl = document.getElementById(coin.cardAddressId);
       if (cardAddressEl) {
@@ -747,6 +858,26 @@ async function refreshWalletTab() {
 
 function wireWalletTab() {
   for (const coin of WALLET_COINS) {
+    const createBtn = document.getElementById(coin.ids.createBtn);
+    if (createBtn) {
+      createBtn.addEventListener('click', async () => {
+        const status = document.getElementById(coin.ids.createStatus);
+        createBtn.disabled = true;
+        if (status) status.textContent = 'Creating wallet...';
+        try {
+          const res = await fetch(`${coin.apiBase}/create`, { method: 'POST' });
+          const body = await res.json();
+          if (!res.ok) throw new Error(body.error || 'Failed to create wallet');
+          if (status) status.textContent = 'Wallet creation requested - it may take a few seconds to appear.';
+          refreshWalletTab();
+        } catch (err) {
+          if (status) status.textContent = err.message;
+        } finally {
+          createBtn.disabled = false;
+        }
+      });
+    }
+
     const useBtn = document.getElementById(coin.ids.useBtn);
     if (useBtn) {
       useBtn.addEventListener('click', async () => {
@@ -1108,14 +1239,232 @@ function wireBrowseModal() {
   });
 }
 
+// ---------------------------------------------------------------------------
+// Wallet tab - "Recover Wallet" (restore from seed phrase). Monero's restore
+// is a single RPC call (see server.js's /api/wallet/monero/recover); Tari's
+// needs the wallet container restarted with the seed words, so it polls a
+// status endpoint the same way Import Blockchain does above.
+// ---------------------------------------------------------------------------
+function wireMoneroRecovery() {
+  const step1 = document.getElementById('pv-wallet-xmr-recover-step1');
+  const form = document.getElementById('pv-wallet-xmr-recover-form');
+  const seedInput = document.getElementById('pv-wallet-xmr-recover-seed');
+  const heightInput = document.getElementById('pv-wallet-xmr-recover-height');
+  const step2 = document.getElementById('pv-wallet-xmr-recover-step2');
+  const cancelBtn = document.getElementById('pv-wallet-xmr-recover-cancel');
+  const status = document.getElementById('pv-wallet-xmr-recover-status');
+  if (!step1 || !form || !step2 || !cancelBtn) return;
+
+  step1.addEventListener('click', () => {
+    step1.style.display = 'none';
+    form.style.display = '';
+  });
+  cancelBtn.addEventListener('click', () => {
+    form.style.display = 'none';
+    step1.style.display = '';
+    if (status) status.textContent = '';
+  });
+  step2.addEventListener('click', async () => {
+    const seedWords = seedInput.value.trim();
+    if (!seedWords) {
+      if (status) status.textContent = 'Enter the seed phrase first.';
+      return;
+    }
+    const heightRaw = heightInput.value.trim();
+    step2.disabled = true;
+    if (status) status.textContent = 'Restoring wallet...';
+    try {
+      const res = await fetch('/api/wallet/monero/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seedWords, restoreHeight: heightRaw ? Number(heightRaw) : 0 }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Recovery failed');
+      seedInput.value = '';
+      heightInput.value = '';
+      if (status) status.textContent = `Wallet recovered. New address: ${body.address}`;
+      form.style.display = 'none';
+      step1.style.display = '';
+      refreshWalletTab();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      step2.disabled = false;
+    }
+  });
+}
+
+let tariRecoveryPollTimer = null;
+
+function pollTariRecoveryStatus() {
+  clearTimeout(tariRecoveryPollTimer);
+  const step1 = document.getElementById('pv-wallet-tari-recover-step1');
+  const progress = document.getElementById('pv-wallet-tari-recover-progress');
+  const progressMessage = document.getElementById('pv-wallet-tari-recover-progress-message');
+  const status = document.getElementById('pv-wallet-tari-recover-status');
+  if (!step1) return;
+  tariRecoveryPollTimer = setTimeout(async () => {
+    let state;
+    try {
+      state = await getJSON('/api/wallet/tari/recover/status');
+    } catch (err) {
+      pollTariRecoveryStatus();
+      return;
+    }
+    if (progressMessage) progressMessage.textContent = state.message || state.status;
+    if (state.status === 'done' || state.status === 'error') {
+      if (progress) progress.style.display = 'none';
+      step1.style.display = '';
+      if (status) status.textContent = state.message;
+      if (state.status === 'done') refreshWalletTab();
+      return;
+    }
+    pollTariRecoveryStatus();
+  }, 2500);
+}
+
+function wireTariRecovery() {
+  const step1 = document.getElementById('pv-wallet-tari-recover-step1');
+  const form = document.getElementById('pv-wallet-tari-recover-form');
+  const seedInput = document.getElementById('pv-wallet-tari-recover-seed');
+  const step2 = document.getElementById('pv-wallet-tari-recover-step2');
+  const cancelBtn = document.getElementById('pv-wallet-tari-recover-cancel');
+  const status = document.getElementById('pv-wallet-tari-recover-status');
+  const progress = document.getElementById('pv-wallet-tari-recover-progress');
+  if (!step1 || !form || !step2 || !cancelBtn) return;
+
+  step1.addEventListener('click', () => {
+    step1.style.display = 'none';
+    form.style.display = '';
+  });
+  cancelBtn.addEventListener('click', () => {
+    form.style.display = 'none';
+    step1.style.display = '';
+    if (status) status.textContent = '';
+  });
+  step2.addEventListener('click', async () => {
+    const seedWords = seedInput.value.trim();
+    if (!seedWords) {
+      if (status) status.textContent = 'Enter the seed phrase first.';
+      return;
+    }
+    step2.disabled = true;
+    if (status) status.textContent = '';
+    try {
+      const res = await fetch('/api/wallet/tari/recover', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ seedWords }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Recovery failed to start');
+      seedInput.value = '';
+      form.style.display = 'none';
+      if (progress) progress.style.display = '';
+      pollTariRecoveryStatus();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      step2.disabled = false;
+    }
+  });
+}
+
+// If a recovery was already in progress server-side when the page loads
+// (e.g. the page was refreshed mid-recovery), pick the poll loop back up -
+// same idea as resumeImportPollingIfActive.
+async function resumeTariRecoveryPollingIfActive() {
+  const progress = document.getElementById('pv-wallet-tari-recover-progress');
+  const form = document.getElementById('pv-wallet-tari-recover-form');
+  const step1 = document.getElementById('pv-wallet-tari-recover-step1');
+  if (!progress) return;
+  let state;
+  try {
+    state = await getJSON('/api/wallet/tari/recover/status');
+  } catch (err) {
+    return;
+  }
+  if (['idle', 'done', 'error'].includes(state.status)) return;
+  if (form) form.style.display = 'none';
+  if (step1) step1.style.display = 'none';
+  progress.style.display = '';
+  const progressMessage = document.getElementById('pv-wallet-tari-recover-progress-message');
+  if (progressMessage) progressMessage.textContent = state.message || state.status;
+  pollTariRecoveryStatus();
+}
+
+// ---------------------------------------------------------------------------
+// Settings tab - "Which Pool Type Should I Use?" hashrate checker. Pre-fills
+// from THIS node's own locally tracked miner hashrate (p2pool's local
+// stratum-api, same source the Pool tab's Hash Rate stat uses) - never an
+// external/live pull. The brackets themselves are the same rule-of-thumb
+// numbers shown in the table above, not a live calculation.
+// ---------------------------------------------------------------------------
+const POOL_ADVISOR_NANO_MAX_HS = 5000;
+const POOL_ADVISOR_MINI_MAX_HS = 40000;
+
+function poolAdvisorRecommend(hashrateHs) {
+  if (hashrateHs < POOL_ADVISOR_NANO_MAX_HS) return 'nano';
+  if (hashrateHs < POOL_ADVISOR_MINI_MAX_HS) return 'mini';
+  return 'standard';
+}
+
+const POOL_MODE_LABELS = { standard: 'Standard (Main Chain)', mini: 'Mini', nano: 'Nano' };
+
+async function wirePoolAdvisor() {
+  const hashrateInput = document.getElementById('pv-pool-advisor-hashrate');
+  const unitSelect = document.getElementById('pv-pool-advisor-unit');
+  const checkBtn = document.getElementById('pv-pool-advisor-check');
+  const hint = document.getElementById('pv-pool-advisor-hint');
+  const result = document.getElementById('pv-pool-advisor-result');
+  if (!hashrateInput || !unitSelect || !checkBtn) return;
+
+  try {
+    const status = await getJSON('/api/status');
+    const hs = status.hashrate?.hashrate1h ?? status.hashrate?.hashrate15m;
+    if (hs) {
+      // Pick whichever unit keeps the prefilled number readable (1-3 digits).
+      let unit = 1;
+      if (hs >= 1000000) unit = 1000000;
+      else if (hs >= 1000) unit = 1000;
+      hashrateInput.value = (hs / unit).toFixed(unit === 1 ? 0 : 2);
+      unitSelect.value = String(unit);
+      if (hint) hint.textContent = `Auto-filled from this node's own combined miner hashrate (${fmtHashrate(hs)}, last hour). Override it to check a different number.`;
+    }
+  } catch (err) {
+    // No local hashrate available yet - leave the field blank for manual entry.
+  }
+
+  checkBtn.addEventListener('click', () => {
+    const raw = Number(hashrateInput.value);
+    if (!raw || raw <= 0) {
+      if (result) result.textContent = 'Enter a hashrate first.';
+      return;
+    }
+    const hashrateHs = raw * Number(unitSelect.value);
+    const recommended = poolAdvisorRecommend(hashrateHs);
+    const current = document.getElementById('pv-settings-pool-mode')?.value || 'standard';
+    if (result) {
+      result.textContent = recommended === current
+        ? `At ${fmtHashrate(hashrateHs)}, ${POOL_MODE_LABELS[current]} is already a good fit.`
+        : `At ${fmtHashrate(hashrateHs)}, ${POOL_MODE_LABELS[recommended]} is likely a better fit than your current ${POOL_MODE_LABELS[current]} setting - this is a rule of thumb, not a hard rule.`;
+    }
+  });
+}
+
 wireTabs();
 wireWalletTab();
 wireThemeControls();
 wireSettingsSave();
 wireImportForm();
 wireBrowseModal();
+wireMoneroRecovery();
+wireTariRecovery();
+wirePoolAdvisor();
 loadSettingsForm();
 resumeImportPollingIfActive();
+resumeTariRecoveryPollingIfActive();
 startLogStreamsIfPresent();
 refreshAll();
 refreshWalletTab();

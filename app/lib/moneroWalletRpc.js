@@ -12,8 +12,13 @@
 // kept as decimal strings end-to-end and converted with BigInt (see
 // xmrToAtomicUnits) rather than JS Number, since a plain float can't
 // represent atomic units exactly and this is real money.
+//
+// Also backs the Wallet tab's "Recover Wallet" button (restoreFromSeed) -
+// see moneroWalletState.js for why the active wallet's filename isn't
+// always the fixed "dashboard" name.
 
-const WALLET_NAME = 'dashboard';
+const moneroWalletState = require('./moneroWalletState');
+
 const WALLET_LANGUAGE = 'English';
 
 const RPC_HOST = process.env.MONERO_WALLET_RPC_HOST || 'monero-wallet-rpc';
@@ -47,25 +52,52 @@ async function jsonRpc(method, params = {}) {
   return body.result;
 }
 
-// Idempotent: opens the wallet if it already exists, creates it (implicitly
-// opening it) if this is the very first call ever made against this
-// instance's wallet-dir volume.
+// Opens the active wallet - does NOT create one. A wallet is only ever
+// created by createWallet() below, in response to the Wallet tab's explicit
+// "Create Wallet" button - never silently, just because something happened
+// to call this first. Throws a clear, user-facing 404 if no wallet exists
+// yet, so callers (and the routes that use them) can tell "no wallet yet"
+// apart from "RPC unreachable".
 async function ensureWalletOpen() {
+  const walletName = moneroWalletState.getActiveWalletName();
   try {
-    await jsonRpc('open_wallet', { filename: WALLET_NAME });
-    return { created: false };
+    await jsonRpc('open_wallet', { filename: walletName });
   } catch (err) {
     // "Failed to open wallet" (code -1) when it doesn't exist yet is
-    // expected on first run - anything else (wrong daemon, RPC down) should
-    // still surface as an error instead of masking it with a bad create call.
+    // expected before the user has ever created one - anything else (wrong
+    // daemon, RPC down) should still surface as-is.
+    if (!/failed to open/i.test(err.message)) throw err;
+    const notCreatedErr = new Error('This wallet has not been created yet - use the Create Wallet button on the Wallet tab.');
+    notCreatedErr.statusCode = 404;
+    throw notCreatedErr;
+  }
+}
+
+// Idempotent: creates the active wallet if it doesn't exist yet, or just
+// confirms it's open if it already does (so clicking "Create Wallet" twice,
+// or on a page that already has one, is harmless).
+async function createWallet() {
+  const walletName = moneroWalletState.getActiveWalletName();
+  try {
+    await jsonRpc('open_wallet', { filename: walletName });
+    return { created: false };
+  } catch (err) {
     if (!/failed to open/i.test(err.message)) throw err;
   }
-  await jsonRpc('create_wallet', { filename: WALLET_NAME, language: WALLET_LANGUAGE });
+  await jsonRpc('create_wallet', { filename: walletName, language: WALLET_LANGUAGE });
   return { created: true };
 }
 
+// Returns { address: null } (not an error) if no wallet has been created
+// yet - the Wallet tab uses that to show a "Create Wallet" button instead of
+// an error message.
 async function getAddress() {
-  await ensureWalletOpen();
+  try {
+    await ensureWalletOpen();
+  } catch (err) {
+    if (err.statusCode === 404) return { address: null };
+    throw err;
+  }
   const result = await jsonRpc('get_address', { account_index: 0 });
   return { address: result.address };
 }
@@ -159,10 +191,52 @@ async function transfer(address, amountStr) {
   };
 }
 
+// Restores a wallet from a 25-word mnemonic seed phrase, for the Wallet
+// tab's "Recover Wallet" button (e.g. after losing the app-state/monero
+// volume, or moving to a fresh install). monero-wallet-rpc's
+// restore_deterministic_wallet refuses to write over a filename that
+// already has a wallet on disk, so this always restores into a NEW,
+// uniquely-named wallet file rather than the current active one - then
+// switches the active wallet name to it, so every later call (balance,
+// send, address) transparently talks to the recovered wallet instead.
+// The old wallet's files are left on disk untouched (never deleted), so
+// restoring never destroys funds even if the recovery itself was a mistake.
+async function restoreFromSeed(seedWords, restoreHeight) {
+  const seed = (Array.isArray(seedWords) ? seedWords.join(' ') : String(seedWords)).trim();
+  if (!seed || seed.split(/\s+/).length < 12) {
+    const err = new Error('Seed phrase looks incomplete - Monero seed phrases are normally 25 words.');
+    err.statusCode = 400;
+    throw err;
+  }
+  const height = Number.isInteger(restoreHeight) && restoreHeight >= 0 ? restoreHeight : 0;
+  const newWalletName = `recovered-${Date.now()}`;
+
+  // Best-effort - if nothing is open yet this just fails harmlessly, and we
+  // don't want a stuck-open old wallet to block restoring into the new one.
+  try {
+    await jsonRpc('close_wallet');
+  } catch {
+    // ignore
+  }
+
+  await jsonRpc('restore_deterministic_wallet', {
+    filename: newWalletName,
+    seed,
+    restore_height: height,
+    language: WALLET_LANGUAGE,
+  });
+
+  moneroWalletState.setActiveWalletName(newWalletName);
+  const result = await jsonRpc('get_address', { account_index: 0 });
+  return { address: result.address };
+}
+
 module.exports = {
   ensureWalletOpen,
+  createWallet,
   getAddress,
   getSeedWords,
   getBalance,
   transfer,
+  restoreFromSeed,
 };

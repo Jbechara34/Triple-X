@@ -24,6 +24,7 @@ const tariBlocks = require('./lib/tariBlocks');
 const minotariRpc = require('./lib/minotariRpc');
 const minotariWalletRpc = require('./lib/minotariWalletRpc');
 const tariWallet = require('./lib/tariWallet');
+const tariWalletRecovery = require('./lib/tariWalletRecovery');
 const moneroWalletRpc = require('./lib/moneroWalletRpc');
 const moneroWalletState = require('./lib/moneroWalletState');
 const p2poolObserver = require('./lib/p2poolObserver');
@@ -407,16 +408,34 @@ app.post('/api/settings', (req, res) => {
 // This dashboard never holds funds and never re-shows a seed phrase once
 // revealed - see lib/tariWallet.js and docker-compose.yml's
 // --seed-words-file-name flag on minotari-wallet for how that's enforced.
+// Neither wallet is ever created automatically just because the stack is
+// running - both need an explicit "Create Wallet" click first (see
+// tariWallet.js's requestWalletCreation and moneroWalletRpc.js's
+// createWallet).
 // ---------------------------------------------------------------------------
 app.get('/api/wallet/tari', async (req, res) => {
   let address = null;
   try {
     ({ address } = await minotariWalletRpc.getAddress());
   } catch (err) {
-    // Wallet not reachable yet (still starting, or not run in this stack) -
-    // not an error the user needs a stack trace for.
+    // Wallet not reachable yet (still starting, still waiting for a Create
+    // Wallet click, or not run in this stack) - not an error the user needs
+    // a stack trace for.
   }
   res.json({ address, seedAvailable: tariWallet.seedAvailable() });
+});
+
+// The Tari wallet container waits for this before it ever generates a
+// wallet - see docker/minotari-wallet/entrypoint.sh. No Docker socket
+// needed (unlike Recover Wallet): the container is already running and
+// just polls for this file on the volume it shares with the app.
+app.post('/api/wallet/tari/create', (req, res) => {
+  try {
+    tariWallet.requestWalletCreation();
+    res.json({ requested: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // POST (not GET) because this is a one-time, side-effecting reveal - it
@@ -457,6 +476,36 @@ app.post('/api/wallet/tari/send', async (req, res) => {
   }
 });
 
+// Wallet tab's "Recover Wallet" button (Tari side) - restarts minotari-wallet
+// with the given seed words. See lib/tariWalletRecovery.js for why this
+// needs the Docker socket (unlike Monero's recovery, below, which doesn't).
+app.get('/api/wallet/tari/recover/status', (req, res) => {
+  res.json(tariWalletRecovery.getState());
+});
+
+app.post('/api/wallet/tari/recover', async (req, res) => {
+  const { seedWords } = req.body || {};
+  if (typeof seedWords !== 'string' || !seedWords.trim()) {
+    res.status(400).json({ error: 'Seed phrase is required.' });
+    return;
+  }
+  try {
+    await tariWalletRecovery.startRecovery(seedWords);
+    res.json({ started: true });
+  } catch (err) {
+    res.status(err.statusCode || 409).json({ error: err.message });
+  }
+});
+
+app.post('/api/wallet/tari/recover/reset', (req, res) => {
+  try {
+    tariWalletRecovery.reset();
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(409).json({ error: err.message });
+  }
+});
+
 app.get('/api/wallet/monero', async (req, res) => {
   let address = null;
   try {
@@ -466,6 +515,17 @@ app.get('/api/wallet/monero', async (req, res) => {
     // not an error the user needs a stack trace for.
   }
   res.json({ address, seedAvailable: address ? !moneroWalletState.seedRevealed() : false });
+});
+
+// Explicit "Create Wallet" click - see moneroWalletRpc.js's ensureWalletOpen
+// for why this is the only place that ever creates one.
+app.post('/api/wallet/monero/create', async (req, res) => {
+  try {
+    const result = await moneroWalletRpc.createWallet();
+    res.json(result);
+  } catch (err) {
+    res.status(502).json({ error: 'Monero wallet not reachable yet.' });
+  }
 });
 
 // POST (not GET) - side-effecting, marks the seed as revealed so it can
@@ -491,6 +551,29 @@ app.get('/api/wallet/monero/balance', async (req, res) => {
     res.json(balance);
   } catch (err) {
     res.status(502).json({ error: 'Monero wallet not reachable yet.' });
+  }
+});
+
+// Wallet tab's "Recover Wallet" button (Monero side) - see
+// lib/moneroWalletRpc.js's restoreFromSeed for why this can run as a single
+// synchronous RPC call rather than the stop/wipe/restart dance Tari's
+// recovery needs (no Docker socket required for this one).
+app.post('/api/wallet/monero/recover', async (req, res) => {
+  const { seedWords, restoreHeight } = req.body || {};
+  if (typeof seedWords !== 'string' || !seedWords.trim()) {
+    res.status(400).json({ error: 'Seed phrase is required.' });
+    return;
+  }
+  const parsedHeight = restoreHeight === undefined || restoreHeight === '' ? 0 : Number(restoreHeight);
+  if (!Number.isInteger(parsedHeight) || parsedHeight < 0) {
+    res.status(400).json({ error: 'Restore height must be a non-negative whole number, or left blank.' });
+    return;
+  }
+  try {
+    const result = await moneroWalletRpc.restoreFromSeed(seedWords, parsedHeight);
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 502).json({ error: err.message });
   }
 });
 

@@ -7,10 +7,27 @@
 // and shown exactly once: revealSeedWords() reads the file and immediately
 // deletes it, so a page refresh or a second visit to the Wallet tab can
 // never show it again. Nothing here is ever written back to disk.
+//
+// Also backs the Wallet tab's "Create Wallet" button (requestWalletCreation)
+// - minotari-wallet's entrypoint.sh does NOT start minotari_console_wallet
+// on its own the very first time the container ever runs; it waits for this
+// request file before ever generating a wallet, so a wallet isn't silently
+// created just because the container exists. See docker/minotari-wallet/
+// entrypoint.sh for the waiting side of this.
 
 const fs = require('fs');
+const path = require('path');
 
 const SEED_FILE = process.env.MINOTARI_WALLET_SEED_FILE || '/data/minotari-wallet/seed-words.txt';
+const CREATE_REQUEST_FILE = process.env.MINOTARI_WALLET_CREATE_REQUEST_FILE || '/data/minotari-wallet/create-wallet-requested';
+
+// Drops the request file onto the volume shared with the minotari-wallet
+// container - its entrypoint polls for exactly this, so no container
+// restart (and no Docker socket) is needed just to create a wallet.
+function requestWalletCreation() {
+  fs.mkdirSync(path.dirname(CREATE_REQUEST_FILE), { recursive: true });
+  fs.writeFileSync(CREATE_REQUEST_FILE, '');
+}
 
 function seedAvailable() {
   try {
@@ -44,4 +61,5 @@ function revealSeedWords() {
 module.exports = {
   seedAvailable,
   revealSeedWords,
+  requestWalletCreation,
 };
