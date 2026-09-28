@@ -1,5 +1,9 @@
 # Triple X
 
+**Status: Alpha (`v1.0-AlphaN`).** Past the numbered `Dev` builds now — the
+app is feature-complete enough for wider testing, but still expect rough
+edges. The on-screen version badge always shows exactly what's running.
+
 A self-hosted Monero full node + [P2Pool](https://github.com/SChernykh/p2pool)
 node, built from source, with optional Tari (XTM) merge-mining, Monero/Tari
 wallet management, Discord webhook alerts, and a web dashboard for status,
@@ -16,12 +20,34 @@ P2Pool directly.
 | **Overview** | Sync status/progress for both chains, hashrate, best share vs. network difficulty, and a readiness checklist (Node RPC, payout address, a proper 3-state blockchain sync indicator — *Not Running* / *Syncing* / *Synced* — and stratum) plus a network-ports panel. |
 | **Pool** | Live stats for the P2Pool sidechain you're mining on (Standard/Mini/Nano): connected workers, hashrate over multiple windows, network difficulty/height, best share, per-worker detail, Tari (XTM) merge-mining status, and the miner connection info (stratum URL + payout address + setup instructions, including a note that P2Pool's stratum never actually checks the password field). |
 | **Blocks** | Blocks your node's P2Pool sidechain has found, each linking to a block explorer so you can independently verify the payout landed on your address. |
-| **Wallet** | Create, view balance for, send from, and recover (via seed phrase) both your Monero and Tari wallets, straight from the dashboard — no CLI needed. |
+| **Wallet** | Create, view balance for, send from, and recover (via seed phrase) both your Monero and Tari wallets, straight from the dashboard — no CLI needed. If a payout/merge-mining address is saved in Settings without ever creating a wallet here, the tab recognizes it as externally managed (a hardware wallet, exchange, etc.) and shows just the address instead of offering to create an unrelated one. |
 | **Logs** | Live tail of the P2Pool log, optional per Settings. |
 | **Settings** | Payout addresses, P2Pool mode (Standard / Mini / Nano, with a built-in "Which Pool Type Should I Use?" advisor), Discord webhook notifications, memory-usage tuning, and blockchain import — organized into collapsible sections so the tab stays short. Saving hot-restarts P2Pool with the new settings within ~10 seconds — no need to touch Docker. |
 
 ## Recent additions
 
+- **Entered Alpha** — versioning moved from the numbered `v0.0.1-DevN` builds
+  to `v1.0-AlphaN`. Also fixed the on-screen version badge, which had been
+  hardcoded to "Dev1" since the very first build and silently never bumped
+  through Dev2–Dev11 regardless of what was actually running.
+- **Wallet tab recognizes externally-managed addresses** — if a payout/
+  merge-mining address is saved in Settings without ever clicking Create
+  Wallet, that address belongs to a wallet this dashboard has no keys for.
+  The Wallet tab now shows a dedicated card for it (address only, no
+  Balance/Send/Seed Phrase sections) instead of offering to create an
+  unrelated wallet with no connection to the address actually receiving
+  payouts.
+- **Import Blockchain SSH fixes** — the rsync transfer was failing against
+  Windows' bundled OpenSSH Server two different ways: a post-quantum KEX
+  mismatch causing "Connection reset" on any auth method, and (once that was
+  fixed) `BatchMode=yes` silently disabling the password prompt `sshpass`
+  needs, breaking password auth specifically. Both fixed; key- and
+  password-based auth against a Windows SSH source now work.
+- **Light mode toned down** — panels were pure `#ffffff` against a near-white
+  background, which read as glaringly bright next to the app's orange accent
+  and dark-mode-tuned glow effects. Panels are now an off-white across all
+  three color themes (Classic, Tari, Molten), with `bg`/`border` a shade
+  darker so there's still visible depth between surfaces.
 - **Discord webhook notifications** (`app/lib/discordNotify.js`) — get pinged
   in a Discord channel when a Monero block, a Tari block, or (optionally,
   off by default) a P2Pool share is found. Nothing is ever sent until you
@@ -85,7 +111,9 @@ release diverges from Umbrel's app framework, the plain Docker Compose path
 └───────────────────────────────────────────────┘
 ```
 
-Three containers either way:
+Core containers either way (plus two more when Tari merge-mining is set up —
+`minotari-node` and `minotari-wallet`, the latter built from source like the
+others, the former using Tari's own official image):
 
 - **`monerod`** — built from [`monero-project/monero`](https://github.com/monero-project/monero)
   source (`docker/monerod/Dockerfile`), run with the flags from the original
@@ -129,13 +157,16 @@ publishing step:
    every `SIlver765` in both `umbrel-app.yml` and
    `docker-compose.yml` under that folder with wherever you'll host images
    (see next step).
-2. **Publish the three images.** Push a tag (`git tag v1.0.0 && git push
-   --tags`) to trigger `.github/workflows/publish-images.yml`, which builds
-   and pushes `app`, `p2pool`, and `monerod` to GHCR. Read that workflow's
-   header comment first — it only builds `linux/amd64` by default; arm64
-   (Raspberry Pi) needs extra work explained there. Once published, pin each
-   `image:` line in `TripleX-triple-x/docker-compose.yml` to
-   `@sha256:<digest>`, the way Umbrel's own apps do.
+2. **Publish the five images.** Push a version tag (e.g. `git tag
+   v1.0-Alpha4 && git push origin v1.0-Alpha4`) to trigger
+   `.github/workflows/publish-images.yml`, which builds and pushes `app`,
+   `p2pool`, `monerod`, `monero-wallet-rpc`, and `minotari-wallet` to GHCR.
+   Read that workflow's header comment first — it only builds `linux/amd64`
+   by default; arm64 (Raspberry Pi) needs extra work explained there. Once
+   published, pin each `image:` line in `TripleX-triple-x/docker-compose.yml`
+   to `@sha256:<digest>`, the way Umbrel's own apps do, and bump
+   `umbrel-app.yml`'s `version:` and the on-screen badge in
+   `app/public/index.html` to match.
 3. **Add your store.** On the device: `Settings → App Stores → Add store`,
    paste this repo's URL. (5tratumOS's own README documents the same flow
    for its AxeSuite stores, and the underlying mechanism —
