@@ -792,6 +792,11 @@ const WALLET_COINS = [
       createStatus: 'pv-wallet-tari-create-status',
       useBtn: 'pv-wallet-tari-use',
       useStatus: 'pv-wallet-tari-use-status',
+      external: 'pv-wallet-tari-external',
+      externalAddress: 'pv-wallet-tari-external-address',
+      balanceSection: 'pv-wallet-tari-balance-section',
+      sendSection: 'pv-wallet-tari-send-section',
+      seedSection: 'pv-wallet-tari-seed-section',
       step1: 'pv-wallet-reveal-step1',
       confirm: 'pv-wallet-reveal-confirm',
       step2: 'pv-wallet-reveal-step2',
@@ -832,6 +837,11 @@ const WALLET_COINS = [
       createStatus: 'pv-wallet-xmr-create-status',
       useBtn: 'pv-wallet-xmr-use',
       useStatus: 'pv-wallet-xmr-use-status',
+      external: 'pv-wallet-xmr-external',
+      externalAddress: 'pv-wallet-xmr-external-address',
+      balanceSection: 'pv-wallet-xmr-balance-section',
+      sendSection: 'pv-wallet-xmr-send-section',
+      seedSection: 'pv-wallet-xmr-seed-section',
       step1: 'pv-wallet-xmr-reveal-step1',
       confirm: 'pv-wallet-xmr-reveal-confirm',
       step2: 'pv-wallet-xmr-reveal-step2',
@@ -864,15 +874,30 @@ async function refreshWalletTab() {
 
     // No wallet exists yet (as opposed to "exists but RPC is unreachable") -
     // show the Create Wallet button instead of the address/use-address UI.
+    // Unless a payout/merge-mining address is already saved in Settings
+    // without ever being created here - that's an externally-managed
+    // wallet (see the /api/wallet/* routes), so show that state instead of
+    // offering to create an unrelated wallet.
+    const hasWallet = !!data.address;
+    const isExternal = !hasWallet && !!data.external;
     const createBtn = document.getElementById(coin.ids.createBtn);
     const addressField = document.getElementById(coin.ids.addressField);
     const useBtn = document.getElementById(coin.ids.useBtn);
     if (createBtn && addressField && useBtn) {
-      const hasWallet = !!data.address;
-      createBtn.style.display = hasWallet ? 'none' : '';
+      createBtn.style.display = (hasWallet || isExternal) ? 'none' : '';
       addressField.style.display = hasWallet ? '' : 'none';
       useBtn.style.display = hasWallet ? '' : 'none';
     }
+    const externalEl = document.getElementById(coin.ids.external);
+    if (externalEl) externalEl.style.display = isExternal ? '' : 'none';
+    const externalAddressEl = document.getElementById(coin.ids.externalAddress);
+    if (externalAddressEl) externalAddressEl.value = data.externalAddress || '—';
+    const balanceSectionEl = document.getElementById(coin.ids.balanceSection);
+    if (balanceSectionEl) balanceSectionEl.style.display = isExternal ? 'none' : '';
+    const sendSectionEl = document.getElementById(coin.ids.sendSection);
+    if (sendSectionEl) sendSectionEl.style.display = isExternal ? 'none' : '';
+    const seedSectionEl = document.getElementById(coin.ids.seedSection);
+    if (seedSectionEl) seedSectionEl.style.display = isExternal ? 'none' : '';
 
     if (coin.cardAddressId) {
       const cardAddressEl = document.getElementById(coin.cardAddressId);

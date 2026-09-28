@@ -631,6 +631,23 @@
           This dashboard never holds funds itself - it just talks to the bundled Minotari wallet container. No
           wallet is created until you ask for one.
         </div>
+
+        <!-- Shown instead of Create/address/use when a Tari address is already
+             saved in Settings but no wallet was ever created here - that
+             address is externally managed (a hardware wallet, another Tari
+             client, etc.), so this dashboard has no keys/balance/send/seed
+             for it and offering Create Wallet would just be confusing. -->
+        <div id="pv-wallet-tari-external" style="display:none;">
+          <div class="hint">
+            This address is set in Settings but wasn't created here - it's managed by an external Tari wallet.
+            Balance, sending, and seed backup aren't available for it from this dashboard.
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label>Merge-Mining Address</label>
+            <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-external-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-external-address">Copy</button></div>
+          </div>
+        </div>
+
         <button class="primary" id="pv-wallet-tari-create" style="margin-top:10px;">Create Wallet</button>
         <div class="hint" id="pv-wallet-tari-create-status"></div>
         <div class="field" id="pv-wallet-tari-address-field" style="margin-top:14px; display:none;">
@@ -640,7 +657,7 @@
         <button class="primary" id="pv-wallet-tari-use" style="display:none;">Use this address for merge-mining</button>
         <div class="hint" id="pv-wallet-tari-use-status"></div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-tari-balance-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Balance</div>
           <div class="v1-stat-row">
             <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-available">—</div><div class="v1-sub">Available</div></div>
@@ -649,7 +666,7 @@
           </div>
         </div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-tari-send-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Send XTM</div>
           <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
           <div class="field" style="margin-top:10px;">
@@ -669,7 +686,7 @@
           <div class="hint" id="pv-wallet-tari-send-status"></div>
         </div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-tari-seed-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div style="display:flex; align-items:center; gap:10px;">
             <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
             <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>
@@ -731,6 +748,24 @@
           This dashboard never holds funds itself - it just talks to the bundled monero-wallet-rpc container. No
           wallet is created until you ask for one.
         </div>
+
+        <!-- Shown instead of Create/address/use when a Monero address is
+             already saved in Settings but no wallet was ever created here -
+             that address is externally managed (a hardware wallet, mobile
+             wallet, exchange, etc.), so this dashboard has no keys/balance/
+             send/seed for it and offering Create Wallet would just be
+             confusing. -->
+        <div id="pv-wallet-xmr-external" style="display:none;">
+          <div class="hint">
+            This address is set in Settings but wasn't created here - it's managed by an external Monero wallet.
+            Balance, sending, and seed backup aren't available for it from this dashboard.
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label>Payout Address</label>
+            <div class="copy-row"><input type="text" readonly id="pv-wallet-xmr-external-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-xmr-external-address">Copy</button></div>
+          </div>
+        </div>
+
         <button class="primary" id="pv-wallet-xmr-create" style="margin-top:10px;">Create Wallet</button>
         <div class="hint" id="pv-wallet-xmr-create-status"></div>
         <div class="field" id="pv-wallet-xmr-address-field" style="margin-top:14px; display:none;">
@@ -740,7 +775,7 @@
         <button class="primary" id="pv-wallet-xmr-use" style="display:none;">Use this address as my payout address</button>
         <div class="hint" id="pv-wallet-xmr-use-status"></div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-xmr-balance-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Balance</div>
           <div class="v1-stat-row">
             <div><div class="v1-big" style="font-size:18px" id="pv-wallet-xmr-balance-available">—</div><div class="v1-sub">Unlocked</div></div>
@@ -748,7 +783,7 @@
           </div>
         </div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-xmr-send-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div class="v1-label">Send XMR</div>
           <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
           <div class="field" style="margin-top:10px;">
@@ -768,7 +803,7 @@
           <div class="hint" id="pv-wallet-xmr-send-status"></div>
         </div>
 
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+        <div id="pv-wallet-xmr-seed-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
           <div style="display:flex; align-items:center; gap:10px;">
             <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
             <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>

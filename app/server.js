@@ -436,7 +436,16 @@ app.get('/api/wallet/tari', async (req, res) => {
     // Wallet click, or not run in this stack) - not an error the user needs
     // a stack trace for.
   }
-  res.json({ address, seedAvailable: tariWallet.seedAvailable() });
+  // Same "external wallet" case as /api/wallet/monero above - a Tari
+  // merge-mining address saved in Settings that this dashboard never
+  // created itself.
+  const externalAddress = address ? null : (config.readSettings().tariAddress || null);
+  res.json({
+    address,
+    seedAvailable: tariWallet.seedAvailable(),
+    external: !!externalAddress,
+    externalAddress,
+  });
 });
 
 // The Tari wallet container waits for this before it ever generates a
@@ -528,7 +537,19 @@ app.get('/api/wallet/monero', async (req, res) => {
     // monero-wallet-rpc not reachable yet, or still syncing with monerod -
     // not an error the user needs a stack trace for.
   }
-  res.json({ address, seedAvailable: address ? !moneroWalletState.seedRevealed() : false });
+  // No wallet was ever created here, but a payout address is saved in
+  // Settings anyway - that address belongs to a wallet this dashboard
+  // doesn't hold keys for (a hardware wallet, mobile wallet, exchange,
+  // etc.). The Wallet tab shows that as its own state rather than offering
+  // "Create Wallet", which would generate an unrelated wallet with no
+  // connection to the address actually receiving payouts.
+  const externalAddress = address ? null : (config.readSettings().walletAddress || null);
+  res.json({
+    address,
+    seedAvailable: address ? !moneroWalletState.seedRevealed() : false,
+    external: !!externalAddress,
+    externalAddress,
+  });
 });
 
 // Explicit "Create Wallet" click - see moneroWalletRpc.js's ensureWalletOpen
