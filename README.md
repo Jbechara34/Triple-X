@@ -1,9 +1,9 @@
 # Triple X
 
 A self-hosted Monero full node + [P2Pool](https://github.com/SChernykh/p2pool)
-node, built from source, with optional Tari (XTM) merge-mining, and a web
-dashboard for status, pool stats, blocks found, wallet management, and
-settings.
+node, built from source, with optional Tari (XTM) merge-mining, Monero/Tari
+wallet management, Discord webhook alerts, and a web dashboard for status,
+pool stats, blocks found, and settings.
 
 Payouts go straight to **your own wallet address** — there's no third party
 pool operator and no custody of funds at any point. 0% fee, same as running
@@ -13,10 +13,41 @@ P2Pool directly.
 
 | Tab | What it shows |
 |---|---|
-| **Main** | Sync status/progress, hashrate, best share vs. network difficulty, and a readiness checklist (Node RPC, payout address, blockchain sync, stratum). |
-| **Pool** | Live stats for the P2Pool sidechain you're mining on (Standard/Mini/Nano): connected workers, hashrate over multiple windows, network difficulty/height, best share, per-worker detail, and the miner connection info (stratum URL + payout address + setup instructions). |
+| **Overview** | Sync status/progress for both chains, hashrate, best share vs. network difficulty, and a readiness checklist (Node RPC, payout address, a proper 3-state blockchain sync indicator — *Not Running* / *Syncing* / *Synced* — and stratum) plus a network-ports panel. |
+| **Pool** | Live stats for the P2Pool sidechain you're mining on (Standard/Mini/Nano): connected workers, hashrate over multiple windows, network difficulty/height, best share, per-worker detail, Tari (XTM) merge-mining status, and the miner connection info (stratum URL + payout address + setup instructions, including a note that P2Pool's stratum never actually checks the password field). |
 | **Blocks** | Blocks your node's P2Pool sidechain has found, each linking to a block explorer so you can independently verify the payout landed on your address. |
-| **Settings** | Your Monero payout address and P2Pool mode (Standard / Mini / Nano). Saving here hot-restarts P2Pool with the new settings — no need to touch Docker. |
+| **Wallet** | Create, view balance for, send from, and recover (via seed phrase) both your Monero and Tari wallets, straight from the dashboard — no CLI needed. |
+| **Logs** | Live tail of the P2Pool log, optional per Settings. |
+| **Settings** | Payout addresses, P2Pool mode (Standard / Mini / Nano, with a built-in "Which Pool Type Should I Use?" advisor), Discord webhook notifications, memory-usage tuning, and blockchain import — organized into collapsible sections so the tab stays short. Saving hot-restarts P2Pool with the new settings within ~10 seconds — no need to touch Docker. |
+
+## Recent additions
+
+- **Discord webhook notifications** (`app/lib/discordNotify.js`) — get pinged
+  in a Discord channel when a Monero block, a Tari block, or (optionally,
+  off by default) a P2Pool share is found. Nothing is ever sent until you
+  paste a webhook URL into Settings; a "Send Test Notification" button
+  confirms it's wired up correctly before you rely on it.
+- **Wallet tab** — create a fresh Monero or Tari wallet, check balance, send
+  funds, and recover a wallet from its seed phrase, all from the dashboard.
+  The dashboard itself never holds funds; it talks to the bundled
+  `monero-wallet-rpc` / Minotari wallet containers.
+- **3-state blockchain sync readiness** — the Overview checklist now
+  distinguishes "node isn't reachable yet" (red, *Not Running*) from "node is
+  up but still catching up" (orange, *Syncing*) from "fully caught up" (green,
+  *Synced*), instead of collapsing the first two into one red state.
+- **Stratum password clarified** — confirmed directly from
+  [P2Pool's stratum server source](https://github.com/SChernykh/p2pool/blob/master/src/stratum_server.cpp)
+  that the password field is never parsed at all, so the Miner Configuration
+  panel now says so instead of leaving miners guessing what to put there.
+- **Pool-type advisor** — a "Which Pool Type Should I Use?" panel in Settings
+  explains Standard/Mini/Nano PPLNS window sizes (6h / 6h / 18h, from P2Pool's
+  own sidechain constants) and links to P2Pool's live Average Share Time
+  Calculator for hashrate-specific guidance, rather than hardcoding
+  recommendations that aren't fixed protocol constants.
+- **Condensed Settings tab** — Discord Notifications, the pool-type advisor,
+  and the P2Pool memory-usage flags are now collapsed by default
+  (native `<details>` sections) so the tab doesn't dominate the screen; core
+  fields (addresses, pool type, Save button) stay always visible.
 
 ## Platforms
 
@@ -82,7 +113,7 @@ docker compose up -d --build
 
 Then open `http://<host>:3000`, go to **Settings**, paste your Monero primary
 wallet address (starts with `4`), pick a pool mode, and save. Watch the
-**Main** tab until sync finishes (hours to a couple of days for a first
+**Overview** tab until sync finishes (hours to a couple of days for a first
 sync), then grab your stratum URL from the **Pool** tab.
 
 ## Quick start — Umbrel / 5tratumOS app store install
@@ -206,12 +237,45 @@ docker/p2pool/                               # from-source p2pool build + hot-re
   publish-images.yml                            # CI: publishes images to GHCR on a version tag
 app/                                          # the dashboard
   server.js                                     # Express API
-  lib/config.js                                  # Settings persistence (wallet address, pool mode)
+  lib/config.js                                  # Settings persistence (wallet/Tari address, pool mode, Discord, flags)
   lib/moneroRpc.js                                # monerod RPC client
-  lib/p2poolApi.js                                 # reads p2pool's --data-api JSON files
-  lib/blocks.js                                     # tails p2pool's log for blocks/workers
-  public/                                            # frontend (vanilla HTML/CSS/JS, Monero-GUI-style dark+orange theme)
+  lib/minotariRpc.js                               # Minotari (Tari) node RPC client
+  lib/p2poolApi.js                                  # reads p2pool's --data-api JSON files
+  lib/p2poolObserver.js                              # optional p2pool.observer network-wide stats (opt-in)
+  lib/blocks.js                                       # tails p2pool's log for blocks/workers, fires Discord alerts
+  lib/tariBlocks.js                                    # tails the Tari node's log for blocks found, fires Discord alerts
+  lib/discordNotify.js                                  # sends/tests Discord webhook notifications
+  lib/moneroWalletRpc.js                                 # monero-wallet-rpc client (Wallet tab)
+  lib/moneroWalletState.js                                # tracks whether a Monero wallet has been created
+  lib/minotariWalletRpc.js                                 # Minotari wallet RPC client (Wallet tab)
+  lib/tariWallet.js                                         # Tari wallet create/balance/send
+  lib/tariWalletRecovery.js                                  # Tari wallet recovery from seed phrase
+  lib/blockchainImport.js                                     # opt-in: import a pre-synced blockchain (needs Docker socket)
+  lib/dockerControl.js                                         # start/stop compose services (import + wallet recovery flows)
+  lib/remoteBrowse.js                                           # browse a remote host over SSH (blockchain import source)
+  lib/logs.js                                                    # Logs tab support
+  public/                                                         # frontend (vanilla HTML/CSS/JS, Monero-GUI-style dark+orange theme)
+    img/                                                            # UI image assets - see Credits below
 ```
+
+## Credits
+
+This dashboard's UI reuses image assets from official upstream projects
+rather than drawing everything from scratch. Full credit to their original
+authors:
+
+| Asset(s) | Source | Project |
+|---|---|---|
+| `app/public/img/monero-icon.png` | Monero's official ["ghost" symbol](https://www.getmonero.org/press-kit/) | [The Monero Project](https://github.com/monero-project) |
+| `app/public/img/xmr-verify.png`, `app/public/img/xmr-write-down.png`, `app/public/img/xmr-card-bg.png` | Icons/card background from the official Monero GUI wallet's asset pack | [`monero-project/monero-gui`](https://github.com/monero-project/monero-gui) (BSD-3-Clause) |
+| `app/public/img/tari-icon.png` | Tari's official logo | [The Tari Project](https://github.com/tari-project) |
+| `app/public/img/tari-card-bg-landscape.png` | Composed for this project using the Tari logo above | — |
+
+No trademark or endorsement by the Monero Project or the Tari Project is
+implied — these are community-reused brand/UI assets from their own public
+repositories, used here purely to keep the wallet cards visually consistent
+with the coins they represent. If you're the rights holder for any of these
+and would prefer a different treatment (or removal), please open an issue.
 
 ## Security notes
 
