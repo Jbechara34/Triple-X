@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v0.0.1-Dev7"
+version: "v0.0.1-Dev8"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -31,6 +31,18 @@ defaultPassword: ""
 submitter: SIlver765
 submission: https://github.com/SIlver765/Triple-X
 releaseNotes: >-
+  v0.0.1-Dev8: new hidden, opt-in "Import Blockchain" feature in Settings -
+  pulls a pre-synced monerod data directory from another machine over
+  SSH/rsync, so a new install doesn't have to sync from the network from
+  scratch. Off by default (toggle in Settings) since it requires mounting
+  the Docker socket into the app container to safely stop/start monerod
+  around the copy - full instructions are shown in the app, including how
+  to enable an SSH server on the source machine (Windows/Linux/macOS). Adds
+  a "Browse..." button next to the Remote Path field that pops up a real
+  folder browser (via SFTP) for the other machine, instead of typing a
+  path blind. Also fixes the password/textarea fields in Settings
+  rendering with a pure-white background instead of matching the app's
+  theme.
   v0.0.1-Dev7: per-flag P2Pool memory-usage toggles in Settings
   (--light-mode, --no-randomx, --no-cache, each independently switchable
   with an explanation). Wallet tab now shows real balances and can send

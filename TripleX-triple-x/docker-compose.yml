@@ -25,7 +25,7 @@ services:
     # whatever it already has cached under a floating tag. Update this
     # digest (see ../.github/workflows/publish-images.yml) every time a new
     # version is published.
-    image: ghcr.io/silver765/triple-x-app@sha256:becd74a82b3ce21cc57afb5780e984e77cc055587db7f4e0d95dedaedb8bc316
+    image: ghcr.io/silver765/triple-x-app@sha256:b89388031ff326d96fbde5b1c3cfd2b7578222568be84f7d685049c8979c73af
     restart: on-failure
     stop_grace_period: 1m
     volumes:
@@ -78,7 +78,7 @@ services:
     # Dev3 rebuilds with the merged HOME/setpriv fix (previously only on
     # main, missing from Dev1/Dev2) - fixes "Permission denied:
     # /root/.bitmonero" at runtime.
-    image: ghcr.io/silver765/triple-x-monerod@sha256:63078b01c460400e05dcc1b3424ed9b5d01f235d3088d2f5fa86dccb5a585bd0
+    image: ghcr.io/silver765/triple-x-monerod@sha256:c1fb9a92c5dc207b29111a93bf1a31db0a7d0cdd6af0b957995b41027ae9e174
     restart: on-failure
     stop_grace_period: 1m
     command:
@@ -111,7 +111,7 @@ services:
     # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's
     # image above. Shares docker/monerod/Dockerfile's builder stage with
     # monerod itself, just a different final target.
-    image: ghcr.io/silver765/triple-x-monero-wallet-rpc@sha256:83db917e0555d4f65c7be61d71e179c0f3f4438917a1e7ea052a4ee9f3773988
+    image: ghcr.io/silver765/triple-x-monero-wallet-rpc@sha256:2b2e05c5447c711701f99b6496750640c0272a16f262fcf7d33e371a19127aa5
     restart: on-failure
     stop_grace_period: 1m
     depends_on:
@@ -132,7 +132,7 @@ services:
     # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
     # Dev3 rebuilds with the merged HOME/setpriv fix - fixes the crash-loop
     # caused by monerod being unreachable/permission-denied.
-    image: ghcr.io/silver765/triple-x-p2pool@sha256:6f911a87edb8445ed3dac8c34a2fe858769aba250d2cb970a5e448f5e19417a3
+    image: ghcr.io/silver765/triple-x-p2pool@sha256:39ec3ea2b69391da9c5a1aed8e81e6c6bdbd01d927ce6366570d8b0b8a4dea30
     restart: on-failure
     stop_grace_period: 1m
     environment:
@@ -207,7 +207,7 @@ services:
 
   minotari-wallet:
     # Pinned to the v0.0.1-Dev3 build's exact digest - see note on web's image above.
-    image: ghcr.io/silver765/triple-x-minotari-wallet@sha256:e5a0300336adac1d48ce6b2d304bb158a174ac46605248e5a09b0a66e00fc758
+    image: ghcr.io/silver765/triple-x-minotari-wallet@sha256:6891b8f566917a45bccf5635b5a3aac58a87f2270da1efcec2630def03d53951
     restart: on-failure
     stop_grace_period: 1m
     command:
