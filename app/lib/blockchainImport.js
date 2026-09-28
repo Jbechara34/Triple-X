@@ -79,6 +79,14 @@ function runRsync({ host, port, username, authMethod, password, privateKey, remo
       '-o', `UserKnownHostsFile=${KNOWN_HOSTS_FILE}`,
       '-o', 'BatchMode=yes',
       '-o', 'ConnectTimeout=15',
+      // Windows' bundled OpenSSH Server is often an older build that doesn't
+      // support the post-quantum hybrid KEX this container's (newer) ssh
+      // client tries first - instead of a clean fallback, that mismatch
+      // makes the server just reset the connection ("Connection reset by
+      // <host> port 22" / rsync exit 255). Forcing classical-only KEX here
+      // sidesteps that; every OpenSSH version in practical use supports at
+      // least curve25519-sha256.
+      '-o', 'KexAlgorithms=curve25519-sha256,curve25519-sha256@libssh.org,ecdh-sha2-nistp256,diffie-hellman-group14-sha256',
     ];
 
     const env = { ...process.env };
