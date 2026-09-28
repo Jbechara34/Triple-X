@@ -77,7 +77,6 @@ function runRsync({ host, port, username, authMethod, password, privateKey, remo
       '-p', String(port),
       '-o', 'StrictHostKeyChecking=accept-new',
       '-o', `UserKnownHostsFile=${KNOWN_HOSTS_FILE}`,
-      '-o', 'BatchMode=yes',
       '-o', 'ConnectTimeout=15',
       // Windows' bundled OpenSSH Server is often an older build that doesn't
       // support the post-quantum hybrid KEX this container's (newer) ssh
@@ -94,9 +93,17 @@ function runRsync({ host, port, username, authMethod, password, privateKey, remo
     if (authMethod === 'key') {
       keyFile = path.join(os.tmpdir(), `import-key-${Date.now()}-${Math.random().toString(36).slice(2)}`);
       fs.writeFileSync(keyFile, privateKey.endsWith('\n') ? privateKey : `${privateKey}\n`, { mode: 0o600 });
-      sshCommand = ['ssh', ...sshBaseArgs, '-i', keyFile].join(' ');
+      // BatchMode=yes only makes sense here - a key is provided, so no
+      // interactive prompt should ever be needed, and this stops ssh from
+      // hanging on one if something's wrong with the key.
+      sshCommand = ['ssh', ...sshBaseArgs, '-o', 'BatchMode=yes', '-i', keyFile].join(' ');
     } else {
       env.SSHPASS = password;
+      // No BatchMode=yes here - it disables ssh's password prompt entirely,
+      // which is the one thing sshpass needs to be able to answer. With it
+      // set, the server exhausts its auth attempts with no password ever
+      // sent and just resets the connection instead of a clean "Permission
+      // denied" - that's what surfaced as rsync exit 255 for password auth.
       sshCommand = ['sshpass', '-e', 'ssh', ...sshBaseArgs].join(' ');
     }
 
