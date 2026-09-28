@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+  <rect x="3" y="3" width="250" height="250" rx="56" fill="#14161a" stroke="#ff6600" stroke-width="6" />
+  <image href="monero-icon.png" x="40" y="32" width="176" height="176" />
+  <circle cx="198" cy="198" r="48" fill="#14161a" stroke="#0b0d10" stroke-width="4" />
+  <image href="tari-icon.png" x="162" y="162" width="72" height="72" />
+</svg>

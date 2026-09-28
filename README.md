@@ -301,6 +301,7 @@ authors:
 | `app/public/img/xmr-verify.png`, `app/public/img/xmr-write-down.png`, `app/public/img/xmr-card-bg.png` | Icons/card background from the official Monero GUI wallet's asset pack | [`monero-project/monero-gui`](https://github.com/monero-project/monero-gui) (BSD-3-Clause) |
 | `app/public/img/tari-icon.png` | Tari's official logo | [The Tari Project](https://github.com/tari-project) |
 | `app/public/img/tari-card-bg-landscape.png` | Composed for this project using the Tari logo above | — |
+| `app/public/img/app-icon.svg`, `TripleX-triple-x/icon.svg` | The app/favicon icon - Monero's ghost symbol (primary) with Tari's logo as a merge-mining badge, composed from the two assets above | — |
 
 No trademark or endorsement by the Monero Project or the Tari Project is
 implied — these are community-reused brand/UI assets from their own public
