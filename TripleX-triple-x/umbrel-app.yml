@@ -4,7 +4,7 @@ manifestVersion: 1
 id: TripleX-triple-x
 category: bitcoin # umbrel's App Store schema doesn't have a "monero" category as of writing - change if one exists on your umbrelOS/5tratumOS version
 name: Triple X
-version: "v1.0-Alpha1"
+version: "v1.0-Alpha2"
 tagline: Monero + P2Pool + Tari (XTM) merge-mining, one self-hosted dashboard
 description: >-
   Runs a full Monero node (monerod) and a P2Pool node side by side, with a
@@ -31,6 +31,12 @@ defaultPassword: ""
 submitter: SIlver765
 submission: https://github.com/SIlver765/Triple-X
 releaseNotes: >-
+  v1.0-Alpha2: fixes Import Blockchain failing with password
+  authentication ("rsync exited with code 255 - Connection reset by
+  <host> port 22" right after host-key verification). BatchMode=yes was
+  disabling ssh's password prompt entirely, so the password auth path
+  never actually got a chance to send the password. Only applied on the
+  key-based auth path now.
   v1.0-Alpha1: entering Alpha - the Dev1-Dev11 numbered builds are done,
   versioning moves to v1.0-AlphaN going forward. No functional changes
   from Dev11; this is a naming/versioning milestone marking the app as
