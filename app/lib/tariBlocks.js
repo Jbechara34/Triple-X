@@ -25,6 +25,7 @@ const STATE_DIR = process.env.STATE_DIR || '/data/state';
 const STATE_FILE = path.join(STATE_DIR, 'tari-blocks-state.json');
 
 const MAX_BLOCKS = 200;
+const MIN_SAVE_INTERVAL_MS = 60 * 1000; // see app/lib/blocks.js's identical constant - batch writes instead of rewriting the whole state file every poll tick
 
 // Best-effort - see header comment.
 const BLOCK_FOUND_RE = /\b(mined|found|submitted)\b[^\n]*\bblock\b[^\n]*?(?:height|#)[:\s]+(\d+)/i;
@@ -63,6 +64,19 @@ async function saveState() {
   }
 }
 
+// Batches writes instead of saving on every poll tick with a new line -
+// `force` (a block was just found) bypasses the throttle.
+let dirty = false;
+let lastSavedAt = 0;
+async function maybeSaveState(force) {
+  if (!dirty) return;
+  const now = Date.now();
+  if (!force && now - lastSavedAt < MIN_SAVE_INTERVAL_MS) return;
+  dirty = false;
+  lastSavedAt = now;
+  await saveState();
+}
+
 function parseLine(line) {
   if (!/mined|block found|submitted block/i.test(line)) return;
 
@@ -90,7 +104,10 @@ async function pollOnce() {
     }
 
     const toRead = stat.size - state.offset;
-    if (toRead <= 0) return;
+    if (toRead <= 0) {
+      await maybeSaveState();
+      return;
+    }
 
     const buf = Buffer.alloc(toRead);
     await fh.read(buf, 0, toRead, state.offset);
@@ -98,14 +115,17 @@ async function pollOnce() {
 
     const text = buf.toString('utf8');
     const lines = text.split('\n');
-    let changed = false;
+    let blockFound = false;
     for (const line of lines) {
       if (!line.trim()) continue;
       const before = state.blocks.length;
       parseLine(line);
-      if (state.blocks.length !== before) changed = true;
+      if (state.blocks.length !== before) {
+        blockFound = true;
+        dirty = true;
+      }
     }
-    if (changed) await saveState();
+    await maybeSaveState(blockFound);
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error('[tariBlocks] log poll failed:', err.message);

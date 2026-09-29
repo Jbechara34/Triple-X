@@ -100,6 +100,12 @@ async function getJSON(url) {
 const MAX_SPARK_POINTS = 60; // 10 minutes at the 10s refresh interval
 const sparkHistory = { hashrate: [], difficulty: [] };
 
+// The readiness checklist and port list rarely change between 10s polls -
+// these cache the last rendered HTML so refreshAll() can skip the
+// innerHTML teardown/rebuild when nothing actually changed.
+let lastCheckGridHtml = null;
+let lastPortListHtml = null;
+
 function pushSparkPoint(key, value) {
   if (value === null || value === undefined || !Number.isFinite(value)) return;
   const arr = sparkHistory[key];
@@ -149,12 +155,18 @@ async function refreshAll() {
   let pool = null;
   let blocksData = null;
   let settings = null;
+  let tariBlocksData = null;
   try {
-    [status, pool, blocksData, settings] = await Promise.all([
+    // XTM blocks fetched here too (in parallel, not after) - it used to be
+    // a second, sequential await further down, adding a full extra
+    // round-trip to every poll tick before anything below it could render.
+    // Its own .catch keeps a failure non-fatal, same as before.
+    [status, pool, blocksData, settings, tariBlocksData] = await Promise.all([
       getJSON('/api/status'),
       getJSON('/api/pool'),
       getJSON('/api/blocks'),
       getJSON('/api/settings'),
+      getJSON('/api/blocks?coin=xtm').catch(() => null),
     ]);
   } catch (err) {
     console.error('[preview] refresh failed', err);
@@ -217,7 +229,7 @@ async function refreshAll() {
   const readyCount = allChecks.filter((c) => readiness[c.key]).length;
   const checkGrid = document.getElementById('pv-check-grid');
   if (checkGrid) {
-    checkGrid.innerHTML = checks
+    const html = checks
       .map((c) => {
         // Blockchain Sync gets a three-way state instead of just good/bad -
         // "not running" (monerod unreachable) is a different problem than
@@ -245,6 +257,12 @@ async function refreshAll() {
         </div>`;
       })
       .join('');
+    // These booleans rarely flip between 10s polls - skip the teardown/
+    // rebuild of every card's DOM nodes when nothing actually changed.
+    if (html !== lastCheckGridHtml) {
+      checkGrid.innerHTML = html;
+      lastCheckGridHtml = html;
+    }
   }
 
   // P2Pool only ever listens on ONE p2p port at a time - whichever matches
@@ -298,7 +316,7 @@ async function refreshAll() {
     // Monero's port row first, then the 3 P2Pool port rows together, then
     // Tari (if configured) - keeps the stack grouped by what it's checking.
     const rows = [otherRows[0], ...p2poolRows, ...otherRows.slice(1)].filter(Boolean);
-    portList.innerHTML = rows
+    const html = rows
       .map(
         (r) => `<div class="pv-port-row">
           <span class="status-light ${r.light || ''}"></span>
@@ -308,6 +326,10 @@ async function refreshAll() {
         </div>`
       )
       .join('');
+    if (html !== lastPortListHtml) {
+      portList.innerHTML = html;
+      lastPortListHtml = html;
+    }
   }
   const readyPill = document.getElementById('pv-ready-pill');
   if (readyPill) {
@@ -459,12 +481,9 @@ async function refreshAll() {
       : '<div class="pv-empty">No workers connected yet.</div>';
   }
 
-  // Tari payout address + XTM blocks table
+  // Tari payout address + XTM blocks table (tariBlocksData fetched above,
+  // alongside the other four requests)
   setText('pv-tari-address', pool.tari?.payoutAddress || '—');
-  let tariBlocksData = null;
-  try {
-    tariBlocksData = await getJSON('/api/blocks?coin=xtm');
-  } catch (err) { /* non-fatal */ }
   const tariBlocksBody = document.getElementById('pv-tari-blocks-body');
   if (tariBlocksBody && tariBlocksData) {
     tariBlocksBody.innerHTML = (tariBlocksData.blocks || []).length

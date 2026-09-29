@@ -43,6 +43,8 @@ const STATE_FILE = path.join(STATE_DIR, 'blocks-state.json');
 
 const MAX_BLOCKS = 200;
 const WORKER_STALE_MS = 24 * 60 * 60 * 1000; // drop workers not seen in 24h from the "active" view
+const WORKER_PRUNE_MS = 90 * 24 * 60 * 60 * 1000; // forget workers not seen in 90 days entirely, so state.workers doesn't grow forever over a long-running install
+const MIN_SAVE_INTERVAL_MS = 60 * 1000; // during active mining almost every 15s poll tick has new shares - rewriting the whole state file (all blocks + all workers) that often is wasted disk I/O for a cache that only needs to survive a restart, so batch writes to at most once/minute (a found block still flushes immediately, see maybeSaveState)
 
 // Best-effort patterns - see header comment.
 const BLOCK_FOUND_RE = /BLOCK FOUND[^\n]*?height[:\s]+(\d+)[^\n]*/i;
@@ -75,11 +77,21 @@ async function loadState() {
   }
 }
 
+function pruneStaleWorkers() {
+  const now = Date.now();
+  for (const [name, w] of Object.entries(state.workers)) {
+    if (now - new Date(w.lastSeen).getTime() > WORKER_PRUNE_MS) {
+      delete state.workers[name];
+    }
+  }
+}
+
 let saveQueued = false;
 async function saveState() {
   if (saveQueued) return;
   saveQueued = true;
   try {
+    pruneStaleWorkers();
     await fsp.mkdir(STATE_DIR, { recursive: true });
     const tmp = `${STATE_FILE}.tmp`;
     await fsp.writeFile(tmp, JSON.stringify(state, null, 2));
@@ -89,6 +101,20 @@ async function saveState() {
   } finally {
     saveQueued = false;
   }
+}
+
+// Batches writes (see MIN_SAVE_INTERVAL_MS above) instead of saving on every
+// single poll tick that had new log lines. `force` (a block was just found)
+// bypasses the throttle - that event is rare and worth persisting right away.
+let dirty = false;
+let lastSavedAt = 0;
+async function maybeSaveState(force) {
+  if (!dirty) return;
+  const now = Date.now();
+  if (!force && now - lastSavedAt < MIN_SAVE_INTERVAL_MS) return;
+  dirty = false;
+  lastSavedAt = now;
+  await saveState();
 }
 
 function parseLine(line) {
@@ -149,7 +175,12 @@ async function pollOnce() {
     }
 
     const toRead = stat.size - state.offset;
-    if (toRead <= 0) return;
+    if (toRead <= 0) {
+      // No new log lines this tick, but a previous tick may still be
+      // waiting out the save throttle below - give it a chance to flush.
+      await maybeSaveState();
+      return;
+    }
 
     const buf = Buffer.alloc(toRead);
     await fh.read(buf, 0, toRead, state.offset);
@@ -157,15 +188,16 @@ async function pollOnce() {
 
     const text = buf.toString('utf8');
     const lines = text.split('\n');
-    let changed = false;
+    let blockFound = false;
     for (const line of lines) {
       if (!line.trim()) continue;
+      if (/BLOCK FOUND/i.test(line)) blockFound = true;
       if (/BLOCK FOUND|SHARE FOUND/i.test(line)) {
         parseLine(line);
-        changed = true;
+        dirty = true;
       }
     }
-    if (changed) await saveState();
+    await maybeSaveState(blockFound);
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error('[blocks] log poll failed:', err.message);

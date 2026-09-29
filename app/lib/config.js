@@ -53,15 +53,30 @@ function ensureDir() {
   fs.mkdirSync(CONFIG_DIR, { recursive: true });
 }
 
+// readSettings() is called several times per poll tick (status/pool/blocks/
+// settings routes, plus both wallet routes) - cache the parsed result keyed
+// on the file's mtime so those redundant calls within the same tick skip
+// the readFileSync+JSON.parse and only pay for a cheap statSync. Only this
+// process ever writes settings.json (see writeSettings() below), so an
+// mtime check is a safe invalidation signal.
+let cache = null; // { data, mtimeMs }
+
 function readSettings() {
   try {
+    const { mtimeMs } = fs.statSync(CONFIG_FILE);
+    if (cache && cache.mtimeMs === mtimeMs) {
+      return cache.data;
+    }
     const raw = fs.readFileSync(CONFIG_FILE, 'utf8');
     const parsed = JSON.parse(raw);
-    return { ...DEFAULTS, ...parsed };
+    const data = { ...DEFAULTS, ...parsed };
+    cache = { data, mtimeMs };
+    return data;
   } catch (err) {
     if (err.code !== 'ENOENT') {
       console.error('[config] failed to read settings.json:', err.message);
     }
+    cache = null;
     return { ...DEFAULTS };
   }
 }

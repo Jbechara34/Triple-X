@@ -18,10 +18,22 @@ const STATE_FILE = process.env.MONERO_WALLET_STATE_FILE || '/data/state/monero-w
 
 const DEFAULT_WALLET_NAME = 'dashboard';
 
+// seedRevealed()/getActiveWalletName() are hit on every /api/wallet/monero
+// poll (every ~15s) - cache the parsed file by mtime so that doesn't mean a
+// readFileSync+JSON.parse per poll, same reasoning as lib/config.js.
+let cache = null; // { data, mtimeMs }
+
 function read() {
   try {
-    return JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    const { mtimeMs } = fs.statSync(STATE_FILE);
+    if (cache && cache.mtimeMs === mtimeMs) {
+      return cache.data;
+    }
+    const data = JSON.parse(fs.readFileSync(STATE_FILE, 'utf8'));
+    cache = { data, mtimeMs };
+    return data;
   } catch {
+    cache = null;
     return { seedRevealed: false, activeWalletName: DEFAULT_WALLET_NAME };
   }
 }
