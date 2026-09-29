@@ -26,6 +26,15 @@ P2Pool directly.
 
 ## Recent additions
 
+- **Tari merge-mining: fixed minotari-node getting stuck restarting forever** —
+  two separate bugs, each capable of leaving the container crash-looping (and
+  blocking the platform's own Stop button along with it): a comma-parsing
+  bug in the gRPC method allow-list caused an instant crash on every start,
+  and (once fixed) the `--init` flag turned out to mean "write default
+  config and exit" rather than "bootstrap then keep running" - it exited
+  clean every time and `restart:on-failure` just relaunched it into the same
+  exit forever. Confirmed fixed live: the node now reaches "Minotari base
+  node has STARTED" and stays up.
 - **Import Blockchain: Windows drive-path fix + visible progress percent** —
   a remote path typed as a Windows drive letter (`F:\folder\subfolder`) was
   silently misread as relative by a Cygwin-based rsync install (`rsync
