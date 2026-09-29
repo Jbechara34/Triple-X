@@ -26,6 +26,11 @@ P2Pool directly.
 
 ## Recent additions
 
+- **5tratumOS app-store: dashboard port now published directly** — 5tratumOS
+  runs no `app_proxy` container (unlike umbrelOS, which injects one per app
+  from the environment stanza this app's compose file used to declare), so
+  `web` now publishes port 3000 directly instead of relying on one to route
+  to it. Compose-only fix, no image rebuild.
 - **Efficiency pass** — settings and wallet-state files were being re-read
   and re-parsed from disk several times per poll tick (now cached in memory,
   invalidated by file mtime); the Tari blocks table was fetched as an extra
