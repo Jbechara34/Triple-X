@@ -193,7 +193,20 @@ services:
       # get_sync_progress added this release - lib/minotariRpc.js (the
       # Overview tab's Minotari sync ring) calls it, and any gRPC method not
       # in this allow-list gets rejected by the node.
-      - "base_node.grpc_server_allow_methods=get_version, get_tip_info, get_sync_progress, identify, get_network_state, list_headers, get_tokens_in_circulation, get_network_difficulty, get_new_block_template, get_new_block, get_new_block_with_coinbases, get_new_block_template_with_coinbases, get_new_block_blob, submit_block, submit_block_blob, submit_transaction, search_kernels, search_utxos, fetch_matching_utxos, transaction_state, list_connected_peers, get_mempool_stats"
+      #
+      # NO SPACES after the commas below - the official image's own
+      # start_tari_app.sh wrapper re-splits its incoming arguments on
+      # whitespace before exec'ing minotari_node, so a space-separated list
+      # like "get_version, get_tip_info, ..." gets torn into separate bare
+      # arguments ("get_tip_info," with a trailing comma, etc.), which
+      # minotari_node then rejects with "unexpected argument 'get_tip_info,'
+      # found" and exits - and with restart:on-failure, Docker just restarts
+      # it into the same crash forever. Confirmed directly from a user's
+      # compose logs: minotari-node was crash-looping on exactly this while
+      # monerod and p2pool were both healthy, and the endless restart loop
+      # was what left the platform's own app status stuck on "Starting" and
+      # blocked its Stop button.
+      - "base_node.grpc_server_allow_methods=get_version,get_tip_info,get_sync_progress,identify,get_network_state,list_headers,get_tokens_in_circulation,get_network_difficulty,get_new_block_template,get_new_block,get_new_block_with_coinbases,get_new_block_template_with_coinbases,get_new_block_blob,submit_block,submit_block_blob,submit_transaction,search_kernels,search_utxos,fetch_matching_utxos,transaction_state,list_connected_peers,get_mempool_stats"
     ports:
       - "18189:18189" # Tari p2p - forward this on your router for better connectivity
     volumes:
