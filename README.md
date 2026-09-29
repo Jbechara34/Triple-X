@@ -26,6 +26,17 @@ P2Pool directly.
 
 ## Recent additions
 
+- **Efficiency pass** — settings and wallet-state files were being re-read
+  and re-parsed from disk several times per poll tick (now cached in memory,
+  invalidated by file mtime); the Tari blocks table was fetched as an extra
+  sequential round-trip instead of alongside everything else; the Startup
+  Checklist and Network Ports cards were torn down and rebuilt every 10s
+  tick even when nothing changed (now skipped when unchanged); and the
+  blocks/workers state file was rewritten to disk on nearly every poll
+  during active mining instead of batched (now at most once/minute, except
+  a found block still flushes immediately) - it also now prunes workers not
+  seen in 90+ days so that file doesn't grow unbounded on a long-running
+  install.
 - **Tari merge-mining: fixed minotari-node getting stuck restarting forever** —
   two separate bugs, each capable of leaving the container crash-looping (and
   blocking the platform's own Stop button along with it): a comma-parsing
