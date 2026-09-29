@@ -177,10 +177,17 @@ services:
     # every time (confirmed directly in the container's own startup log:
     # "base folder (in container): /var/tari/node" printed before our args
     # are even applied). Our volumes below target that fixed path instead.
+    # No --init - contrary to what its name suggests, this isn't
+    # "bootstrap config if missing, then keep running": every run with
+    # --init prints "Default configuration created. Done." and exits
+    # clean (confirmed directly from a user's live logs - monerod and
+    # p2pool stayed healthy while this one repeatedly exited seconds
+    # after starting, with restart:on-failure just relaunching it into
+    # the same exit forever). The node creates its own default config/
+    # identity on first run without this flag regardless.
     command:
       - "--network=mainnet"
       - "--non-interactive"
-      - "--init"
       - "-p"
       - "base_node.grpc_enabled=true"
       - "-p"
