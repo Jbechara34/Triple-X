@@ -131,6 +131,35 @@ function fmtDuration(seconds) {
   return `${Math.round(seconds)}s`;
 }
 
+const BYTE_SUFFIXES = ['B', 'KiB', 'MiB', 'GiB', 'TiB'];
+function fmtBytes(bytes) {
+  if (bytes === null || bytes === undefined || !Number.isFinite(bytes)) return '—';
+  let n = bytes;
+  let i = 0;
+  while (n >= 1024 && i < BYTE_SUFFIXES.length - 1) {
+    n /= 1024;
+    i += 1;
+  }
+  return `${n.toFixed(n >= 10 || i === 0 ? 0 : 1)} ${BYTE_SUFFIXES[i]}`;
+}
+
+// Renders a small pill per tag into the given container id - used for the
+// Overview blockchain cards' IBD/Pruned-style tags. tags is an array of
+// either a string or {label, warn: true} for the orange-accented style.
+function setTagRow(containerId, tags) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = '';
+  for (const tag of tags) {
+    const label = typeof tag === 'string' ? tag : tag.label;
+    const warn = typeof tag === 'object' && tag.warn;
+    const span = document.createElement('span');
+    span.className = warn ? 'pv-tag pv-tag-warn' : 'pv-tag';
+    span.textContent = label;
+    el.appendChild(span);
+  }
+}
+
 async function getJSON(url) {
   const res = await fetch(url);
   if (!res.ok) throw new Error(`Request failed (${res.status})`);
@@ -271,6 +300,9 @@ async function refreshAll() {
     setText('pv-bc-sub', sync.error);
     setRing('pv-bc-ring', 'pv-bc-ring-label', 0, false);
     setStatusLight('pv-bc-status-dot', 'red');
+    setTagRow('pv-bc-tags', []);
+    setText('pv-bc-eta', '');
+    setText('pv-bc-lastblock', '');
   } else {
     const pct = sync.targetHeight ? Math.min(100, (sync.height / sync.targetHeight) * 100) : 0;
     setText('pv-bc-title', sync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
@@ -279,9 +311,16 @@ async function refreshAll() {
     setText('pv-bc-height', sync.height ?? '—');
     setText('pv-bc-target', sync.targetHeight ?? '—');
     setStatusLight('pv-bc-status-dot', sync.synchronized ? 'green' : 'orange');
+    setTagRow('pv-bc-tags', [
+      ...(sync.synchronized ? [] : [{ label: 'IBD', warn: true }]),
+      ...(sync.pruned ? ['Pruned'] : []),
+    ]);
+    setText('pv-bc-eta', sync.synchronized ? '' : `Sync ETA: ${fmtDuration(sync.etaSeconds)}`);
+    setText('pv-bc-lastblock', sync.lastBlockAt ? `Last block ${fmtAgo(sync.lastBlockAt)}` : '');
   }
   setText('pv-bc-peers', node.connectionsIn != null ? `${node.connectionsIn} / ${node.connectionsOut ?? '—'}` : '—');
   setText('pv-bc-txpool', node.txPoolSize != null ? `${node.txPoolSize} txs` : '—');
+  setText('pv-bc-disk', fmtBytes(node.databaseSizeBytes));
 
   const p2poolRunning = !!status.p2pool?.running;
   setText('pv-p2p-sub', p2poolRunning ? `${status.p2pool?.connections ?? 0} connections · Port ${(pool.minerConfig?.url || '').split(':').pop() || '—'}` : 'Not running');
@@ -497,6 +536,8 @@ async function refreshAll() {
     // optional) - leave the light at its neutral default rather than red,
     // same reasoning as minotariPortOpen always reading "good" in that case.
     setStatusLight('pv-tari-bc-status-dot', tari.enabled ? 'red' : null);
+    setTagRow('pv-tari-bc-tags', []);
+    setText('pv-tari-bc-eta', '');
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
     setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
@@ -507,7 +548,10 @@ async function refreshAll() {
     setText('pv-tari-bc-height', nodeSync.height ?? '—');
     setText('pv-tari-bc-target', nodeSync.targetHeight ?? '—');
     setStatusLight('pv-tari-bc-status-dot', nodeSync.synchronized ? 'green' : 'orange');
+    setTagRow('pv-tari-bc-tags', nodeSync.synchronized ? [] : [{ label: 'IBD', warn: true }]);
+    setText('pv-tari-bc-eta', nodeSync.synchronized ? '' : `Sync ETA: ${fmtDuration(nodeSync.etaSeconds)}`);
   }
+  setText('pv-tari-bc-peers', tari.peers ?? '—');
 
   setText('pv-blocks-shares-found', fmtDifficulty(pool.shares?.found));
   setText('pv-blocks-shares-failed', fmtDifficulty(pool.shares?.failed));
@@ -1413,13 +1457,7 @@ async function resumeImportPollingIfActive() {
 }
 
 // ---------------------------------------------------------------------------
-// Remote folder browser (Import Blockchain's "Browse..." button) - a real
-// listing of the OTHER machine's folders over SFTP (see
-// /api/blockchain-import/browse), since a native browser file picker could
-// only ever show files from whatever machine is running the browser.
 // ---------------------------------------------------------------------------
-let browseCurrentPath = '';
-
 function importFormPayload(extra) {
   const authMethod = document.getElementById('pv-import-auth-method').value;
   const payload = {
@@ -1435,87 +1473,6 @@ function importFormPayload(extra) {
     payload.password = document.getElementById('pv-import-password').value;
   }
   return payload;
-}
-
-async function browseFetch(remotePath) {
-  const status = document.getElementById('pv-browse-status');
-  const list = document.getElementById('pv-browse-list');
-  if (status) status.textContent = 'Loading…';
-  try {
-    const res = await fetch('/api/blockchain-import/browse', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(importFormPayload({ remotePath })),
-    });
-    const body = await res.json();
-    if (!res.ok) throw new Error(body.error || 'Failed to browse');
-    browseCurrentPath = body.path;
-    renderBrowseList(body.path, body.entries);
-    if (status) status.textContent = '';
-  } catch (err) {
-    if (status) status.textContent = err.message;
-    if (list) list.innerHTML = '';
-  }
-}
-
-function renderBrowseList(path, entries) {
-  const pathEl = document.getElementById('pv-browse-current-path');
-  if (pathEl) pathEl.textContent = path;
-  const list = document.getElementById('pv-browse-list');
-  if (!list) return;
-
-  const rows = [];
-  const trimmed = path.replace(/\/+$/, '');
-  if (trimmed && trimmed !== '') {
-    const parent = trimmed.split('/').slice(0, -1).join('/') || '/';
-    rows.push({ label: '.. (up one level)', path: parent });
-  }
-  entries.filter((e) => e.isDirectory).forEach((e) => {
-    rows.push({ label: `${e.name}/`, path: `${trimmed}/${e.name}` });
-  });
-
-  if (rows.length === 0) {
-    list.innerHTML = '<div class="hint" style="padding:8px;">No subfolders here.</div>';
-    return;
-  }
-  list.innerHTML = rows
-    .map((r, i) => `<div class="pv-browse-item" data-idx="${i}">${escapeHtml(r.label)}</div>`)
-    .join('');
-  list.querySelectorAll('.pv-browse-item').forEach((el, i) => {
-    el.addEventListener('click', () => browseFetch(rows[i].path));
-  });
-}
-
-function wireBrowseModal() {
-  const browseBtn = document.getElementById('pv-import-browse-btn');
-  const modal = document.getElementById('pv-browse-modal');
-  const cancelBtn = document.getElementById('pv-browse-cancel');
-  const selectBtn = document.getElementById('pv-browse-select');
-  if (!browseBtn || !modal || !cancelBtn || !selectBtn) return;
-
-  browseBtn.addEventListener('click', () => {
-    const host = document.getElementById('pv-import-host').value.trim();
-    const username = document.getElementById('pv-import-username').value.trim();
-    const status = document.getElementById('pv-import-status');
-    if (!host || !username) {
-      if (status) status.textContent = 'Enter Host and Username first, then Browse.';
-      return;
-    }
-    modal.style.display = 'flex';
-    document.getElementById('pv-browse-list').innerHTML = '';
-    browseFetch(document.getElementById('pv-import-remote-path').value.trim());
-  });
-
-  cancelBtn.addEventListener('click', () => {
-    modal.style.display = 'none';
-  });
-
-  selectBtn.addEventListener('click', () => {
-    if (browseCurrentPath) {
-      document.getElementById('pv-import-remote-path').value = browseCurrentPath;
-    }
-    modal.style.display = 'none';
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -1737,7 +1694,6 @@ wireWalletTab();
 wireThemeControls();
 wireSettingsSave();
 wireImportForm();
-wireBrowseModal();
 wireMoneroRecovery();
 wireTariRecovery();
 wirePoolAdvisor();

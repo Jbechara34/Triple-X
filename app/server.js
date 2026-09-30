@@ -31,7 +31,6 @@ const moneroWalletState = require('./lib/moneroWalletState');
 const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 const blockchainImport = require('./lib/blockchainImport');
-const remoteBrowse = require('./lib/remoteBrowse');
 const networkInfo = require('./lib/networkInfo');
 const p2poolCommand = require('./lib/p2poolCommand');
 const workerConnectionNotify = require('./lib/workerConnectionNotify');
@@ -62,7 +61,27 @@ const PORT = process.env.PORT || 3000;
 // hardcoded string baked into the HTML and got left on "Alpha-9" through
 // this entire Alpha-10 release since nothing pointed back at it as a step to
 // update. Bump this, not the HTML, on every release.
-const APP_VERSION = 'v1.0-Alpha10';
+const APP_VERSION = 'v1.0-Alpha12';
+
+// Sync-speed-derived ETA for the Overview tab's blockchain cards - neither
+// monerod nor minotari_node's RPC exposes an ETA directly, so this tracks
+// the height/timestamp from the previous /api/status poll per chain and
+// derives blocks-per-second from the delta. Module-scope state (not
+// per-request) is required for this to mean anything across polls.
+const heightHistory = {};
+function estimateSyncEtaSeconds(chain, height, targetHeight) {
+  const now = Date.now();
+  const prev = heightHistory[chain];
+  heightHistory[chain] = { height, t: now };
+  if (!prev || height == null || targetHeight == null) return null;
+  const remaining = targetHeight - height;
+  if (remaining <= 0) return 0;
+  const elapsedSec = (now - prev.t) / 1000;
+  const blocksGained = height - prev.height;
+  if (elapsedSec <= 0 || blocksGained <= 0) return null; // not enough signal yet this tick
+  const blocksPerSec = blocksGained / elapsedSec;
+  return remaining / blocksPerSec;
+}
 
 // Clearnet block explorer used to let you independently verify a found block
 // paid out to your address. Point this at an .onion explorer (reached via a
@@ -95,6 +114,17 @@ app.get('/api/status', async (req, res) => {
     nodeInfo = await moneroRpc.getInfo();
   } catch (err) {
     nodeError = err.message;
+  }
+
+  // Only meaningful once nodeInfo itself succeeded - a second RPC call, so
+  // failure here shouldn't take down the rest of /api/status.
+  let lastBlockHeader = null;
+  if (nodeInfo) {
+    try {
+      lastBlockHeader = await moneroRpc.getLastBlockHeader();
+    } catch {
+      lastBlockHeader = null;
+    }
   }
 
   const p2pool = await p2poolApi.getAll();
@@ -154,6 +184,12 @@ app.get('/api/status', async (req, res) => {
           targetHeight: nodeInfo.target_height || nodeInfo.height,
           synchronized: nodeInfo.synchronized === true,
           status: nodeInfo.status,
+          // pruning_seed is 0 on a full/archival node, non-zero on a pruned
+          // one (this stack's own monerod always runs --prune-blockchain -
+          // see docker-compose.yml - so this should normally read true).
+          pruned: (nodeInfo.pruning_seed ?? 0) !== 0,
+          etaSeconds: estimateSyncEtaSeconds('monero', nodeInfo.height, nodeInfo.target_height || nodeInfo.height),
+          lastBlockAt: lastBlockHeader ? lastBlockHeader.timestamp * 1000 : null,
         }
       : { error: nodeError },
     hashrate: {
@@ -190,6 +226,9 @@ app.get('/api/status', async (req, res) => {
           greyPeers: nodeInfo.grey_peerlist_size ?? null,
           txPoolSize: nodeInfo.tx_pool_size ?? null,
           txCount: nodeInfo.tx_count ?? null,
+          // Bytes on disk for the blockchain data dir, straight from
+          // get_info - not previously surfaced anywhere in the UI.
+          databaseSizeBytes: nodeInfo.database_size ?? null,
         }
       : null,
     poolMode: settings.poolMode,
@@ -207,8 +246,17 @@ app.get('/api/status', async (req, res) => {
             height: minotariSync.localHeight,
             targetHeight: minotariSync.tipHeight || minotariSync.localHeight,
             synchronized: minotariSync.synced,
+            etaSeconds: estimateSyncEtaSeconds(
+              'minotari',
+              minotariSync.localHeight,
+              minotariSync.tipHeight || minotariSync.localHeight
+            ),
           }
         : null,
+      // Peer count, for the Overview card's Peers tile - separate from
+      // minotariPortOpen above (that's a reachability signal, this is the
+      // raw number to display). null (not 0) when the node is unreachable.
+      peers: minotariNetworkState ? minotariNetworkState.numConnections : null,
     },
   });
 });
@@ -810,40 +858,6 @@ app.post('/api/blockchain-import/reset', (req, res) => {
     res.json({ ok: true });
   } catch (err) {
     res.status(409).json({ error: err.message });
-  }
-});
-
-// Lets the "Browse..." button in the Import Blockchain form click through
-// the OTHER machine's real folders instead of the user typing a path blind -
-// see lib/remoteBrowse.js. remotePath empty/omitted lists the SSH user's
-// home directory, same starting point a fresh login would land in.
-app.post('/api/blockchain-import/browse', async (req, res) => {
-  if (!config.readSettings().importBlockchainEnabled) {
-    res.status(403).json({ error: 'Blockchain import is disabled. Enable it in Settings first.' });
-    return;
-  }
-  const { host, port, username, authMethod, password, privateKey, remotePath } = req.body || {};
-  if (typeof host !== 'string' || !host.trim()) {
-    res.status(400).json({ error: 'A host is required.' });
-    return;
-  }
-  if (typeof username !== 'string' || !username.trim()) {
-    res.status(400).json({ error: 'A username is required.' });
-    return;
-  }
-  try {
-    const result = await remoteBrowse.listRemoteDirectory({
-      host: host.trim(),
-      port: Number(port) || 22,
-      username: username.trim(),
-      authMethod,
-      password,
-      privateKey,
-      remotePath,
-    });
-    res.json(result);
-  } catch (err) {
-    res.status(502).json({ error: err.message });
   }
 });
 

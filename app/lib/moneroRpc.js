@@ -46,6 +46,13 @@ async function getInfo() {
   return res.json();
 }
 
+// Used for the Overview tab's "Last block Xs ago" line - get_info has no
+// block-timestamp field of its own.
+async function getLastBlockHeader() {
+  const result = await jsonRpc('get_last_block_header');
+  return result.block_header;
+}
+
 async function isReachable() {
   try {
     await getInfo();
@@ -59,5 +66,6 @@ module.exports = {
   RPC_BASE,
   jsonRpc,
   getInfo,
+  getLastBlockHeader,
   isReachable,
 };

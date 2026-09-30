@@ -196,16 +196,23 @@
   .pv-status-title { font-size: 22px; font-weight: 700; color: var(--text); margin-top: 3px; }
   .pv-status-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
 
-  .pv-ring { position: relative; width: 66px; height: 66px; flex-shrink: 0; }
+  .pv-ring { position: relative; width: 92px; height: 92px; flex-shrink: 0; }
   .pv-ring svg { width: 100%; height: 100%; transform: rotate(-90deg); }
   .pv-ring-track { fill: none; stroke: var(--panel-alt); stroke-width: 7; }
   .pv-ring-fill { fill: none; stroke: var(--orange); stroke-width: 7; stroke-linecap: round; stroke-dasharray: 188.5; transition: stroke-dashoffset 0.6s ease, stroke 0.3s ease; }
-  .pv-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; color: var(--text); }
+  .pv-ring-label { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 17px; font-weight: 700; color: var(--text); }
 
   .pv-pill { font-size: 10px; padding: 4px 10px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
   .pv-pill-stage { color: var(--orange); border-color: var(--tari); text-shadow: 0 0 6px rgba(255,102,0,0.6); }
   .pv-pill.good { color: #4caf6a; border-color: #4caf6a; }
   .pv-pill.bad { color: #e05a5a; border-color: #e05a5a; }
+
+  .pv-tag-row { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .pv-tag-row:empty { display: none; }
+  .pv-tag { font-size: 10px; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); white-space: nowrap; text-transform: uppercase; letter-spacing: 0.03em; }
+  .pv-tag.pv-tag-warn { color: var(--orange); border-color: var(--orange); }
+  .pv-status-detail { font-size: 11px; color: var(--muted); margin-top: 3px; }
+  .pv-status-detail:empty { display: none; }
 
   .pv-tile-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
   .pv-tile { background: var(--panel-alt); border-radius: 8px; padding: 10px 12px; }
@@ -416,6 +423,9 @@
                 <div class="pv-kicker"><span class="status-light" id="pv-bc-status-dot"></span> Blockchain · Monero (XMR)</div>
                 <div class="pv-status-title" id="pv-bc-title">—</div>
                 <div class="pv-status-sub" id="pv-bc-sub">—</div>
+                <div class="pv-tag-row" id="pv-bc-tags"></div>
+                <div class="pv-status-detail" id="pv-bc-eta"></div>
+                <div class="pv-status-detail" id="pv-bc-lastblock"></div>
               </div>
               <div class="pv-ring">
                 <svg viewBox="0 0 70 70">
@@ -426,10 +436,11 @@
               </div>
             </div>
             <div class="pv-tile-grid">
-              <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-bc-height">—</div></div>
-              <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-bc-target">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Blocks</div><div class="pv-tile-value" id="pv-bc-height">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Headers</div><div class="pv-tile-value" id="pv-bc-target">—</div></div>
               <div class="pv-tile"><div class="pv-tile-label">Peers (in/out)</div><div class="pv-tile-value" id="pv-bc-peers">—</div></div>
               <div class="pv-tile"><div class="pv-tile-label">Tx Pool</div><div class="pv-tile-value" id="pv-bc-txpool">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Disk</div><div class="pv-tile-value" id="pv-bc-disk">—</div></div>
             </div>
           </div>
 
@@ -439,6 +450,8 @@
                 <div class="pv-kicker"><span class="status-light" id="pv-tari-bc-status-dot"></span> Blockchain · Minotari (XTM) <span class="badge-experimental">beta</span></div>
                 <div class="pv-status-title" id="pv-tari-bc-title">—</div>
                 <div class="pv-status-sub" id="pv-tari-bc-sub">—</div>
+                <div class="pv-tag-row" id="pv-tari-bc-tags"></div>
+                <div class="pv-status-detail" id="pv-tari-bc-eta"></div>
               </div>
               <div class="pv-ring">
                 <svg viewBox="0 0 70 70">
@@ -449,8 +462,9 @@
               </div>
             </div>
             <div class="pv-tile-grid">
-              <div class="pv-tile"><div class="pv-tile-label">Height</div><div class="pv-tile-value" id="pv-tari-bc-height">—</div></div>
-              <div class="pv-tile"><div class="pv-tile-label">Target</div><div class="pv-tile-value" id="pv-tari-bc-target">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Blocks</div><div class="pv-tile-value" id="pv-tari-bc-height">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Headers</div><div class="pv-tile-value" id="pv-tari-bc-target">—</div></div>
+              <div class="pv-tile"><div class="pv-tile-label">Peers</div><div class="pv-tile-value" id="pv-tari-bc-peers">—</div></div>
             </div>
           </div>
         </div>
@@ -1140,9 +1154,7 @@
             <li>Fill in the Host/Port/Username fields below and choose <strong>SSH private key</strong>
               (recommended - your password is never sent) or <strong>Password</strong> authentication, providing
               the matching key/password.</li>
-            <li>For Remote Path, either type the full path from step 2 directly, or click <strong>Browse...</strong>
-              to click through that machine's actual folders instead - it connects with the Host/Username/auth
-              details you just filled in and lets you navigate to the right folder visually.</li>
+            <li>For Remote Path, type the full path from step 2 directly.</li>
             <li>Click <strong>Start Import</strong> and confirm. This node's monerod will stop, the data will copy
               over the network (this can take from minutes to hours depending on size and connection speed), and
               monerod will restart automatically when it's done. You can navigate away - the transfer keeps running
@@ -1167,10 +1179,7 @@
           </div>
           <div class="field" style="flex:1;">
             <label>Remote Path</label>
-            <div style="display:flex; gap:8px;">
-              <input type="text" id="pv-import-remote-path" placeholder="/home/user/.bitmonero" style="flex:1;" />
-              <button class="icon-btn" type="button" id="pv-import-browse-btn" style="flex-shrink:0;">Browse...</button>
-            </div>
+            <input type="text" id="pv-import-remote-path" placeholder="/home/user/.bitmonero" />
           </div>
         </div>
         <div class="field">
@@ -1205,23 +1214,6 @@
           <div class="hint" id="pv-import-progress-percent" style="margin-top:4px;"></div>
         </div>
         <div class="hint" id="pv-import-status"></div>
-      </div>
-
-      <!-- Remote folder browser popup for the "Browse..." button above - a
-           real listing of the OTHER machine's folders over SFTP, since a
-           native browser file picker could only ever show files from
-           whatever machine is running the browser, not the remote one. -->
-      <div id="pv-browse-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.6); z-index:1000; align-items:center; justify-content:center;">
-        <div style="background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; width:90%; max-width:520px; max-height:75vh; display:flex; flex-direction:column;">
-          <div class="v1-label">Browse Remote Folders</div>
-          <div class="mono" id="pv-browse-current-path" style="font-size:12px; color:var(--muted); margin-bottom:10px; word-break:break-all;">—</div>
-          <div id="pv-browse-list" style="flex:1; overflow-y:auto; background:var(--panel-alt); border-radius:8px; padding:6px; min-height:200px;"></div>
-          <div class="hint" id="pv-browse-status" style="margin-top:8px; min-height:16px;"></div>
-          <div style="display:flex; gap:8px; margin-top:14px; justify-content:flex-end;">
-            <button class="icon-btn" type="button" id="pv-browse-cancel">Cancel</button>
-            <button class="primary" type="button" id="pv-browse-select">Select This Folder</button>
-          </div>
-        </div>
       </div>
 
       <!-- Donation addresses - static personal reference list, not wired to
