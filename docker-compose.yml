@@ -99,6 +99,9 @@ services:
       # Extra p2pool flags, space-separated, appended as-is. Example:
       # P2POOL_EXTRA_ARGS: "--out-peers 10 --in-peers 10"
       P2POOL_EXTRA_ARGS: ""
+      # Named pipe p2pool's stdin console reads from - lets the app's Logs
+      # tab send commands like "status" (see entrypoint.sh + lib/p2poolCommand.js).
+      COMMAND_FIFO: /data/config/p2pool-command
     ports:
       - "3333:3333"   # stratum - point your miner here
       - "37889:37889" # P2Pool p2p (standard)
@@ -212,13 +215,25 @@ services:
       P2POOL_STRATUM_PORT: "3333"
       EXPLORER_BASE_URL: "https://xmrchain.net"
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
-      MINOTARI_LOG_FILE: /data/minotari-logs/base_node.log
+      # Not a flat "base_node.log" - the official minotari_node image's own
+      # log4rs config splits output by category into subfiles under a
+      # base_node/ subdirectory; base_layer.log is the one that actually
+      # gets the general startup/sync/mempool activity this app parses
+      # (grpc.log/messages.log/network.log/other.log stay empty in
+      # practice). Confirmed directly against a running container - the
+      # old flat path never existed, so both the Logs tab and XTM
+      # block-found detection (lib/tariBlocks.js) silently never had real
+      # data to read.
+      MINOTARI_LOG_FILE: /data/minotari-logs/base_node/base_layer.log
       MINOTARI_WALLET_HOST: minotari-wallet
       MINOTARI_WALLET_GRPC_PORT: "18143"
       MINOTARI_WALLET_SEED_FILE: /data/minotari-wallet/seed-words.txt
       MONERO_WALLET_RPC_HOST: monero-wallet-rpc
       MONERO_WALLET_RPC_PORT: "18084"
       MONERO_WALLET_STATE_FILE: /data/state/monero-wallet.json
+      # Same shared-config path p2pool's entrypoint.sh creates the FIFO at -
+      # see lib/p2poolCommand.js.
+      COMMAND_FIFO: /data/config/p2pool-command
     ports:
       - "3000:3000" # the dashboard itself - this is the app's main UI port
     volumes:

@@ -10,6 +10,15 @@ function setText(id, val) {
   const el = document.getElementById(id);
   if (!el) return;
   const str = String(val);
+  // <input>/<textarea> don't render textContent at all - the Miner
+  // Configuration card's Pool URL/Payout Address/Worker fields (readonly
+  // inputs, so their copy buttons can read el.value) were silently staying
+  // blank forever because this used to always set textContent regardless of
+  // element type.
+  if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+    el.value = str;
+    return;
+  }
   if (el.textContent !== str && el.textContent !== '—' && el.dataset.pvInit) {
     el.classList.remove('pv-value-flash');
     void el.offsetWidth; // restart the animation if it's still running
@@ -64,9 +73,23 @@ function fmtHashrate(h) {
   return `${val.toFixed(2)} ${units[i]}`;
 }
 
+// K/M/G/T/P/E suffix notation (10^3/10^6/10^9/10^12/10^15/10^18) - a raw
+// difficulty/share-count number with only comma grouping (the old behavior)
+// is long enough to be unreadable at a glance for Monero's actual network
+// difficulty (currently in the hundreds of billions).
+const DIFFICULTY_SUFFIXES = ['', 'K', 'M', 'G', 'T', 'P', 'E'];
 function fmtDifficulty(d) {
   if (d === null || d === undefined) return '—';
-  return Number(d).toLocaleString();
+  const n = Number(d);
+  if (!Number.isFinite(n)) return '—';
+  if (n < 1000) return n.toLocaleString();
+  let val = n;
+  let i = 0;
+  while (val >= 1000 && i < DIFFICULTY_SUFFIXES.length - 1) {
+    val /= 1000;
+    i += 1;
+  }
+  return `${val.toFixed(2)}${DIFFICULTY_SUFFIXES[i]}`;
 }
 
 function fmtTime(t) {
@@ -76,6 +99,25 @@ function fmtTime(t) {
   return d.toLocaleString();
 }
 
+// "1 minute ago" / "3 hours ago" style, per the request that Last Share read
+// as elapsed time rather than an absolute timestamp. Falls back to fmtTime's
+// absolute rendering once it's stale enough (>1 day) that "ago" stops being
+// the useful framing.
+function fmtAgo(t) {
+  if (!t) return '—';
+  const d = new Date(t);
+  if (Number.isNaN(d.getTime())) return String(t);
+  const diffSec = Math.floor((Date.now() - d.getTime()) / 1000);
+  if (diffSec < 0) return fmtTime(t);
+  if (diffSec < 5) return 'just now';
+  if (diffSec < 60) return `${diffSec} second${diffSec === 1 ? '' : 's'} ago`;
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} minute${diffMin === 1 ? '' : 's'} ago`;
+  const diffHour = Math.floor(diffMin / 60);
+  if (diffHour < 24) return `${diffHour} hour${diffHour === 1 ? '' : 's'} ago`;
+  return fmtTime(t);
+}
+
 function fmtDuration(seconds) {
   if (seconds === null || seconds === undefined || !Number.isFinite(seconds)) return '—';
   const days = Math.floor(seconds / 86400);
@@ -83,7 +125,10 @@ function fmtDuration(seconds) {
   if (days > 0) return `${days}d ${hours}h`;
   const minutes = Math.floor((seconds % 3600) / 60);
   if (hours > 0) return `${hours}h ${minutes}m`;
-  return `${minutes}m`;
+  // A P2Pool share ETA (standard/mini: ~10s, nano: ~30s) is well under a
+  // minute - "0m" for every one of them would make the whole stat useless.
+  if (minutes > 0) return `${minutes}m`;
+  return `${Math.round(seconds)}s`;
 }
 
 async function getJSON(url) {
@@ -93,12 +138,12 @@ async function getJSON(url) {
 }
 
 // ---------------------------------------------------------------------------
-// Rolling-history sparklines (Pool tab) - kept in-memory client-side only, no
-// backend time-series storage. Resets on page reload; that's an accepted
-// trade-off to avoid adding a database for two small graphs.
+// Pool tab history graphs - CK Pool dashboard style (stats.ckpool.org):
+// multiple colored series on one chart, axis labels, under-chart legend with
+// each series' latest value. Backed by real server-side history
+// (lib/poolHistory.js, one sample/minute for 24h) instead of the previous
+// client-only 60-point buffer that reset on every page reload.
 // ---------------------------------------------------------------------------
-const MAX_SPARK_POINTS = 60; // 10 minutes at the 10s refresh interval
-const sparkHistory = { hashrate: [], difficulty: [] };
 
 // The readiness checklist and port list rarely change between 10s polls -
 // these cache the last rendered HTML so refreshAll() can skip the
@@ -106,32 +151,69 @@ const sparkHistory = { hashrate: [], difficulty: [] };
 let lastCheckGridHtml = null;
 let lastPortListHtml = null;
 
-function pushSparkPoint(key, value) {
-  if (value === null || value === undefined || !Number.isFinite(value)) return;
-  const arr = sparkHistory[key];
-  arr.push(value);
-  if (arr.length > MAX_SPARK_POINTS) arr.shift();
+const HISTORY_CHART_W = 320;
+const HISTORY_CHART_H = 130;
+const HISTORY_CHART_PAD = { left: 40, right: 6, top: 8, bottom: 16 };
+
+function fmtAxisTime(t) {
+  return new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 }
 
-function renderSparkline(svgId, values) {
+// series: [{ key, color, label }], samples: [{ t, ...keys }], fmt: value -> string
+function renderHistoryChart(svgId, legendId, samples, series, fmt) {
   const svg = document.getElementById(svgId);
+  const legend = document.getElementById(legendId);
   if (!svg) return;
-  if (values.length < 2) {
-    svg.innerHTML = '';
+
+  const w = HISTORY_CHART_W;
+  const h = HISTORY_CHART_H;
+  const pad = HISTORY_CHART_PAD;
+  const plotW = w - pad.left - pad.right;
+  const plotH = h - pad.top - pad.bottom;
+
+  const usable = (samples || []).filter((s) => series.some((se) => Number.isFinite(s[se.key])));
+  if (usable.length < 2) {
+    svg.innerHTML = `<text x="${w / 2}" y="${h / 2}" text-anchor="middle" class="pv-chart-empty">Collecting history…</text>`;
+    if (legend) legend.innerHTML = '';
     return;
   }
-  const [w, h] = [300, 70];
-  const min = Math.min(...values);
-  const max = Math.max(...values);
+
+  const allValues = [];
+  series.forEach((se) => usable.forEach((s) => { if (Number.isFinite(s[se.key])) allValues.push(s[se.key]); }));
+  const min = Math.min(0, ...allValues);
+  const max = Math.max(...allValues);
   const range = max - min || 1;
-  const points = values.map((v, i) => {
-    const x = (i / (values.length - 1)) * w;
-    const y = h - ((v - min) / range) * (h - 6) - 3;
-    return [x, y];
+
+  const tMin = usable[0].t;
+  const tMax = usable[usable.length - 1].t;
+  const tRange = tMax - tMin || 1;
+
+  const xFor = (t) => pad.left + ((t - tMin) / tRange) * plotW;
+  const yFor = (v) => pad.top + plotH - ((v - min) / range) * plotH;
+
+  const GRID_LINES = 4;
+  let svgMarkup = '';
+  for (let i = 0; i <= GRID_LINES; i += 1) {
+    const y = pad.top + (plotH / GRID_LINES) * i;
+    svgMarkup += `<line x1="${pad.left}" y1="${y.toFixed(1)}" x2="${w - pad.right}" y2="${y.toFixed(1)}" class="pv-chart-grid" />`;
+    const val = max - (range / GRID_LINES) * i;
+    svgMarkup += `<text x="${pad.left - 4}" y="${(y + 3).toFixed(1)}" text-anchor="end" class="pv-chart-axis-label">${fmt(val)}</text>`;
+  }
+  svgMarkup += `<text x="${pad.left}" y="${h - 3}" text-anchor="start" class="pv-chart-axis-label">${fmtAxisTime(tMin)}</text>`;
+  svgMarkup += `<text x="${w - pad.right}" y="${h - 3}" text-anchor="end" class="pv-chart-axis-label">${fmtAxisTime(tMax)}</text>`;
+
+  let legendHtml = '';
+  series.forEach((se) => {
+    const pts = usable.filter((s) => Number.isFinite(s[se.key])).map((s) => [xFor(s.t), yFor(s[se.key])]);
+    if (pts.length < 2) return;
+    const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+    svgMarkup += `<path d="${d}" fill="none" stroke="${se.color}" stroke-width="1.5" />`;
+    const last = [...usable].reverse().find((s) => Number.isFinite(s[se.key]));
+    legendHtml += `<span class="pv-chart-legend-item"><span class="pv-chart-legend-dot" style="background:${se.color}"></span>${se.label}${last ? `: ${fmt(last[se.key])}` : ''}</span>`;
   });
-  const lineD = points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
-  const fillD = `${lineD} L${w},${h} L0,${h} Z`;
-  svg.innerHTML = `<path class="pv-spark-fill" d="${fillD}" /><path class="pv-spark-line" d="${lineD}" />`;
+
+  svg.innerHTML = svgMarkup;
+  if (legend) legend.innerHTML = legendHtml;
 }
 
 function renderMiningScene(xmrActive, xtmEnabled) {
@@ -156,17 +238,19 @@ async function refreshAll() {
   let blocksData = null;
   let settings = null;
   let tariBlocksData = null;
+  let poolHistoryData = null;
   try {
     // XTM blocks fetched here too (in parallel, not after) - it used to be
     // a second, sequential await further down, adding a full extra
     // round-trip to every poll tick before anything below it could render.
     // Its own .catch keeps a failure non-fatal, same as before.
-    [status, pool, blocksData, settings, tariBlocksData] = await Promise.all([
+    [status, pool, blocksData, settings, tariBlocksData, poolHistoryData] = await Promise.all([
       getJSON('/api/status'),
       getJSON('/api/pool'),
       getJSON('/api/blocks'),
       getJSON('/api/settings'),
       getJSON('/api/blocks?coin=xtm').catch(() => null),
+      getJSON('/api/pool/history').catch(() => null),
     ]);
   } catch (err) {
     console.error('[preview] refresh failed', err);
@@ -204,6 +288,7 @@ async function refreshAll() {
   setText('pv-p2p-hashrate', fmtHashrate(status.hashrate?.hashrate1h));
   setText('pv-p2p-diff', fmtDifficulty(pool.network?.difficulty));
   setText('pv-p2p-eta', fmtDuration(pool.network?.etaSeconds));
+  setText('pv-p2p-share-eta', fmtDuration(pool.network?.shareEtaSeconds));
 
   const checks = [
     { key: 'nodeRpc', label: 'Node RPC', good: 'Synced', bad: 'Unreachable', desc: 'Node RPC is online and synchronized.', badDesc: 'Node RPC is not reachable yet.' },
@@ -348,10 +433,14 @@ async function refreshAll() {
   setText('pv-net-diff', fmtDifficulty(pool.network?.difficulty));
   setText('pv-net-height', pool.network?.height ?? '—');
   setText('pv-net-miners', pool.network?.minersOnSidechain ?? '—');
-  setText('pv-net-shares', fmtDifficulty(pool.network?.sidechainSharesFound));
+  // This node's own accepted PPLNS shares, not the whole sidechain's (that's
+  // pool.network.sidechainSharesFound, the total sidechain height across
+  // every miner on this P2Pool mode - a very different, much bigger number).
+  setText('pv-net-shares', fmtDifficulty(pool.shares?.found));
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
   setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
+  setText('pv-net-share-eta', fmtDuration(pool.network?.shareEtaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
   setText('pv-header-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
 
@@ -362,14 +451,30 @@ async function refreshAll() {
     headerStatus.classList.toggle('good', allReady);
     headerStatus.classList.toggle('bad', !allReady && readyCount === 0);
   }
-  setText('pv-miner-url', pool.minerConfig?.url || '—');
+  setText('pv-miner-url-lan', pool.minerConfig?.lanUrl || '—');
+  setText('pv-miner-url-wan', pool.minerConfig?.wanUrl || 'Not yet detected');
   setText('pv-payout-address', settings.walletAddress || 'Not configured');
   setText('pv-worker-login', pool.minerConfig?.exampleWorkerLogin || 'Set a payout address in Settings first');
 
-  pushSparkPoint('hashrate', pool.hashrate?.hashrate1h);
-  pushSparkPoint('difficulty', pool.network?.difficulty);
-  renderSparkline('pv-graph-hashrate', sparkHistory.hashrate);
-  renderSparkline('pv-graph-difficulty', sparkHistory.difficulty);
+  const historySamples = poolHistoryData?.samples || [];
+  renderHistoryChart(
+    'pv-graph-hashrate',
+    'pv-graph-hashrate-legend',
+    historySamples,
+    [
+      { key: 'hashrate15m', color: 'var(--tari)', label: '15m' },
+      { key: 'hashrate1h', color: '#4a9eff', label: '1h' },
+      { key: 'hashrate24h', color: '#4caf6a', label: '24h' },
+    ],
+    fmtHashrate
+  );
+  renderHistoryChart(
+    'pv-graph-difficulty',
+    'pv-graph-difficulty-legend',
+    historySamples,
+    [{ key: 'sidechainDifficulty', color: 'var(--orange)', label: 'Sidechain Difficulty' }],
+    fmtDifficulty
+  );
 
   const tari = status.tari || {};
   setText('pv-tari-status', tari.enabled ? (status.p2pool?.running ? 'Merge mining' : 'Waiting on XMR mining') : 'Not configured');
@@ -396,6 +501,9 @@ async function refreshAll() {
     setText('pv-tari-bc-target', nodeSync.targetHeight ?? '—');
     setStatusLight('pv-tari-bc-status-dot', nodeSync.synchronized ? 'green' : 'orange');
   }
+
+  setText('pv-blocks-shares-found', fmtDifficulty(pool.shares?.found));
+  setText('pv-blocks-shares-failed', fmtDifficulty(pool.shares?.failed));
 
   const blocksBody = document.getElementById('pv-blocks-body');
   if (blocksBody) {
@@ -430,10 +538,16 @@ async function refreshAll() {
       .join('');
   }
 
-  setText('pv-net-diff-main', fmtDifficulty(pool.network?.difficulty));
+  // This tile is explicitly labeled "(Sidechain)" - it was previously bound
+  // to the real Monero mainchain difficulty (pool.network.difficulty),
+  // which barely moves over any short window and isn't what the label says.
+  // sidechainDifficulty is P2Pool's own PPLNS difficulty (see
+  // lib/p2poolApi.js) - much more dynamic, and what a "Sidechain" difficulty
+  // stat/history graph should actually track.
+  setText('pv-net-diff-main', fmtDifficulty(pool.network?.sidechainDifficulty));
   setText('pv-net-diff-sub', `RandomX · Height ${pool.network?.height ?? '—'}`);
   setText('pv-pool-connect-url', `stratum+tcp://${pool.minerConfig?.url || '—'}`);
-  setText('pv-last-share', fmtTime(pool.lastShareAt));
+  setText('pv-last-share', fmtAgo(pool.lastShareAt));
 
   setText('pv-best-since', fmtDifficulty(pool.bestShare?.sinceBlock));
   setText('pv-best-alltime', fmtDifficulty(pool.bestShare?.allTime));
@@ -462,7 +576,8 @@ async function refreshAll() {
                 ${shortAddress ? `<div class="pv-worker-address">${escapeHtml(shortAddress)}</div>` : ''}
                 <div class="pv-worker-meta">
                   <span class="pv-worker-meta-item"><strong>${w.shares}</strong> shares</span>
-                  <span class="pv-worker-meta-item">Last seen <strong>${fmtTime(w.lastSeen)}</strong></span>
+                  <span class="pv-worker-meta-item">Connected <strong>${fmtDuration(w.connectedSeconds) !== '—' ? fmtDuration(w.connectedSeconds) : '0m'}</strong></span>
+                  ${w.hashrate ? `<span class="pv-worker-meta-item">Hashrate <strong>${fmtHashrate(w.hashrate)}</strong></span>` : ''}
                   <span class="pv-worker-meta-item">${sharePct.toFixed(1)}% of your total shares</span>
                   ${w.currentDifficulty ? `<span class="pv-worker-meta-item">Current difficulty <strong>${fmtDifficulty(w.currentDifficulty)}</strong></span>` : ''}
                 </div>
@@ -556,6 +671,8 @@ async function loadSettingsForm() {
   const importEnabledEl = document.getElementById('pv-settings-import-enabled');
   if (importEnabledEl) importEnabledEl.checked = !!data.importBlockchainEnabled;
   applyImportSectionVisibility(!!data.importBlockchainEnabled);
+  const autoMinotariEl = document.getElementById('pv-settings-auto-minotari-enabled');
+  if (autoMinotariEl) autoMinotariEl.checked = !!data.autoManageMinotariEnabled;
   const discordWebhookEl = document.getElementById('pv-settings-discord-webhook');
   if (discordWebhookEl) discordWebhookEl.value = data.discordWebhookUrl || '';
   const discordXmrEl = document.getElementById('pv-settings-discord-notify-xmr');
@@ -564,6 +681,8 @@ async function loadSettingsForm() {
   if (discordXtmEl) discordXtmEl.checked = data.discordNotifyXtmBlocks !== false;
   const discordSharesEl = document.getElementById('pv-settings-discord-notify-shares');
   if (discordSharesEl) discordSharesEl.checked = !!data.discordNotifyShares;
+  const discordWorkerConnEl = document.getElementById('pv-settings-discord-notify-worker-connections');
+  if (discordWorkerConnEl) discordWorkerConnEl.checked = !!data.discordNotifyWorkerConnections;
 }
 
 // Shows/hides the whole Import Blockchain panel based on the hidden
@@ -610,10 +729,12 @@ function wireSettingsSave() {
           p2poolNoRandomx: !!document.getElementById('pv-settings-p2pool-no-randomx')?.checked,
           p2poolNoCache: !!document.getElementById('pv-settings-p2pool-no-cache')?.checked,
           importBlockchainEnabled: !!document.getElementById('pv-settings-import-enabled')?.checked,
+          autoManageMinotariEnabled: !!document.getElementById('pv-settings-auto-minotari-enabled')?.checked,
           discordWebhookUrl: document.getElementById('pv-settings-discord-webhook')?.value.trim() || '',
           discordNotifyXmrBlocks: !!document.getElementById('pv-settings-discord-notify-xmr')?.checked,
           discordNotifyXtmBlocks: !!document.getElementById('pv-settings-discord-notify-xtm')?.checked,
           discordNotifyShares: !!document.getElementById('pv-settings-discord-notify-shares')?.checked,
+          discordNotifyWorkerConnections: !!document.getElementById('pv-settings-discord-notify-worker-connections')?.checked,
         }),
       });
       const body = await res.json();
@@ -622,6 +743,35 @@ function wireSettingsSave() {
       applyLogsTabVisibility(!!document.getElementById('pv-settings-logs-tab-enabled')?.checked);
       applyImportSectionVisibility(!!document.getElementById('pv-settings-import-enabled')?.checked);
       refreshAll();
+    } catch (err) {
+      if (status) status.textContent = err.message;
+    } finally {
+      btn.disabled = false;
+    }
+  });
+}
+
+// Logs tab's p2pool "status" command button - sends p2pool's own console
+// "status" command (see docker/p2pool/entrypoint.sh + lib/p2poolCommand.js);
+// the response prints into p2pool's own stdout, which the log box above
+// already tails, so there's nothing to render here beyond a brief
+// sent/failed confirmation.
+function wireP2poolStatusCommand() {
+  const btn = document.getElementById('pv-p2pool-status-cmd');
+  const status = document.getElementById('pv-p2pool-status-cmd-status');
+  if (!btn) return;
+  btn.addEventListener('click', async () => {
+    btn.disabled = true;
+    if (status) status.textContent = 'Sending...';
+    try {
+      const res = await fetch('/api/p2pool/command', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ command: 'status' }),
+      });
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to send command');
+      if (status) status.textContent = 'Sent - see the log below.';
     } catch (err) {
       if (status) status.textContent = err.message;
     } finally {
@@ -660,19 +810,44 @@ function wireDiscordTest() {
 // ---------------------------------------------------------------------------
 // Copy-to-clipboard buttons (data-copy="#some-input")
 // ---------------------------------------------------------------------------
+function flashCopied(btn) {
+  const original = btn.textContent;
+  btn.textContent = 'Copied!';
+  setTimeout(() => { btn.textContent = original; }, 1500);
+}
+
+// navigator.clipboard is only exposed in a "secure context" (https, or
+// localhost) - on a typical home install this dashboard is reached over
+// plain http://<LAN-IP>:3000, where navigator.clipboard is undefined and
+// calling .writeText on it throws synchronously, before the promise chain
+// even runs. That silently killed every copy button (Miner Configuration,
+// Donation addresses, wallet addresses, etc.) with no visible error. Fall
+// back to the older select-and-execCommand approach, which has no such
+// restriction, whenever the modern API isn't available.
+function legacyCopy(input) {
+  input.select();
+  input.setSelectionRange(0, input.value.length);
+  try {
+    return document.execCommand('copy');
+  } catch {
+    return false;
+  }
+}
+
 document.body.addEventListener('click', (e) => {
   const btn = e.target.closest('[data-copy]');
   if (!btn) return;
   const input = document.querySelector(btn.dataset.copy);
   if (!input) return;
-  navigator.clipboard.writeText(input.value).then(
-    () => {
-      const original = btn.textContent;
-      btn.textContent = 'Copied!';
-      setTimeout(() => { btn.textContent = original; }, 1500);
-    },
-    () => { /* clipboard permission denied - nothing useful to do */ }
-  );
+
+  if (navigator.clipboard && window.isSecureContext) {
+    navigator.clipboard.writeText(input.value).then(
+      () => flashCopied(btn),
+      () => { if (legacyCopy(input)) flashCopied(btn); }
+    );
+  } else if (legacyCopy(input)) {
+    flashCopied(btn);
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -1560,6 +1735,7 @@ wireMoneroRecovery();
 wireTariRecovery();
 wirePoolAdvisor();
 wireDiscordTest();
+wireP2poolStatusCommand();
 loadSettingsForm();
 resumeImportPollingIfActive();
 resumeTariRecoveryPollingIfActive();

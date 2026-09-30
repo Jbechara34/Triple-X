@@ -64,13 +64,19 @@ services:
       P2POOL_STRATUM_PORT: "3333"
       EXPLORER_BASE_URL: "https://xmrchain.net"
       MONEROD_LOG_FILE: /data/monerod-logs/monerod.log
-      MINOTARI_LOG_FILE: /data/minotari-logs/base_node.log
+      # Not a flat "base_node.log" - see ../docker-compose.yml's identical
+      # setting for why (the official minotari_node image's own log4rs
+      # config splits output into a base_node/ subdirectory).
+      MINOTARI_LOG_FILE: /data/minotari-logs/base_node/base_layer.log
       MINOTARI_WALLET_HOST: minotari-wallet
       MINOTARI_WALLET_GRPC_PORT: "18143"
       MINOTARI_WALLET_SEED_FILE: /data/minotari-wallet/seed-words.txt
       MONERO_WALLET_RPC_HOST: monero-wallet-rpc
       MONERO_WALLET_RPC_PORT: "18084"
       MONERO_WALLET_STATE_FILE: /data/state/monero-wallet.json
+      # Same shared-config path p2pool's entrypoint.sh creates the FIFO at -
+      # see ../app/lib/p2poolCommand.js.
+      COMMAND_FIFO: /data/config/p2pool-command
 
   monerod:
     # Pinned to the v1.0-Alpha9 build's exact digest - see note on web's image above.
@@ -140,6 +146,9 @@ services:
       # p2pool behaves exactly as before (XMR only).
       MINOTARI_NODE_HOST: minotari-node
       MINOTARI_NODE_GRPC_PORT: "18142"
+      # Named pipe p2pool's stdin console reads from - lets the app's Logs
+      # tab send commands like "status" (see entrypoint.sh + ../app/lib/p2poolCommand.js).
+      COMMAND_FIFO: /data/config/p2pool-command
     ports:
       - "3333:3333"   # stratum - point your miner here
       - "37889:37889" # P2Pool p2p (standard)

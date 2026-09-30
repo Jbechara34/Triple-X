@@ -46,6 +46,15 @@ const WORKER_STALE_MS = 24 * 60 * 60 * 1000; // drop workers not seen in 24h fro
 const WORKER_PRUNE_MS = 90 * 24 * 60 * 60 * 1000; // forget workers not seen in 90 days entirely, so state.workers doesn't grow forever over a long-running install
 const MIN_SAVE_INTERVAL_MS = 60 * 1000; // during active mining almost every 15s poll tick has new shares - rewriting the whole state file (all blocks + all workers) that often is wasted disk I/O for a cache that only needs to survive a restart, so batch writes to at most once/minute (a found block still flushes immediately, see maybeSaveState)
 
+// p2pool prints "BLOCK FOUND" on EVERY node in the sidechain whenever ANY
+// participant's share reaches Monero's network difficulty, not just the one
+// whose miner actually found it - confirmed directly against p2pool's own
+// source (src/side_chain.cpp, SideChain::add_external_block): the message
+// itself says "...was mined by you" or "...was mined by someone else in this
+// p2pool" depending on whether the winning share's wallet matches this
+// node's configured payout wallet. Without checking for "by you" here, this
+// list previously recorded every block anyone on the whole sidechain found.
+const BLOCK_FOUND_BY_YOU_RE = /BLOCK FOUND[^\n]*?\bby you\b/i;
 // Best-effort patterns - see header comment.
 const BLOCK_FOUND_RE = /BLOCK FOUND[^\n]*?height[:\s]+(\d+)[^\n]*/i;
 const HEIGHT_ONLY_RE = /height[:\s]+(\d+)/i;
@@ -122,6 +131,7 @@ function parseLine(line) {
   const detectedAt = tsMatch ? tsMatch[1] : new Date().toISOString();
 
   if (/BLOCK FOUND/i.test(line)) {
+    if (!BLOCK_FOUND_BY_YOU_RE.test(line)) return; // someone else's block - not this node's payout address
     const heightMatch = line.match(BLOCK_FOUND_RE) || line.match(HEIGHT_ONLY_RE);
     const hashMatch = line.match(HASH_RE);
     const height = heightMatch ? Number(heightMatch[1]) : null;

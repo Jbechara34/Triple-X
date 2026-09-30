@@ -20,7 +20,10 @@ const path = require('path');
 const config = require('./config');
 const discordNotify = require('./discordNotify');
 
-const LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node.log';
+// Not a flat "base_node.log" - see app/server.js's identical constant for
+// why (the official minotari_node image's own log4rs config splits output
+// into a base_node/ subdirectory).
+const LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node/base_layer.log';
 const STATE_DIR = process.env.STATE_DIR || '/data/state';
 const STATE_FILE = path.join(STATE_DIR, 'tari-blocks-state.json');
 

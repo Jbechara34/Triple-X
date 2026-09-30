@@ -136,21 +136,48 @@
   table.v1-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); color: var(--text); }
   .pv-empty { color: var(--muted); font-style: italic; }
 
-  .pv-sparkline {
+  /* Pool tab history graphs - CK Pool dashboard style (stats.ckpool.org):
+     multi-series lines, gridlines + axis labels, under-chart legend. Backed
+     by real server-side history (lib/poolHistory.js), see preview.js
+     renderHistoryChart(). */
+  .pv-history-chart {
     width: 100%;
-    height: 70px;
+    height: 130px;
     display: block;
   }
-  .pv-sparkline .pv-spark-line {
-    fill: none;
-    stroke-width: 2;
+  .pv-chart-grid {
+    stroke: var(--border);
+    stroke-width: 1;
   }
-  .pv-sparkline .pv-spark-fill {
-    opacity: 0.12;
-    stroke: none;
+  .pv-chart-axis-label {
+    fill: var(--muted);
+    font-size: 8px;
   }
-  #pv-graph-hashrate .pv-spark-line, #pv-graph-hashrate .pv-spark-fill { stroke: var(--orange); fill: var(--orange); }
-  #pv-graph-difficulty .pv-spark-line, #pv-graph-difficulty .pv-spark-fill { stroke: var(--tari); fill: var(--tari); }
+  .pv-chart-empty {
+    fill: var(--muted);
+    font-size: 10px;
+    font-style: italic;
+  }
+  .pv-chart-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 14px;
+    margin-top: 6px;
+    font-size: 11px;
+    color: var(--muted);
+  }
+  .pv-chart-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+  }
+  .pv-chart-legend-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
 
   .pv-share-cell { display: flex; align-items: center; gap: 8px; min-width: 120px; }
   .pv-share-bar-track { flex: 1; height: 6px; border-radius: 3px; background: var(--panel-alt); overflow: hidden; }
@@ -444,6 +471,7 @@
           <div class="pv-tile"><div class="pv-tile-label">Hash Rate</div><div class="pv-tile-value" id="pv-p2p-hashrate">—</div></div>
           <div class="pv-tile"><div class="pv-tile-label">Network Diff</div><div class="pv-tile-value" id="pv-p2p-diff">—</div></div>
           <div class="pv-tile"><div class="pv-tile-label">ETA to Block</div><div class="pv-tile-value" id="pv-p2p-eta">—</div></div>
+          <div class="pv-tile"><div class="pv-tile-label">ETA to P2Pool Share</div><div class="pv-tile-value" id="pv-p2p-share-eta">—</div></div>
         </div>
       </div>
 
@@ -505,31 +533,36 @@
           </div>
           <div class="v1-sub" style="margin-top:6px;">Highest share difficulty seen (not a guaranteed winning share).</div>
         </div>
-        <div>
-          <div class="v1-label">ETA to Find Block</div>
-          <div class="v1-big" style="font-size:20px" id="pv-net-eta">—</div>
-          <div class="v1-sub">Based on sidechain-wide pool hash rate</div>
-        </div>
       </div>
 
       <!-- Right column: live graphs + sidechain-wide network summary -->
       <div class="v1-side-half">
         <div>
           <div class="v1-label">Hash Rate History</div>
-          <svg id="pv-graph-hashrate" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+          <svg id="pv-graph-hashrate" class="pv-history-chart" viewBox="0 0 320 130" preserveAspectRatio="none"></svg>
+          <div class="pv-chart-legend" id="pv-graph-hashrate-legend"></div>
         </div>
         <div>
-          <div class="v1-label">Network Difficulty History</div>
-          <svg id="pv-graph-difficulty" class="pv-sparkline" viewBox="0 0 300 70" preserveAspectRatio="none"></svg>
+          <div class="v1-label">Network Difficulty History (Sidechain)</div>
+          <svg id="pv-graph-difficulty" class="pv-history-chart" viewBox="0 0 320 130" preserveAspectRatio="none"></svg>
+          <div class="pv-chart-legend" id="pv-graph-difficulty-legend"></div>
         </div>
         <div>
-          <div class="v1-label">P2Pool Network (Sidechain-Wide)</div>
+          <div class="v1-label">Your P2Pool Stats</div>
           <div class="v1-stat-row">
-            <div><div class="v1-big" style="font-size:18px" id="pv-net-miners">—</div><div class="v1-sub">Miners</div></div>
-            <div><div class="v1-big" style="font-size:18px" id="pv-net-shares">—</div><div class="v1-sub">Shares (PPLNS)</div></div>
-            <div><div class="v1-big" style="font-size:18px" id="pv-net-blocks">—</div><div class="v1-sub">Blocks Found</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-miners">—</div><div class="v1-sub">Your Miners</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-shares">—</div><div class="v1-sub">Your Shares (PPLNS)</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-net-blocks">—</div><div class="v1-sub">Your Blocks Found</div></div>
             <div><div class="v1-big" style="font-size:18px" id="pv-net-reward">—</div><div class="v1-sub">Reward</div></div>
           </div>
+        </div>
+        <div>
+          <div class="v1-label">ETA to Find</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-sub">Block (XMR)</div><div class="v1-big" style="font-size:16px" id="pv-net-eta">—</div></div>
+            <div><div class="v1-sub">P2Pool Share</div><div class="v1-big" style="font-size:16px" id="pv-net-share-eta">—</div></div>
+          </div>
+          <div class="v1-sub" style="margin-top:6px;">Block: sidechain-wide pool hash rate · Share: this node's own hash rate (differs by pool mode)</div>
         </div>
       </div>
 
@@ -570,9 +603,15 @@
       <!-- Setup / Miner Configuration -->
       <div class="v1-full">
         <div class="v1-label">Setup — Miner Configuration</div>
-        <div class="field">
-          <label>Pool URL</label>
-          <div class="copy-row"><input type="text" readonly id="pv-miner-url" value="—" /><button class="icon-btn" data-copy="#pv-miner-url">Copy</button></div>
+        <div class="v1-stat-row">
+          <div class="field" style="flex:1;">
+            <label>Pool URL (LAN — same network)</label>
+            <div class="copy-row"><input type="text" readonly id="pv-miner-url-lan" value="—" /><button class="icon-btn" data-copy="#pv-miner-url-lan">Copy</button></div>
+          </div>
+          <div class="field" style="flex:1;">
+            <label>Pool URL (WAN — internet, needs port forwarding)</label>
+            <div class="copy-row"><input type="text" readonly id="pv-miner-url-wan" value="—" /><button class="icon-btn" data-copy="#pv-miner-url-wan">Copy</button></div>
+          </div>
         </div>
         <div class="field">
           <label>Payout Address</label>
@@ -595,6 +634,17 @@
     </div>
 
     <div class="v1-bento" data-tabpanel="blocks" style="display:none">
+      <!-- P2Pool PPLNS shares - this node's own accepted shares, distinct
+           from the XMR blocks table below (a share is a P2Pool sidechain
+           unit of work; a block is the rare full Monero payout). -->
+      <div class="v1-full">
+        <div class="v1-label">P2Pool PPLNS Shares Found</div>
+        <div class="v1-stat-row">
+          <div><div class="v1-big" style="font-size:18px" id="pv-blocks-shares-found">—</div><div class="v1-sub">Your Shares</div></div>
+          <div><div class="v1-big" style="font-size:18px" id="pv-blocks-shares-failed">—</div><div class="v1-sub">Failed Shares</div></div>
+        </div>
+      </div>
+
       <!-- XMR blocks -->
       <div class="v1-half">
         <div class="v1-label">XMR Blocks Found</div>
@@ -615,123 +665,6 @@
     </div>
 
     <div class="v1-bento" data-tabpanel="wallet" style="display:none">
-      <div class="v1-full">
-        <div class="v1-label">Tari (XTM) Wallet <span class="badge-experimental">beta</span></div>
-        <div class="wallet-card" style="background-image:url('img/tari-card-bg-landscape.png'); margin-top:10px;">
-          <div class="wallet-card-top">
-            <span class="wallet-card-ticker">Tari · XTM</span>
-          </div>
-          <div>
-            <div class="wallet-card-balance-label">Available</div>
-            <div class="wallet-card-balance" id="pv-wallet-tari-card-balance">—</div>
-          </div>
-          <div class="wallet-card-address-row">
-            <span class="wallet-card-address" id="pv-wallet-tari-card-address">•••• •••• •••• ••••</span>
-            <button class="wallet-card-toggle" id="pv-wallet-tari-card-toggle" title="Show address">&#128065;</button>
-          </div>
-        </div>
-        <div class="v1-sub" id="pv-wallet-tari-intro">
-          This dashboard never holds funds itself - it just talks to the bundled Minotari wallet container. No
-          wallet is created until you ask for one.
-        </div>
-
-        <!-- Shown instead of Create/address/use when a Tari address is already
-             saved in Settings but no wallet was ever created here - that
-             address is externally managed (a hardware wallet, another Tari
-             client, etc.), so this dashboard has no keys/balance/send/seed
-             for it and offering Create Wallet would just be confusing. -->
-        <div id="pv-wallet-tari-external" style="display:none;">
-          <div class="hint">
-            This address is set in Settings but wasn't created here - it's managed by an external Tari wallet.
-            Balance, sending, and seed backup aren't available for it from this dashboard.
-          </div>
-          <div class="field" style="margin-top:10px;">
-            <label>Merge-Mining Address</label>
-            <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-external-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-external-address">Copy</button></div>
-          </div>
-        </div>
-
-        <button class="primary" id="pv-wallet-tari-create" style="margin-top:10px;">Create Wallet</button>
-        <div class="hint" id="pv-wallet-tari-create-status"></div>
-        <div class="field" id="pv-wallet-tari-address-field" style="margin-top:14px; display:none;">
-          <label>Receive Address</label>
-          <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-address">Copy</button></div>
-        </div>
-        <button class="primary" id="pv-wallet-tari-use" style="display:none;">Use this address for merge-mining</button>
-        <div class="hint" id="pv-wallet-tari-use-status"></div>
-
-        <div id="pv-wallet-tari-balance-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">Balance</div>
-          <div class="v1-stat-row">
-            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-available">—</div><div class="v1-sub">Available</div></div>
-            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-in">—</div><div class="v1-sub">Pending In</div></div>
-            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-out">—</div><div class="v1-sub">Pending Out</div></div>
-          </div>
-        </div>
-
-        <div id="pv-wallet-tari-send-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">Send XTM</div>
-          <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
-          <div class="field" style="margin-top:10px;">
-            <label>Recipient Address</label>
-            <input type="text" id="pv-wallet-tari-send-address" placeholder="Tari address" />
-          </div>
-          <div class="field">
-            <label>Amount (XTM)</label>
-            <input type="text" id="pv-wallet-tari-send-amount" placeholder="0.0" />
-          </div>
-          <button class="icon-btn" id="pv-wallet-tari-send-step1">Send</button>
-          <div id="pv-wallet-tari-send-confirm" style="display:none; margin-top:10px;">
-            <div class="hint warn" id="pv-wallet-tari-send-confirm-text"></div>
-            <button class="primary" id="pv-wallet-tari-send-step2" style="margin-top:8px;">Yes, send it</button>
-            <button class="icon-btn" id="pv-wallet-tari-send-cancel">Cancel</button>
-          </div>
-          <div class="hint" id="pv-wallet-tari-send-status"></div>
-        </div>
-
-        <div id="pv-wallet-tari-seed-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div style="display:flex; align-items:center; gap:10px;">
-            <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
-            <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>
-          </div>
-          <div class="v1-sub" id="pv-wallet-seed-intro">
-            A one-time backup of this wallet's seed phrase is available. Revealing it deletes the backup file from
-            disk immediately after - it can only be shown once, so make sure you can write it down before confirming.
-          </div>
-          <button class="icon-btn" id="pv-wallet-reveal-step1" style="margin-top:10px;">Reveal Seed Phrase (one-time)</button>
-          <div id="pv-wallet-reveal-confirm" style="display:none; margin-top:10px;">
-            <div class="hint warn">This is your only chance to see this seed phrase from this dashboard. Have a pen and paper (or a password manager) ready.</div>
-            <button class="primary" id="pv-wallet-reveal-step2" style="margin-top:8px;">Yes, show it and delete the backup file</button>
-            <button class="icon-btn" id="pv-wallet-reveal-cancel">Cancel</button>
-          </div>
-          <div id="pv-wallet-seed-grid" class="mono" style="display:none; margin-top:12px; padding:12px; background:var(--panel-alt); border-radius:8px; line-height:2;"></div>
-        </div>
-
-        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
-          <div class="v1-label">Recover Wallet</div>
-          <div class="v1-sub">
-            Lost this wallet (a fresh install, a wiped volume, moving to a new box)? Enter its seed phrase to
-            restore it. This requires Docker socket access (see the Settings tab's Import Blockchain instructions
-            for how to enable it) since the Tari wallet has to be restarted with the seed words to recover it -
-            <strong>this replaces the current Tari wallet on this dashboard</strong>, so only do this if you mean to.
-          </div>
-          <button class="icon-btn" id="pv-wallet-tari-recover-step1" style="margin-top:10px;">Recover Wallet from Seed Phrase</button>
-          <div id="pv-wallet-tari-recover-form" style="display:none; margin-top:10px;">
-            <div class="hint warn">This restarts the Tari wallet and replaces its current data with the wallet from this seed phrase. Any existing wallet on this dashboard not backed up elsewhere will no longer be reachable here.</div>
-            <div class="field" style="margin-top:10px;">
-              <label>Seed Phrase (space-separated)</label>
-              <textarea id="pv-wallet-tari-recover-seed" rows="3" placeholder="word1 word2 word3 ..."></textarea>
-            </div>
-            <button class="primary" id="pv-wallet-tari-recover-step2">Yes, recover it</button>
-            <button class="icon-btn" id="pv-wallet-tari-recover-cancel">Cancel</button>
-          </div>
-          <div id="pv-wallet-tari-recover-progress" style="display:none; margin-top:12px;">
-            <div class="hint" id="pv-wallet-tari-recover-progress-message">—</div>
-          </div>
-          <div class="hint" id="pv-wallet-tari-recover-status"></div>
-        </div>
-      </div>
-
       <div class="v1-full">
         <div class="v1-label">Monero (XMR) Wallet</div>
         <div class="wallet-card" style="background-image:url('img/xmr-card-bg.png'); background-size:180% auto; background-position:right center; margin-top:10px;">
@@ -849,6 +782,123 @@
           <div class="hint" id="pv-wallet-xmr-recover-status"></div>
         </div>
       </div>
+
+      <div class="v1-full">
+        <div class="v1-label">Tari (XTM) Wallet <span class="badge-experimental">beta</span></div>
+        <div class="wallet-card" style="background-image:url('img/tari-card-bg-landscape.png'); margin-top:10px;">
+          <div class="wallet-card-top">
+            <span class="wallet-card-ticker">Tari · XTM</span>
+          </div>
+          <div>
+            <div class="wallet-card-balance-label">Available</div>
+            <div class="wallet-card-balance" id="pv-wallet-tari-card-balance">—</div>
+          </div>
+          <div class="wallet-card-address-row">
+            <span class="wallet-card-address" id="pv-wallet-tari-card-address">•••• •••• •••• ••••</span>
+            <button class="wallet-card-toggle" id="pv-wallet-tari-card-toggle" title="Show address">&#128065;</button>
+          </div>
+        </div>
+        <div class="v1-sub" id="pv-wallet-tari-intro">
+          This dashboard never holds funds itself - it just talks to the bundled Minotari wallet container. No
+          wallet is created until you ask for one.
+        </div>
+
+        <!-- Shown instead of Create/address/use when a Tari address is already
+             saved in Settings but no wallet was ever created here - that
+             address is externally managed (a hardware wallet, another Tari
+             client, etc.), so this dashboard has no keys/balance/send/seed
+             for it and offering Create Wallet would just be confusing. -->
+        <div id="pv-wallet-tari-external" style="display:none;">
+          <div class="hint">
+            This address is set in Settings but wasn't created here - it's managed by an external Tari wallet.
+            Balance, sending, and seed backup aren't available for it from this dashboard.
+          </div>
+          <div class="field" style="margin-top:10px;">
+            <label>Merge-Mining Address</label>
+            <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-external-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-external-address">Copy</button></div>
+          </div>
+        </div>
+
+        <button class="primary" id="pv-wallet-tari-create" style="margin-top:10px;">Create Wallet</button>
+        <div class="hint" id="pv-wallet-tari-create-status"></div>
+        <div class="field" id="pv-wallet-tari-address-field" style="margin-top:14px; display:none;">
+          <label>Receive Address</label>
+          <div class="copy-row"><input type="text" readonly id="pv-wallet-tari-address" value="—" /><button class="icon-btn" data-copy="#pv-wallet-tari-address">Copy</button></div>
+        </div>
+        <button class="primary" id="pv-wallet-tari-use" style="display:none;">Use this address for merge-mining</button>
+        <div class="hint" id="pv-wallet-tari-use-status"></div>
+
+        <div id="pv-wallet-tari-balance-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Balance</div>
+          <div class="v1-stat-row">
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-available">—</div><div class="v1-sub">Available</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-in">—</div><div class="v1-sub">Pending In</div></div>
+            <div><div class="v1-big" style="font-size:18px" id="pv-wallet-tari-balance-pending-out">—</div><div class="v1-sub">Pending Out</div></div>
+          </div>
+        </div>
+
+        <div id="pv-wallet-tari-send-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Send XTM</div>
+          <div class="hint warn">Sending is real and irreversible - double-check the address before confirming.</div>
+          <div class="field" style="margin-top:10px;">
+            <label>Recipient Address</label>
+            <input type="text" id="pv-wallet-tari-send-address" placeholder="Tari address" />
+          </div>
+          <div class="field">
+            <label>Amount (XTM)</label>
+            <input type="text" id="pv-wallet-tari-send-amount" placeholder="0.0" />
+          </div>
+          <button class="icon-btn" id="pv-wallet-tari-send-step1">Send</button>
+          <div id="pv-wallet-tari-send-confirm" style="display:none; margin-top:10px;">
+            <div class="hint warn" id="pv-wallet-tari-send-confirm-text"></div>
+            <button class="primary" id="pv-wallet-tari-send-step2" style="margin-top:8px;">Yes, send it</button>
+            <button class="icon-btn" id="pv-wallet-tari-send-cancel">Cancel</button>
+          </div>
+          <div class="hint" id="pv-wallet-tari-send-status"></div>
+        </div>
+
+        <div id="pv-wallet-tari-seed-section" style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div style="display:flex; align-items:center; gap:10px;">
+            <img src="img/xmr-write-down.png" alt="" style="width:32px; height:32px;" />
+            <div class="v1-label" style="margin-bottom:0;">Seed Phrase Backup</div>
+          </div>
+          <div class="v1-sub" id="pv-wallet-seed-intro">
+            A one-time backup of this wallet's seed phrase is available. Revealing it deletes the backup file from
+            disk immediately after - it can only be shown once, so make sure you can write it down before confirming.
+          </div>
+          <button class="icon-btn" id="pv-wallet-reveal-step1" style="margin-top:10px;">Reveal Seed Phrase (one-time)</button>
+          <div id="pv-wallet-reveal-confirm" style="display:none; margin-top:10px;">
+            <div class="hint warn">This is your only chance to see this seed phrase from this dashboard. Have a pen and paper (or a password manager) ready.</div>
+            <button class="primary" id="pv-wallet-reveal-step2" style="margin-top:8px;">Yes, show it and delete the backup file</button>
+            <button class="icon-btn" id="pv-wallet-reveal-cancel">Cancel</button>
+          </div>
+          <div id="pv-wallet-seed-grid" class="mono" style="display:none; margin-top:12px; padding:12px; background:var(--panel-alt); border-radius:8px; line-height:2;"></div>
+        </div>
+
+        <div style="margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);">
+          <div class="v1-label">Recover Wallet</div>
+          <div class="v1-sub">
+            Lost this wallet (a fresh install, a wiped volume, moving to a new box)? Enter its seed phrase to
+            restore it. This requires Docker socket access (see the Settings tab's Import Blockchain instructions
+            for how to enable it) since the Tari wallet has to be restarted with the seed words to recover it -
+            <strong>this replaces the current Tari wallet on this dashboard</strong>, so only do this if you mean to.
+          </div>
+          <button class="icon-btn" id="pv-wallet-tari-recover-step1" style="margin-top:10px;">Recover Wallet from Seed Phrase</button>
+          <div id="pv-wallet-tari-recover-form" style="display:none; margin-top:10px;">
+            <div class="hint warn">This restarts the Tari wallet and replaces its current data with the wallet from this seed phrase. Any existing wallet on this dashboard not backed up elsewhere will no longer be reachable here.</div>
+            <div class="field" style="margin-top:10px;">
+              <label>Seed Phrase (space-separated)</label>
+              <textarea id="pv-wallet-tari-recover-seed" rows="3" placeholder="word1 word2 word3 ..."></textarea>
+            </div>
+            <button class="primary" id="pv-wallet-tari-recover-step2">Yes, recover it</button>
+            <button class="icon-btn" id="pv-wallet-tari-recover-cancel">Cancel</button>
+          </div>
+          <div id="pv-wallet-tari-recover-progress" style="display:none; margin-top:12px;">
+            <div class="hint" id="pv-wallet-tari-recover-progress-message">—</div>
+          </div>
+          <div class="hint" id="pv-wallet-tari-recover-status"></div>
+        </div>
+      </div>
     </div>
 
     <div class="v1-bento" data-tabpanel="logs" style="display:none">
@@ -857,7 +907,11 @@
         <div class="v1-label">Logs (live)</div>
         <div class="v1-label" style="margin-top:10px;">monerod</div>
         <pre class="log-box" id="pv-logs-monerod" style="max-height:400px;">—</pre>
-        <div class="v1-label" style="margin-top:10px;">p2pool</div>
+        <div class="v1-label" style="margin-top:10px; display:flex; align-items:center; gap:10px; justify-content:space-between;">
+          <span>p2pool</span>
+          <button class="icon-btn" id="pv-p2pool-status-cmd" style="text-transform:none; letter-spacing:normal;">Send "status" command</button>
+        </div>
+        <div class="hint" id="pv-p2pool-status-cmd-status"></div>
         <pre class="log-box" id="pv-logs-p2pool" style="max-height:400px;">—</pre>
         <div class="v1-label" style="margin-top:10px;">minotari <span class="badge-experimental">beta</span></div>
         <pre class="log-box" id="pv-logs-minotari" style="max-height:400px;">—</pre>
@@ -914,6 +968,13 @@
             container to have Docker socket access (see docker-compose.yml); that's real control over the host, so
             this stays off and hidden until you turn it on here. Off by default.</div>
         </div>
+        <div class="field">
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-auto-minotari-enabled" /> Automatically stop Minotari (XTM) when unused</label>
+          <div class="hint warn">Minotari has no pruning mode - it always syncs and stores the complete Tari
+            blockchain, using real disk/CPU even if you've never set a Tari address. When on, this stops the
+            minotari-node and minotari-wallet containers whenever no Tari address is configured, and starts them
+            back up the moment you set one. Same Docker socket requirement as Blockchain Import above. Off by default.</div>
+        </div>
       </div>
 
       <!-- Discord webhook notifications - off by default, nothing is ever
@@ -939,6 +1000,7 @@
         </div>
         <div class="field">
           <label class="checkbox-label"><input type="checkbox" id="pv-settings-discord-notify-shares" /> Notify on P2Pool shares found</label>
+          <label class="checkbox-label"><input type="checkbox" id="pv-settings-discord-notify-worker-connections" /> Notify when a worker connects/disconnects</label>
           <div class="hint">Every share you find counts toward your next PPLNS payout - but shares happen far more often than blocks, so this can be noisy. Off by default.</div>
         </div>
         <button class="icon-btn" id="pv-discord-test">Send Test Notification</button>

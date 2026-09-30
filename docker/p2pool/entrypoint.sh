@@ -9,6 +9,14 @@ CONFIG_FILE="${CONFIG_FILE:-/data/config/settings.json}"
 DATA_API_DIR="${DATA_API_DIR:-/data/p2pool-api}"
 LOG_DIR="${LOG_DIR:-/data/p2pool-logs}"
 LOG_FILE="${LOG_FILE:-$LOG_DIR/p2pool.log}"
+# Named pipe feeding p2pool's own stdin console (it reads commands like
+# "status"/"workers" from stdin - see p2pool's src/console_commands.cpp,
+# which explicitly supports a named-pipe input mode, not just an
+# interactive TTY). Lives in shared-config, the one data volume this
+# container and the app container both mount read-write, so the app's Logs
+# tab can write a command into it (see lib/p2poolCommand.js) and have it
+# reach p2pool here.
+COMMAND_FIFO="${COMMAND_FIFO:-/data/config/p2pool-command}"
 
 # The Dockerfile leaves this container running as root (no USER) because
 # bind-mounted volumes (e.g. Umbrel/5tratumOS's ${APP_DATA_DIR} paths) arrive
@@ -19,7 +27,11 @@ LOG_FILE="${LOG_FILE:-$LOG_DIR/p2pool.log}"
 # touching any settings or starting p2pool.
 if [ "$(id -u)" = "0" ]; then
   mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
-  chown p2pool:p2pool "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool 2>/dev/null || true
+  # A stale regular file here (e.g. leftover from before this feature
+  # existed, or a bind-mount quirk) would make `mkfifo` fail outright -
+  # remove anything at this path that isn't already a FIFO before creating it.
+  [ -p "$COMMAND_FIFO" ] || { rm -f "$COMMAND_FIFO" 2>/dev/null || true; mkfifo "$COMMAND_FIFO" 2>/dev/null || true; }
+  chown p2pool:p2pool "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" /home/p2pool/.p2pool "$COMMAND_FIFO" 2>/dev/null || true
   # setpriv only changes the process's UID/GID - unlike `su`/`sudo -i`, it
   # does NOT reset HOME, which would otherwise stay HOME=/root (inherited
   # from this root shell) and could point anything that defaults to
@@ -53,6 +65,15 @@ mkdir -p "$DATA_API_DIR" "$LOG_DIR" "$(dirname "$CONFIG_FILE")" 2>/dev/null || t
 # even if it doesn't exist yet or gets rotated.
 touch "$LOG_FILE"
 tail -n0 -F "$LOG_FILE" &
+
+# Open the command FIFO read-write on fd 9. Opening a FIFO for read-only (or
+# write-only) blocks until a peer opens the other end - opening it <> (both
+# ends at once, from this same process) sidesteps that, and holding fd 9 open
+# for the life of this script guarantees a reader always exists, so a write
+# from the app container never blocks even between p2pool restarts. p2pool
+# itself (started with its stdin duped from fd 9, see start_child) is the
+# only thing that ever actually reads from it.
+exec 9<>"$COMMAND_FIFO"
 
 CHILD_PID=""
 LAST_SIGNATURE=""
@@ -130,8 +151,11 @@ build_args() {
 
 start_child() {
   echo "[entrypoint] starting: p2pool $ARGS" | tee -a "$LOG_FILE"
+  # stdin <&9 - the command FIFO (see COMMAND_FIFO above) - lets the
+  # dashboard's Logs tab send p2pool console commands (status, workers, ...)
+  # without needing an attached TTY.
   # shellcheck disable=SC2086
-  p2pool $ARGS >>"$LOG_FILE" 2>&1 &
+  p2pool $ARGS <&9 >>"$LOG_FILE" 2>&1 &
   CHILD_PID=$!
   LAST_SIGNATURE="$ARGS"
 }

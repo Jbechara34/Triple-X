@@ -36,6 +36,13 @@ const DEFAULTS = {
   // (docker-compose.yml), which is real control over the host, hence
   // opt-in rather than always visible.
   importBlockchainEnabled: false,
+  // Off by default - same Docker-socket requirement/warning as
+  // importBlockchainEnabled above. When on, stops the minotari-node and
+  // minotari-wallet containers whenever no Tari address is configured (they
+  // otherwise sync/run full-time regardless of whether merge-mining is
+  // actually used - see lib/minotariLifecycle.js), and starts them back up
+  // the moment a Tari address is set.
+  autoManageMinotariEnabled: false,
   // Discord webhook notifications (see lib/discordNotify.js) - off by
   // default, nothing is ever sent until a URL is saved here. The two
   // per-coin toggles only matter once a URL is set.
@@ -46,6 +53,9 @@ const DEFAULTS = {
   // more often than blocks (that's the point of P2Pool's PPLNS scheme), so
   // this would be noisy for anyone who doesn't specifically want it.
   discordNotifyShares: false,
+  // Off by default, same reasoning as discordNotifyShares - specifies which
+  // worker connected/disconnected (see lib/workerConnectionNotify.js).
+  discordNotifyWorkerConnections: false,
   updatedAt: null,
 };
 
@@ -151,6 +161,10 @@ function writeSettings(update) {
     next.importBlockchainEnabled = update.importBlockchainEnabled;
   }
 
+  if (typeof update.autoManageMinotariEnabled === 'boolean') {
+    next.autoManageMinotariEnabled = update.autoManageMinotariEnabled;
+  }
+
   if (typeof update.discordWebhookUrl === 'string') {
     const url = update.discordWebhookUrl.trim();
     if (url && !/^https:\/\//i.test(url)) {
@@ -171,6 +185,10 @@ function writeSettings(update) {
 
   if (typeof update.discordNotifyShares === 'boolean') {
     next.discordNotifyShares = update.discordNotifyShares;
+  }
+
+  if (typeof update.discordNotifyWorkerConnections === 'boolean') {
+    next.discordNotifyWorkerConnections = update.discordNotifyWorkerConnections;
   }
 
   next.updatedAt = new Date().toISOString();

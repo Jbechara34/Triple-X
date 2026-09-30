@@ -32,6 +32,11 @@ const p2poolObserver = require('./lib/p2poolObserver');
 const logs = require('./lib/logs');
 const blockchainImport = require('./lib/blockchainImport');
 const remoteBrowse = require('./lib/remoteBrowse');
+const networkInfo = require('./lib/networkInfo');
+const p2poolCommand = require('./lib/p2poolCommand');
+const workerConnectionNotify = require('./lib/workerConnectionNotify');
+const minotariLifecycle = require('./lib/minotariLifecycle');
+const poolHistory = require('./lib/poolHistory');
 
 const app = express();
 app.use(express.json());
@@ -65,8 +70,11 @@ const STRATUM_PORT = process.env.P2POOL_STRATUM_PORT || '3333';
 const MONEROD_LOG_FILE = process.env.MONEROD_LOG_FILE || '/data/monerod-logs/monerod.log';
 
 // EXPERIMENTAL - Tari (XTM) merge-mining, see docker/p2pool/entrypoint.sh
-// and app/lib/tariBlocks.js.
-const MINOTARI_LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node.log';
+// and app/lib/tariBlocks.js. Not a flat "base_node.log" - the official
+// minotari_node image's own log4rs config splits output by category into a
+// base_node/ subdirectory; base_layer.log is the one that actually carries
+// the general startup/sync/mempool activity this app parses.
+const MINOTARI_LOG_FILE = process.env.MINOTARI_LOG_FILE || '/data/minotari-logs/base_node/base_layer.log';
 
 // ---------------------------------------------------------------------------
 // Status / readiness (Main tab)
@@ -205,9 +213,37 @@ app.get('/api/pool', async (req, res) => {
   const requestedMode = (req.query.mode || settings.poolMode || 'standard').toLowerCase();
 
   const p2pool = await p2poolApi.getAll();
-  const workers = blocks.getWorkers().filter((w) => w.active);
+  // Live, real-time connected-worker list straight from p2pool's own
+  // local/stratum API (updated every ~20s by p2pool itself, independent of
+  // whether that worker has ever submitted a share yet) - see
+  // lib/p2poolApi.js's parseWorkerEntry. This is the authoritative "who's
+  // connected right now" source: unlike lib/blocks.js's SHARE FOUND log
+  // parsing, a worker shows up the moment it connects and disappears the
+  // moment it disconnects, instead of waiting for/depending on a share.
+  const liveWorkers = p2pool.stratum.workers || [];
+  // Lifetime share history (count, best/current difficulty) is only ever
+  // observable from the log (p2pool's local API doesn't expose it), so we
+  // still merge that in by worker name where we have it.
+  const shareHistory = new Map(blocks.getWorkers().map((w) => [w.name, w]));
+  const workers = liveWorkers.map((lw) => {
+    const name = lw.name || lw.address;
+    const hist = shareHistory.get(lw.name);
+    return {
+      name,
+      address: lw.address,
+      connectedSeconds: lw.connectedSeconds,
+      currentDifficulty: lw.difficulty ?? hist?.currentDifficulty ?? 0,
+      hashrate: lw.hashrate,
+      shares: hist?.shares ?? 0,
+      firstSeen: hist?.firstSeen ?? null,
+      lastSeen: hist?.lastSeen ?? null,
+      bestDifficulty: hist?.bestDifficulty ?? 0,
+    };
+  });
 
   const runningDifferentMode = requestedMode !== settings.poolMode;
+  const lanIp = networkInfo.getLanIp();
+  const wanIp = await networkInfo.getWanIp();
 
   // Optional (see lib/config.js observerEnabled) - the public P2Pool
   // Observer service, queried for network-wide info always when enabled,
@@ -264,20 +300,56 @@ app.get('/api/pool', async (req, res) => {
       height: p2pool.network.height,
       reward: p2pool.network.reward,
       algorithm: 'RandomX',
-      // Sidechain-wide (all miners on this P2Pool mode), not just this node -
-      // from p2pool's own pool/stats file (see lib/p2poolApi.js).
-      minersOnSidechain: p2pool.pool.miners,
-      totalBlocksFound: p2pool.pool.totalBlocksFound,
+      // Your own connected miners/workers - NOT the sidechain-wide miner
+      // count (that was the "Miners" tile's original meaning, from p2pool's
+      // pool/stats "miners" field - swapped out per explicit request to show
+      // yours instead). Same live count as the Workers tile elsewhere (see
+      // p2poolApi.js's local/stratum workers array).
+      minersOnSidechain: workers.length,
+      // Blocks YOU found, not the sidechain-wide total (p2pool's pool/stats
+      // "totalBlocksFound" counts every block anyone on this mode has ever
+      // found). blocks.getBlocks() is already filtered to blocks p2pool
+      // itself cryptographically attributed to this node's configured wallet
+      // address (see lib/blocks.js BLOCK_FOUND_BY_YOU_RE - p2pool compares
+      // the winning share's actual wallet, not a display string, against
+      // --wallet, so "by you" is a real address match, not a guess).
+      totalBlocksFound: blocks.getBlocks().length,
       sidechainSharesFound: p2pool.pool.sidechainSharesFound,
       // Sidechain-wide hashrate (all miners), not just this node's - the
       // right denominator for a pool-wide "time to find a block" estimate.
       sidechainHashrate: p2pool.pool.hashRate,
       // Standard mining ETA formula: expected seconds = difficulty / hashrate
       // (hashes/sec). Null if either input is missing/zero rather than
-      // dividing by zero or showing a nonsense number.
+      // dividing by zero or showing a nonsense number. This uses the real
+      // Monero mainchain difficulty, so it's the actual "how often does
+      // P2Pool as a whole find a real XMR block" figure - correctly
+      // different for standard/mini/nano since each mode's sidechain
+      // hashrate differs, exactly like p2pool.observer's own per-mode
+      // calculators (p2pool.observer / mini.p2pool.observer / nano.p2pool.observer).
       etaSeconds:
         p2pool.network.difficulty && p2pool.pool.hashRate
           ? p2pool.network.difficulty / p2pool.pool.hashRate
+          : null,
+      // Sidechain's own difficulty (see lib/p2poolApi.js sidechainDifficulty)
+      // - this is what determines P2Pool SHARE cadence, as distinct from
+      // etaSeconds above (real Monero BLOCK cadence). Each mode retargets
+      // this independently (10s target for standard/mini, 30s for nano -
+      // confirmed in p2pool's own src/side_chain.cpp).
+      //
+      // shareEtaSeconds divides by THIS NODE's OWN hashrate, not the
+      // sidechain-wide pool hashrate - confirmed directly against
+      // p2pool.observer's own "Average Share Time Calculator"
+      // (p2pool.observer / mini.p2pool.observer / nano.p2pool.observer,
+      // "Your Share Mean"): at a 7 KH/s test hashrate its numbers only match
+      // sidechainDifficulty / 7000, not sidechainDifficulty / pool-wide
+      // hashrate. That's the right framing anyway - a miner cares how often
+      // *their own* node finds a share, not the pool-wide average (which is
+      // just the ~10s/30s design target by construction and not a useful
+      // number to compute).
+      sidechainDifficulty: p2pool.pool.sidechainDifficulty,
+      shareEtaSeconds:
+        p2pool.pool.sidechainDifficulty && p2pool.stratum.hashrate1h
+          ? p2pool.pool.sidechainDifficulty / p2pool.stratum.hashrate1h
           : null,
     },
     bestShare: {
@@ -290,9 +362,9 @@ app.get('/api/pool', async (req, res) => {
     },
     // null unless enabled in Settings - see comment above where it's built.
     observer,
-    lastShareAt: workers.length
-      ? workers.reduce((a, b) => (a.lastSeen > b.lastSeen ? a : b)).lastSeen
-      : null,
+    // Straight from p2pool's own last_share_found_time (see lib/p2poolApi.js)
+    // - real-time and not dependent on our own log parsing having caught up.
+    lastShareAt: p2pool.stratum.lastShareFoundTime,
     // sharePercent: this worker's proportion of shares among your own
     // connected workers (not sidechain-wide) - a real, honest stat straight
     // from what we actually track (see lib/blocks.js), unlike a per-worker
@@ -320,6 +392,11 @@ app.get('/api/pool', async (req, res) => {
     })(),
     minerConfig: {
       url: `${req.hostname}:${STRATUM_PORT}`,
+      // LAN address is always known immediately (the host's own network
+      // interfaces); WAN address needs an external "what's my IP" lookup
+      // (see lib/networkInfo.js) and is null until that first resolves.
+      lanUrl: `${lanIp}:${STRATUM_PORT}`,
+      wanUrl: wanIp ? `${wanIp}:${STRATUM_PORT}` : null,
       payoutAddress: settings.walletAddress || null,
       // Example worker login, so the Miner Configuration card can show a
       // ready-to-copy value instead of just prose describing the format.
@@ -342,6 +419,13 @@ app.get('/api/pool', async (req, res) => {
       blocksFound: tariBlocks.getBlocks().length,
     },
   });
+});
+
+// Pool tab's Hash Rate History / Network Difficulty History graphs - real
+// persisted history (see lib/poolHistory.js), not just a client-side buffer
+// that resets on reload.
+app.get('/api/pool/history', (req, res) => {
+  res.json({ samples: poolHistory.getSamples() });
 });
 
 // ---------------------------------------------------------------------------
@@ -390,6 +474,19 @@ app.get('/api/logs/stream', (req, res) => {
   const getFile = LOG_SOURCES[req.query.source] || LOG_SOURCES.monerod;
   const stop = logs.attachTailStream(res, getFile());
   req.on('close', stop);
+});
+
+// P2Pool log viewer's command button - sends a command into p2pool's own
+// stdin console (see lib/p2poolCommand.js); the response prints to p2pool's
+// stdout, which is already streamed into the log above.
+app.post('/api/p2pool/command', async (req, res) => {
+  const command = (req.body || {}).command;
+  try {
+    await p2poolCommand.sendCommand(command);
+    res.json({ ok: true });
+  } catch (err) {
+    res.status(err.statusCode || 500).json({ error: err.message });
+  }
 });
 
 // ---------------------------------------------------------------------------
@@ -747,6 +844,9 @@ app.get('*', (req, res) => {
 
 blocks.start();
 tariBlocks.start();
+workerConnectionNotify.start();
+minotariLifecycle.start();
+poolHistory.start();
 
 app.listen(PORT, () => {
   console.log(`Triple X listening on :${PORT}`);

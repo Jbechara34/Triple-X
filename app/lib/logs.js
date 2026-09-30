@@ -14,9 +14,39 @@ const POLL_MS = 1000;
 
 // Most of our processes write to one fixed, known log path (monerod,
 // p2pool). Some don't - e.g. minotari_node's logging is configured via a
-// log4rs.yml whose exact output filename isn't pinned down here yet. For
-// those, fall back to the newest *.log file in the same directory instead
-// of guessing a filename outright.
+// log4rs.yml whose exact output filename/subdirectory layout has changed
+// between versions (see docker-compose.yml's MINOTARI_LOG_FILE comment) and
+// isn't reliably pinned down here. For those, fall back to the newest *.log
+// file found by walking the mounted log volume - both the exact configured
+// directory, and (if that comes up empty) a couple of levels up from it, in
+// case log4rs's output subdirectory moved or was never there to begin with.
+const MAX_SCAN_DEPTH = 3;
+
+async function newestLogFileUnder(dir, depth) {
+  let entries;
+  try {
+    entries = await fsp.readdir(dir, { withFileTypes: true });
+  } catch {
+    return null;
+  }
+  const candidates = [];
+  for (const e of entries) {
+    const p = path.join(dir, e.name);
+    if (e.isFile() && e.name.endsWith('.log')) {
+      candidates.push(p);
+    } else if (e.isDirectory() && depth < MAX_SCAN_DEPTH) {
+      const nested = await newestLogFileUnder(p, depth + 1);
+      if (nested) candidates.push(nested);
+    }
+  }
+  if (!candidates.length) return null;
+  const withStats = await Promise.all(
+    candidates.map(async (p) => ({ p, mtime: (await fsp.stat(p)).mtimeMs }))
+  );
+  withStats.sort((a, b) => b.mtime - a.mtime);
+  return withStats[0].p;
+}
+
 async function resolveLogPath(filePath) {
   try {
     const stat = await fsp.stat(filePath);
@@ -24,23 +54,18 @@ async function resolveLogPath(filePath) {
   } catch (err) {
     // not found at the exact path - fall through to the directory scan below
   }
-  const dir = path.dirname(filePath);
-  try {
-    const entries = await fsp.readdir(dir, { withFileTypes: true });
-    const logFiles = entries.filter((e) => e.isFile() && e.name.endsWith('.log'));
-    if (!logFiles.length) return filePath;
-    const withStats = await Promise.all(
-      logFiles.map(async (e) => {
-        const p = path.join(dir, e.name);
-        const s = await fsp.stat(p);
-        return { p, mtime: s.mtimeMs };
-      })
-    );
-    withStats.sort((a, b) => b.mtime - a.mtime);
-    return withStats[0].p;
-  } catch (err) {
-    return filePath;
+  // Try the configured directory first (cheap, common case), then walk up
+  // to 2 levels toward the mounted volume's root in case the log4rs output
+  // layout doesn't match what MINOTARI_LOG_FILE assumes.
+  let dir = path.dirname(filePath);
+  for (let up = 0; up < 3; up += 1) {
+    const found = await newestLogFileUnder(dir, 0);
+    if (found) return found;
+    const parent = path.dirname(dir);
+    if (parent === dir) break; // reached filesystem root
+    dir = parent;
   }
+  return filePath;
 }
 
 async function tailFile(filePath, maxLines = MAX_LINES) {

@@ -723,6 +723,23 @@ main {
 .mining-coin-state.state-xmr-active { color: var(--orange); }
 .mining-coin-state.state-xtm-active { color: var(--tari); }
 
+/* Mining Status bubble labels (#mining-xmr-state / #mining-xtm-state, styled
+   as .v1-pill in the current markup - the .mining-coin-state rules above are
+   for a different, unused UI variant's markup). Red by default (not running
+   / no connected workers, or merge-mining off); the only way to turn green is
+   actively mining / actively merge-mining. Targeted by ID rather than
+   widening .v1-pill itself, which is shared with unrelated badges elsewhere. */
+#mining-xmr-state, #mining-xtm-state {
+  color: var(--red);
+  border-color: var(--red);
+}
+#mining-xmr-state.state-xmr-active,
+#mining-xtm-state.state-xtm-active {
+  color: var(--green);
+  border-color: var(--green);
+  text-shadow: 0 0 8px rgba(76, 175, 80, 0.6);
+}
+
 .badge-experimental {
   display: inline-block;
   font-size: 9px;
