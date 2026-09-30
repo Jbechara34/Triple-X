@@ -6,13 +6,20 @@
  * own --merge-mine docs - a submitted share only pays out XTM when it also
  * happens to meet Tari's full network difficulty.
  *
- * IMPORTANT: the exact log wording minotari_node uses when it successfully
- * mines/submits a block has NOT been confirmed against a live node - this
- * regex is a best-effort guess (same caveat app/lib/blocks.js already
- * documents for p2pool's own log wording). If XTM blocks stop showing up
- * after this ships, run:
- *   docker compose logs minotari-node | grep -i "block"
- * and adjust BLOCK_FOUND_RE below to match what you actually see.
+ * CONFIRMED against tari-project/tari's real source, not guessed - two
+ * earlier regex attempts here each produced real false positives (matching
+ * unrelated log lines that happened to contain "mined"/"found" near
+ * "block"+a height, see git history). base_node/comms_interface/
+ * local_interface.rs's submit_block() - which is what p2pool's merge-mining
+ * SubmitBlock gRPC call routes through - forwards into the exact same
+ * handler every P2P-received block goes through
+ * (comms_interface/inbound_handlers.rs's handle_block()), which logs at
+ * INFO:
+ *   "Block #{height} ({hash}) received from {source}"
+ * `{source}` is "remote peer: <id>" for every block synced from the network
+ * (happens constantly during normal sync - NOT a block this node found) or
+ * the literal "local services" only when it came from this node's own
+ * submission path. That's the one unambiguous signal this detector needs.
  */
 
 const fsp = require('fs/promises');
@@ -30,8 +37,10 @@ const STATE_FILE = path.join(STATE_DIR, 'tari-blocks-state.json');
 const MAX_BLOCKS = 200;
 const MIN_SAVE_INTERVAL_MS = 60 * 1000; // see app/lib/blocks.js's identical constant - batch writes instead of rewriting the whole state file every poll tick
 
-// Best-effort - see header comment.
-const BLOCK_FOUND_RE = /\b(mined|found|submitted)\b[^\n]*\bblock\b[^\n]*?(?:height|#)[:\s]+(\d+)/i;
+// See header comment - "local services" is the part that's actually
+// diagnostic; "Block #N (hash) received from" alone happens for every block
+// during normal sync too.
+const BLOCK_FOUND_RE = /Block #(\d+)[^\n]*received from local services/i;
 const TIMESTAMP_PREFIX_RE = /^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})/;
 
 let state = {
@@ -80,23 +89,12 @@ async function maybeSaveState(force) {
 }
 
 function parseLine(line) {
-  // Requires the mining verb AND "block" AND a height/# together (see
-  // BLOCK_FOUND_RE above) - a looser first-pass substring check here used to
-  // let through any line containing bare "mined" with no word boundary
-  // (matching "deterMINED", "exaMINED", etc. in totally unrelated
-  // startup/sync log chatter), and even then still recorded a block with a
-  // null height via a HEIGHT_ONLY_RE fallback if that loose check passed but
-  // BLOCK_FOUND_RE itself didn't match anything. Between the two, a fresh
-  // install with minotari-node merely running (merge-mining doesn't even
-  // need to be configured) could show fabricated "blocks found" - confirmed
-  // directly from a user's fresh install reporting XTM Blocks Found: 5 while
-  // Tari was "Not configured"/"Not running".
   const heightMatch = line.match(BLOCK_FOUND_RE);
   if (!heightMatch) return;
 
   const tsMatch = line.match(TIMESTAMP_PREFIX_RE);
   const detectedAt = tsMatch ? tsMatch[1] : new Date().toISOString();
-  const height = Number(heightMatch[2]);
+  const height = Number(heightMatch[1]);
 
   state.blocks.unshift({ height, detectedAt, raw: line.trim() });
   state.blocks = state.blocks.slice(0, MAX_BLOCKS);
