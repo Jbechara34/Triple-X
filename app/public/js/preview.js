@@ -257,6 +257,13 @@ async function refreshAll() {
     return;
   }
 
+  // Header version badge - driven from the server's APP_VERSION constant
+  // (server.js) instead of being hardcoded in index.html, which is what let
+  // it silently sit on "Alpha-9" through the entire Alpha-10 release.
+  const versionMatch = /^(v[\d.]+)-([A-Za-z]+?)(\d+)$/.exec(status.appVersion || '');
+  setText('pv-app-version', versionMatch ? versionMatch[1] : (status.appVersion || '—'));
+  setText('pv-app-stage', versionMatch ? `${versionMatch[2]}-${versionMatch[3]}` : '—');
+
   const sync = status.sync || {};
   const node = status.node || {};
   if (sync.error) {

@@ -1,30 +1,20 @@
 'use strict';
 
 /**
- * LAN + WAN IPv4 address for the Miner Configuration card (Pool tab) - so a
- * miner on the same network can use the LAN address/port directly, and
- * someone forwarding the stratum port for a remote rig knows the WAN address
- * to give it. Neither is knowable from inside the container by just reading
- * local state: the LAN IP needs the host's own network interfaces, and the
- * WAN IP isn't visible to the container at all (it's whatever address the
- * router/ISP shows the internet), so that one has to ask an external "what's
- * my IP" service.
+ * WAN IPv4 address for the Miner Configuration card (Pool tab), for someone
+ * forwarding the stratum port for a remote rig. Not knowable from inside the
+ * container by reading local state (it's whatever address the router/ISP
+ * shows the internet), so this asks an external "what's my IP" service.
+ * (The LAN address doesn't need this module at all - server.js just uses the
+ * incoming request's own Host header, since the browser loading the page is
+ * necessarily already on the LAN. An earlier version tried reading the
+ * container's own network interfaces for this, which returned the Docker
+ * bridge network's internal IP - e.g. 172.18.0.5 - instead of the host
+ * machine's real LAN address, since this container isn't on
+ * network_mode: host.)
  */
 
-const os = require('os');
 const https = require('https');
-
-function getLanIp() {
-  const ifaces = os.networkInterfaces();
-  for (const name of Object.keys(ifaces)) {
-    for (const iface of ifaces[name] || []) {
-      if (iface.family === 'IPv4' && !iface.internal) {
-        return iface.address;
-      }
-    }
-  }
-  return null;
-}
 
 // Cached - this changes rarely (only when your ISP re-assigns your WAN
 // address) and querying it on every poll would be a needless external call
@@ -66,4 +56,4 @@ async function getWanIp() {
   return wanInFlight;
 }
 
-module.exports = { getLanIp, getWanIp };
+module.exports = { getWanIp };

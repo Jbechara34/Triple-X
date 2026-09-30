@@ -32,7 +32,6 @@ const MIN_SAVE_INTERVAL_MS = 60 * 1000; // see app/lib/blocks.js's identical con
 
 // Best-effort - see header comment.
 const BLOCK_FOUND_RE = /\b(mined|found|submitted)\b[^\n]*\bblock\b[^\n]*?(?:height|#)[:\s]+(\d+)/i;
-const HEIGHT_ONLY_RE = /(?:height|#)[:\s]+(\d+)/i;
 const TIMESTAMP_PREFIX_RE = /^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})/;
 
 let state = {
@@ -81,12 +80,23 @@ async function maybeSaveState(force) {
 }
 
 function parseLine(line) {
-  if (!/mined|block found|submitted block/i.test(line)) return;
+  // Requires the mining verb AND "block" AND a height/# together (see
+  // BLOCK_FOUND_RE above) - a looser first-pass substring check here used to
+  // let through any line containing bare "mined" with no word boundary
+  // (matching "deterMINED", "exaMINED", etc. in totally unrelated
+  // startup/sync log chatter), and even then still recorded a block with a
+  // null height via a HEIGHT_ONLY_RE fallback if that loose check passed but
+  // BLOCK_FOUND_RE itself didn't match anything. Between the two, a fresh
+  // install with minotari-node merely running (merge-mining doesn't even
+  // need to be configured) could show fabricated "blocks found" - confirmed
+  // directly from a user's fresh install reporting XTM Blocks Found: 5 while
+  // Tari was "Not configured"/"Not running".
+  const heightMatch = line.match(BLOCK_FOUND_RE);
+  if (!heightMatch) return;
 
   const tsMatch = line.match(TIMESTAMP_PREFIX_RE);
   const detectedAt = tsMatch ? tsMatch[1] : new Date().toISOString();
-  const heightMatch = line.match(BLOCK_FOUND_RE) || line.match(HEIGHT_ONLY_RE);
-  const height = heightMatch ? Number(heightMatch[heightMatch.length - 1]) : null;
+  const height = Number(heightMatch[2]);
 
   state.blocks.unshift({ height, detectedAt, raw: line.trim() });
   state.blocks = state.blocks.slice(0, MAX_BLOCKS);

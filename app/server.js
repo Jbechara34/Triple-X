@@ -57,6 +57,13 @@ function friendlyWalletError(err, walletLabel) {
 
 const PORT = process.env.PORT || 3000;
 
+// Single source of truth for the header's on-screen version badge (see
+// public/index.html #pv-app-version/#pv-app-stage) - it used to be a
+// hardcoded string baked into the HTML and got left on "Alpha-9" through
+// this entire Alpha-10 release since nothing pointed back at it as a step to
+// update. Bump this, not the HTML, on every release.
+const APP_VERSION = 'v1.0-Alpha10';
+
 // Clearnet block explorer used to let you independently verify a found block
 // paid out to your address. Point this at an .onion explorer (reached via a
 // Tor proxy in your environment) if you'd rather not use clearnet - see
@@ -131,6 +138,7 @@ app.get('/api/status', async (req, res) => {
   const minotariPortOpen = !settings.tariAddress || (!!minotariNetworkState && minotariNetworkState.numConnections > 0);
 
   res.json({
+    appVersion: APP_VERSION,
     readiness: {
       nodeRpc: rpcOk,
       payoutAddressConfigured: payoutConfigured,
@@ -242,7 +250,6 @@ app.get('/api/pool', async (req, res) => {
   });
 
   const runningDifferentMode = requestedMode !== settings.poolMode;
-  const lanIp = networkInfo.getLanIp();
   const wanIp = await networkInfo.getWanIp();
 
   // Optional (see lib/config.js observerEnabled) - the public P2Pool
@@ -392,10 +399,16 @@ app.get('/api/pool', async (req, res) => {
     })(),
     minerConfig: {
       url: `${req.hostname}:${STRATUM_PORT}`,
-      // LAN address is always known immediately (the host's own network
-      // interfaces); WAN address needs an external "what's my IP" lookup
-      // (see lib/networkInfo.js) and is null until that first resolves.
-      lanUrl: `${lanIp}:${STRATUM_PORT}`,
+      // LAN address is whatever host the browser actually used to reach this
+      // page (req.hostname) - reading the container's own network interfaces
+      // (the old approach) returned the Docker bridge network's internal IP
+      // (e.g. 172.18.0.5), not the host machine's real LAN-facing address,
+      // since this container isn't on network_mode: host. The browser is
+      // necessarily already on the LAN to have loaded this page at all, so
+      // its own Host header is the correct LAN address by construction. WAN
+      // address needs an external "what's my IP" lookup (see
+      // lib/networkInfo.js) and is null until that first resolves.
+      lanUrl: `${req.hostname}:${STRATUM_PORT}`,
       wanUrl: wanIp ? `${wanIp}:${STRATUM_PORT}` : null,
       payoutAddress: settings.walletAddress || null,
       // Example worker login, so the Miner Configuration card can show a
