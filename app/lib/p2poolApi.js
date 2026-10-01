@@ -26,6 +26,17 @@ const path = require('path');
 
 const DATA_API_DIR = process.env.P2POOL_DATA_API_DIR || '/data/p2pool-api';
 
+// p2pool exposes total_stratum_shares as a running count, not a timestamp -
+// there's no "time of last stratum share" field anywhere in its API or logs
+// (confirmed directly against source; only the rare sidechain-qualifying
+// kind gets a timestamp, local/stratum's last_share_found_time). We derive
+// our own "last activity" time by noticing the count go up between polls.
+// In-memory only (resets on a backend restart) since it's just a UI nicety,
+// not something that needs to survive a restart the way blocks-state.json's
+// share history does.
+let lastStratumShareCount = null;
+let lastStratumShareAt = null;
+
 async function readJsonFile(relPath) {
   const full = path.join(DATA_API_DIR, relPath);
   try {
@@ -86,12 +97,30 @@ async function getLocalStratum() {
     hashrate1h: num(raw.hashrate_1h),
     hashrate24h: num(raw.hashrate_24h),
     totalHashes: num(raw.total_hashes),
+    // shares_found/last_share_found_time only count the rare subset of
+    // shares that also meet the P2Pool SIDECHAIN's own difficulty (confirmed
+    // directly against p2pool's own source, src/stratum_server.cpp: the
+    // "SHARE FOUND" log line and these two counters only fire inside
+    // `if (share->m_highEnoughDifficulty)`). For a typical home miner this
+    // can go hours/days between updates even while actively mining - do not
+    // use these for an "is this node getting shares" indicator.
     sharesFound: num(raw.shares_found),
     sharesFailed: num(raw.shares_failed),
-    // Unix seconds (p2pool's own time_t) when THIS node last saw a valid
-    // share - straight from p2pool itself, real-time and independent of our
-    // own log parsing. 0 before this node's very first share ever.
+    // Unix seconds (p2pool's own time_t) when THIS node last saw a
+    // sidechain-qualifying share - straight from p2pool itself. 0 before
+    // this node's very first sidechain share ever. See sharesFound above for
+    // why this is the wrong field for "is this node active right now".
     lastShareFoundTime: raw.last_share_found_time ? num(raw.last_share_found_time) * 1000 : null,
+    // totalStratumShares: EVERY accepted stratum share regardless of
+    // difficulty (p2pool's own m_totalStratumShares, incremented in
+    // update_hashrate_data() for any share with nonzero hashes - confirmed
+    // in source, and it's literally the "Stratum shares" line in p2pool's
+    // own `status` console command output, distinct from "P2Pool shares
+    // found"). This is a cumulative counter, not a timestamp - see
+    // lastStratumShareCount/lastStratumShareAt above for how we turn it into
+    // a real "last activity" time.
+    totalStratumShares: num(raw.total_stratum_shares),
+    lastStratumShareAt: trackStratumShareActivity(num(raw.total_stratum_shares)),
     averageEffort: num(raw.average_effort),
     currentEffort: num(raw.current_effort),
     connections: num(raw.connections),
@@ -99,6 +128,21 @@ async function getLocalStratum() {
     // Real-time connected stratum clients - see parseWorkerEntry above.
     workers,
   };
+}
+
+// p2pool's total_stratum_shares only ever goes up (until p2pool itself
+// restarts and resets it to 0) - any increase since the last poll means at
+// least one real stratum share was accepted in between, so stamp "now" as
+// the last-activity time. On the very first poll there's no prior count to
+// compare against, so just record the baseline without claiming a share
+// just happened - we'll only know the next time this changes.
+function trackStratumShareActivity(count) {
+  if (count === null) return lastStratumShareAt;
+  if (lastStratumShareCount !== null && count !== lastStratumShareCount) {
+    lastStratumShareAt = Date.now();
+  }
+  lastStratumShareCount = count;
+  return lastStratumShareAt;
 }
 
 // local/p2p carries this node's OWN sidechain p2p connection state - not to

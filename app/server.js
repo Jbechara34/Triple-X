@@ -60,7 +60,7 @@ const PORT = process.env.PORT || 3000;
 // hardcoded string baked into the HTML and got left on "Alpha-9" through
 // this entire Alpha-10 release since nothing pointed back at it as a step to
 // update. Bump this, not the HTML, on every release.
-const APP_VERSION = 'v1.0-Alpha16';
+const APP_VERSION = 'v1.0-Alpha17';
 
 // Sync-speed-derived ETA for the Overview tab's blockchain cards - neither
 // monerod nor minotari_node's RPC exposes an ETA directly, so this tracks
@@ -424,14 +424,12 @@ app.get('/api/pool', async (req, res) => {
     },
     // null unless enabled in Settings - see comment above where it's built.
     observer,
-    // Straight from p2pool's own last_share_found_time (see lib/p2poolApi.js)
-    // - real-time and not dependent on our own log parsing having caught up.
-    lastShareAt: p2pool.stratum.lastShareFoundTime,
-    // sharePercent: this worker's proportion of shares among your own
-    // connected workers (not sidechain-wide) - a real, honest stat straight
-    // from what we actually track (see lib/blocks.js), unlike a per-worker
-    // "odds of finding a block" which P2Pool's PPLNS payout model doesn't
-    // really support computing per-worker.
+    // Last time THIS NODE's stratum server accepted a share at any
+    // difficulty (p2pool's own total_stratum_shares counter, see
+    // lib/p2poolApi.js) - not the much rarer sidechain-qualifying kind
+    // (sharesFound/lastShareFoundTime above), which can go hours between
+    // updates on a typical home miner even while actively mining.
+    lastShareAt: p2pool.stratum.lastStratumShareAt,
     // bestDifficultyPercent: this worker's single highest-difficulty share
     // seen, as a percentage of the current Monero network difficulty - the
     // same "record share vs target" concept as the pool-wide bestShare
@@ -444,11 +442,9 @@ app.get('/api/pool', async (req, res) => {
     // target this worker is mining at right now, distinct from
     // bestDifficulty (their all-time record, which only trends upward).
     workers: (() => {
-      const totalShares = workers.reduce((sum, w) => sum + w.shares, 0);
       const networkDiff = p2pool.network.difficulty;
       return workers.map((w) => ({
         ...w,
-        sharePercent: totalShares ? (w.shares / totalShares) * 100 : 0,
         bestDifficultyPercent: networkDiff && w.bestDifficulty ? Math.min(100, (w.bestDifficulty / networkDiff) * 100) : 0,
       }));
     })(),

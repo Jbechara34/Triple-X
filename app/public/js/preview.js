@@ -486,7 +486,6 @@ async function refreshAll() {
   setText('pv-net-shares', fmtDifficulty(pool.shares?.found));
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
-  setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
   setText('pv-net-solo-eta', fmtDuration(pool.network?.soloEtaSeconds));
   setText('pv-net-share-eta', fmtDuration(pool.network?.shareEtaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
@@ -525,12 +524,9 @@ async function refreshAll() {
   );
 
   const tari = status.tari || {};
-  setText('pv-tari-status', tari.enabled ? (status.p2pool?.running ? 'Merge mining' : 'Waiting on XMR mining') : 'Not configured');
   setText('pv-tari-blocks', tari.blocksFound ?? 0);
   const nodeSync = tari.nodeSync;
   if (!nodeSync) {
-    setText('pv-minotari-label', 'Not running');
-    setWidth('pv-minotari-bar', 0);
     setText('pv-tari-bc-title', tari.enabled ? 'Not running' : 'Not configured');
     setText('pv-tari-bc-sub', '—');
     setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', 0, false, 'var(--tari)');
@@ -542,8 +538,6 @@ async function refreshAll() {
     setText('pv-tari-bc-eta', '');
   } else {
     const pct = nodeSync.targetHeight ? Math.min(100, (nodeSync.height / nodeSync.targetHeight) * 100) : 0;
-    setText('pv-minotari-label', nodeSync.synchronized ? 'Synchronized' : 'Synchronizing');
-    setWidth('pv-minotari-bar', pct);
     setText('pv-tari-bc-title', nodeSync.synchronized ? `Synchronized ${pct.toFixed(0)}%` : `Syncing ${pct.toFixed(0)}%`);
     setText('pv-tari-bc-sub', 'Minotari Node · mainnet');
     setRing('pv-tari-bc-ring', 'pv-tari-bc-ring-label', pct, nodeSync.synchronized, 'var(--tari)');
@@ -615,7 +609,6 @@ async function refreshAll() {
     workersGrid.innerHTML = (pool.workers || []).length
       ? pool.workers
           .map((w) => {
-            const sharePct = w.sharePercent ?? 0;
             const diffPct = Math.max(0, Math.min(100, w.bestDifficultyPercent ?? 0));
             const dotIdx = w.name.lastIndexOf('.');
             const address = dotIdx > 0 ? w.name.slice(0, dotIdx) : null;
@@ -627,13 +620,10 @@ async function refreshAll() {
                 <div class="pv-worker-name">${escapeHtml(label)}</div>
                 ${shortAddress ? `<div class="pv-worker-address">${escapeHtml(shortAddress)}</div>` : ''}
                 <div class="pv-worker-meta">
-                  <span class="pv-worker-meta-item"><strong>${w.shares}</strong> shares</span>
                   <span class="pv-worker-meta-item">Connected <strong>${fmtDuration(w.connectedSeconds) !== '—' ? fmtDuration(w.connectedSeconds) : '0m'}</strong></span>
                   ${w.hashrate ? `<span class="pv-worker-meta-item">Hashrate <strong>${fmtHashrate(w.hashrate)}</strong></span>` : ''}
-                  <span class="pv-worker-meta-item">${sharePct.toFixed(1)}% of your total shares</span>
                   ${w.currentDifficulty ? `<span class="pv-worker-meta-item">Current difficulty <strong>${fmtDifficulty(w.currentDifficulty)}</strong></span>` : ''}
                 </div>
-                <div class="pv-worker-share-bar-track"><div class="pv-worker-share-bar-fill" style="width:${sharePct.toFixed(1)}%"></div></div>
               </div>
               <div class="pv-worker-ring" title="Best share difficulty vs current network difficulty">
                 <svg viewBox="0 0 56 56">
@@ -648,9 +638,8 @@ async function refreshAll() {
       : '<div class="pv-empty">No workers connected yet.</div>';
   }
 
-  // Tari payout address + XTM blocks table (tariBlocksData fetched above,
-  // alongside the other four requests)
-  setText('pv-tari-address', pool.tari?.payoutAddress || '—');
+  // XTM blocks table (tariBlocksData fetched above, alongside the other
+  // four requests)
   const tariBlocksBody = document.getElementById('pv-tari-blocks-body');
   if (tariBlocksBody && tariBlocksData) {
     tariBlocksBody.innerHTML = (tariBlocksData.blocks || []).length
@@ -661,19 +650,14 @@ async function refreshAll() {
   }
 
   // Optional P2Pool Observer card (see lib/p2poolObserver.js) - only shown
-  // when the user opted in from Settings. When it's hidden (the default),
-  // Worker Details would otherwise sit alone in a half-width row with empty
-  // space next to it - expand it to full width in that case instead.
+  // when the user opted in from Settings. Worker Details now lives in the
+  // right-hand stat column instead of sharing a row with this, so there's no
+  // width toggle to worry about here anymore.
   const observerCard = document.getElementById('pv-observer-card');
-  const workerDetailsCard = document.getElementById('pv-worker-details-card');
   if (observerCard) {
     const observer = pool.observer;
     const showObserver = !!(observer && !observer.error);
     observerCard.style.display = showObserver ? '' : 'none';
-    if (workerDetailsCard) {
-      workerDetailsCard.classList.toggle('v1-half', showObserver);
-      workerDetailsCard.classList.toggle('v1-full', !showObserver);
-    }
     if (showObserver) {
       setText('pv-observer-miners', observer.globalMiners ?? '—');
       setText('pv-observer-shares', observer.yourShares?.totalShares ?? '—');
