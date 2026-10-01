@@ -340,14 +340,12 @@ app.get('/api/pool', async (req, res) => {
       : null,
     workersConnected: workers.length,
     hashrate: {
+      // p2pool's local/stratum file only ever reports these three windows
+      // (see lib/p2poolApi.js) - there's no 1m/6h/7d field to read, so those
+      // columns were dropped from the UI instead of always showing "-".
       hashrate15m: p2pool.stratum.hashrate15m,
       hashrate1h: p2pool.stratum.hashrate1h,
       hashrate24h: p2pool.stratum.hashrate24h,
-      // 1m / 6h / 7d aren't provided by p2pool's local/stratum file as of
-      // writing (see lib/p2poolApi.js) - shown as null until available.
-      hashrate1m: null,
-      hashrate6h: null,
-      hashrate7d: null,
     },
     network: {
       difficulty: p2pool.network.difficulty,
@@ -383,6 +381,16 @@ app.get('/api/pool', async (req, res) => {
       etaSeconds:
         p2pool.network.difficulty && p2pool.pool.hashRate
           ? p2pool.network.difficulty / p2pool.pool.hashRate
+          : null,
+      // Same formula as etaSeconds, but divided by THIS NODE's OWN hashrate
+      // instead of the sidechain-wide one - i.e. "if I were the only miner
+      // on this sidechain, how long until my own hashrate alone reaches the
+      // real Monero network difficulty." Shown next to etaSeconds so it's
+      // clear the pool-wide number isn't derived from your own hash rate -
+      // added after a user mistook a short pool-wide ETA for a personal one.
+      soloEtaSeconds:
+        p2pool.network.difficulty && p2pool.stratum.hashrate1h
+          ? p2pool.network.difficulty / p2pool.stratum.hashrate1h
           : null,
       // Sidechain's own difficulty (see lib/p2poolApi.js sidechainDifficulty)
       // - this is what determines P2Pool SHARE cadence, as distinct from

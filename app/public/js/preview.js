@@ -334,6 +334,7 @@ async function refreshAll() {
   setText('pv-p2p-hashrate', fmtHashrate(status.hashrate?.hashrate1h));
   setText('pv-p2p-diff', fmtDifficulty(pool.network?.difficulty));
   setText('pv-p2p-eta', fmtDuration(pool.network?.etaSeconds));
+  setText('pv-p2p-solo-eta', fmtDuration(pool.network?.soloEtaSeconds));
   setText('pv-p2p-share-eta', fmtDuration(pool.network?.shareEtaSeconds));
 
   const checks = [
@@ -486,6 +487,7 @@ async function refreshAll() {
   setText('pv-net-blocks', pool.network?.totalBlocksFound ?? '—');
   setText('pv-net-reward', pool.network?.reward != null ? `${(pool.network.reward / 1e12).toFixed(6)} XMR` : '—');
   setText('pv-net-eta', fmtDuration(pool.network?.etaSeconds));
+  setText('pv-net-solo-eta', fmtDuration(pool.network?.soloEtaSeconds));
   setText('pv-net-share-eta', fmtDuration(pool.network?.shareEtaSeconds));
   setText('pv-pool-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
   setText('pv-header-mode', { standard: 'Standard', mini: 'Mini', nano: 'Nano' }[settings.poolMode] || settings.poolMode);
@@ -570,14 +572,13 @@ async function refreshAll() {
       : '<tr><td colspan="3" class="pv-empty">No blocks found yet — normal, this can take a while.</td></tr>';
   }
 
-  // Hash rate pill row (1m/15m/1h/6h/24h/7d - see lib/p2poolApi.js for which
-  // columns p2pool's local API actually reports today; others render "—").
+  // Hash rate pill row - only the windows p2pool's local/stratum file
+  // actually reports (see lib/p2poolApi.js); it has no 1m/6h/7d field.
   const hr = pool.hashrate || {};
   setText('pv-hr-main', fmtHashrate(hr.hashrate1h));
-  const HR_PILL_COLORS = ['var(--orange)', 'var(--tari)', '#4a9eff', '#ffb020', '#4caf6a', '#b98ce0'];
+  const HR_PILL_COLORS = ['var(--orange)', '#4a9eff', '#4caf6a'];
   const hrPeriods = [
-    ['1m', hr.hashrate1m], ['15m', hr.hashrate15m], ['1h', hr.hashrate1h],
-    ['6h', hr.hashrate6h], ['24h', hr.hashrate24h], ['7d', hr.hashrate7d],
+    ['15m', hr.hashrate15m], ['1h', hr.hashrate1h], ['24h', hr.hashrate24h],
   ];
   const hrPills = document.getElementById('pv-hr-pills');
   if (hrPills) {

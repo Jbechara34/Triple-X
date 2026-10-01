@@ -212,9 +212,6 @@
           hashrate15m: w.yourHashrate15m,
           hashrate1h: w.yourHashrate1h,
           hashrate24h: w.yourHashrate24h,
-          hashrate1m: w.yourHashrate1h + jitter(2000),
-          hashrate6h: w.yourHashrate24h + jitter(1000),
-          hashrate7d: w.yourHashrate24h + jitter(800),
         },
         network: {
           difficulty: w.networkDiff,
@@ -226,6 +223,7 @@
           sidechainSharesFound: 8_231_904,
           sidechainHashrate: w.poolHashrate,
           etaSeconds: w.networkDiff / w.poolHashrate,
+          soloEtaSeconds: w.networkDiff / w.yourHashrate1h,
         },
         bestShare: { sinceBlock: 210_000_000, allTime: 612_000_000 },
         shares: { found: w.workers.reduce((s, x) => s + x.shares, 0), failed: 2 },

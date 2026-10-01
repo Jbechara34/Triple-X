@@ -599,7 +599,8 @@
           <div class="pv-tile"><div class="pv-tile-label">Workers</div><div class="pv-tile-value" id="pv-p2p-workers">—</div></div>
           <div class="pv-tile"><div class="pv-tile-label">Hash Rate</div><div class="pv-tile-value" id="pv-p2p-hashrate">—</div></div>
           <div class="pv-tile"><div class="pv-tile-label">Network Diff</div><div class="pv-tile-value" id="pv-p2p-diff">—</div></div>
-          <div class="pv-tile"><div class="pv-tile-label">ETA to Block</div><div class="pv-tile-value" id="pv-p2p-eta">—</div></div>
+          <div class="pv-tile"><div class="pv-tile-label">ETA to Block (Pool-wide)</div><div class="pv-tile-value" id="pv-p2p-eta">—</div></div>
+          <div class="pv-tile"><div class="pv-tile-label">ETA to Block (Solo, Your Rig)</div><div class="pv-tile-value" id="pv-p2p-solo-eta">—</div></div>
           <div class="pv-tile"><div class="pv-tile-label">ETA to P2Pool Share</div><div class="pv-tile-value" id="pv-p2p-share-eta">—</div></div>
         </div>
       </div>
@@ -688,10 +689,11 @@
         <div>
           <div class="v1-label">ETA to Find</div>
           <div class="v1-stat-row">
-            <div><div class="v1-sub">Block (XMR)</div><div class="v1-big" style="font-size:16px" id="pv-net-eta">—</div></div>
+            <div><div class="v1-sub">Block (Pool-wide)</div><div class="v1-big" style="font-size:16px" id="pv-net-eta">—</div></div>
+            <div><div class="v1-sub">Block (Solo, Your Rig)</div><div class="v1-big" style="font-size:16px" id="pv-net-solo-eta">—</div></div>
             <div><div class="v1-sub">P2Pool Share</div><div class="v1-big" style="font-size:16px" id="pv-net-share-eta">—</div></div>
           </div>
-          <div class="v1-sub" style="margin-top:6px;">Block: sidechain-wide pool hash rate · Share: this node's own hash rate (differs by pool mode)</div>
+          <div class="v1-sub" style="margin-top:6px;">Pool-wide: sidechain-wide hash rate (how often the whole P2Pool side finds a real block) · Solo: your own hash rate alone against the real Monero network difficulty · Share: your own hash rate against the sidechain's own (much lower) difficulty</div>
         </div>
       </div>
 
