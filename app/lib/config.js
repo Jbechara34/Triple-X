@@ -36,13 +36,6 @@ const DEFAULTS = {
   // (docker-compose.yml), which is real control over the host, hence
   // opt-in rather than always visible.
   importBlockchainEnabled: false,
-  // Off by default - same Docker-socket requirement/warning as
-  // importBlockchainEnabled above. When on, stops the minotari-node and
-  // minotari-wallet containers whenever no Tari address is configured (they
-  // otherwise sync/run full-time regardless of whether merge-mining is
-  // actually used - see lib/minotariLifecycle.js), and starts them back up
-  // the moment a Tari address is set.
-  autoManageMinotariEnabled: false,
   // Discord webhook notifications (see lib/discordNotify.js) - off by
   // default, nothing is ever sent until a URL is saved here. The two
   // per-coin toggles only matter once a URL is set.
@@ -159,10 +152,6 @@ function writeSettings(update) {
 
   if (typeof update.importBlockchainEnabled === 'boolean') {
     next.importBlockchainEnabled = update.importBlockchainEnabled;
-  }
-
-  if (typeof update.autoManageMinotariEnabled === 'boolean') {
-    next.autoManageMinotariEnabled = update.autoManageMinotariEnabled;
   }
 
   if (typeof update.discordWebhookUrl === 'string') {

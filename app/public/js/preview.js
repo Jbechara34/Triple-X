@@ -722,8 +722,6 @@ async function loadSettingsForm() {
   const importEnabledEl = document.getElementById('pv-settings-import-enabled');
   if (importEnabledEl) importEnabledEl.checked = !!data.importBlockchainEnabled;
   applyImportSectionVisibility(!!data.importBlockchainEnabled);
-  const autoMinotariEl = document.getElementById('pv-settings-auto-minotari-enabled');
-  if (autoMinotariEl) autoMinotariEl.checked = !!data.autoManageMinotariEnabled;
   const discordWebhookEl = document.getElementById('pv-settings-discord-webhook');
   if (discordWebhookEl) discordWebhookEl.value = data.discordWebhookUrl || '';
   const discordXmrEl = document.getElementById('pv-settings-discord-notify-xmr');
@@ -780,7 +778,6 @@ function wireSettingsSave() {
           p2poolNoRandomx: !!document.getElementById('pv-settings-p2pool-no-randomx')?.checked,
           p2poolNoCache: !!document.getElementById('pv-settings-p2pool-no-cache')?.checked,
           importBlockchainEnabled: !!document.getElementById('pv-settings-import-enabled')?.checked,
-          autoManageMinotariEnabled: !!document.getElementById('pv-settings-auto-minotari-enabled')?.checked,
           discordWebhookUrl: document.getElementById('pv-settings-discord-webhook')?.value.trim() || '',
           discordNotifyXmrBlocks: !!document.getElementById('pv-settings-discord-notify-xmr')?.checked,
           discordNotifyXtmBlocks: !!document.getElementById('pv-settings-discord-notify-xtm')?.checked,

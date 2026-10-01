@@ -34,7 +34,6 @@ const blockchainImport = require('./lib/blockchainImport');
 const networkInfo = require('./lib/networkInfo');
 const p2poolCommand = require('./lib/p2poolCommand');
 const workerConnectionNotify = require('./lib/workerConnectionNotify');
-const minotariLifecycle = require('./lib/minotariLifecycle');
 const poolHistory = require('./lib/poolHistory');
 
 const app = express();
@@ -61,7 +60,7 @@ const PORT = process.env.PORT || 3000;
 // hardcoded string baked into the HTML and got left on "Alpha-9" through
 // this entire Alpha-10 release since nothing pointed back at it as a step to
 // update. Bump this, not the HTML, on every release.
-const APP_VERSION = 'v1.0-Alpha15';
+const APP_VERSION = 'v1.0-Alpha16';
 
 // Sync-speed-derived ETA for the Overview tab's blockchain cards - neither
 // monerod nor minotari_node's RPC exposes an ETA directly, so this tracks
@@ -872,7 +871,6 @@ app.get('*', (req, res) => {
 blocks.start();
 tariBlocks.start();
 workerConnectionNotify.start();
-minotariLifecycle.start();
 poolHistory.start();
 
 app.listen(PORT, () => {

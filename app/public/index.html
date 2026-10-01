@@ -12,7 +12,7 @@
      needs is visible at once, top nav bar only for identity + variant
      switcher. Denser and more "ops dashboard" than the tabbed original. */
   body { background: var(--bg); }
-  .v1-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; }
+  .v1-wrap { max-width: 1280px; margin: 0 auto; padding: 20px; position: relative; z-index: 1; }
 
   /* App header card, ckpool-style: icon + title/subtitle + status pill on
      top, underline-style tabs below in the same card. */
@@ -300,9 +300,124 @@
   .pv-pill.good { animation: pv-pill-pulse 2.2s ease-in-out infinite; }
 
   .pv-ring-fill, .pv-worker-ring-fill { transition: stroke-dashoffset 0.8s cubic-bezier(0.4, 0, 0.2, 1), stroke 0.3s ease; }
+
+  /* ================= Animated background: merged-coin atom =================
+     One fixed, full-page layer behind everything else. A single atom (the
+     Monero+Tari coin as its nucleus, three orbit rings with traveling
+     electrons) drifts slowly around the whole viewport as one unit - the
+     coin itself never spins or pulses on its own, it's always dead-center
+     of its own rings no matter where the drift takes it. Purely decorative:
+     pointer-events: none and a low z-index keep it from ever intercepting
+     clicks or sitting above real UI. */
+  .xx-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    pointer-events: none;
+  }
+  .xx-atom {
+    position: absolute;
+    width: 260px;
+    height: 260px;
+    left: 0;
+    top: 0;
+    animation: xx-drift 48s ease-in-out infinite;
+    opacity: 0.55;
+  }
+  @keyframes xx-drift {
+    0%   { transform: translate(6vw, 10vh); }
+    20%  { transform: translate(68vw, 18vh); }
+    40%  { transform: translate(78vw, 62vh); }
+    60%  { transform: translate(30vw, 72vh); }
+    80%  { transform: translate(10vw, 45vh); }
+    100% { transform: translate(6vw, 10vh); }
+  }
+  .xx-ring-spin { animation: xx-spin linear infinite; transform-origin: 130px 130px; }
+  @keyframes xx-spin { from { transform: rotate(0deg); } to { transform: rotate(360deg); } }
+  .xx-coin-glow { filter: drop-shadow(0 0 18px rgba(255,102,0,0.45)) drop-shadow(0 0 18px rgba(61,220,132,0.35)); }
+
+  /* Tari's own coin, orbiting the nucleus along its ring path. The scaleX
+     pulse (full width -> edge-on sliver -> full width) fakes a coin tumbling
+     in 3D as it travels, and the radial-gradient fill gives it a lit/shadowed
+     curve instead of a flat disc. */
+  .xx-tari-coin-spin { animation: xx-coin-flip 1.8s linear infinite; transform-box: fill-box; transform-origin: center; }
+  @keyframes xx-coin-flip { 0% { transform: scaleX(1); } 50% { transform: scaleX(0.12); } 100% { transform: scaleX(1); } }
+
+  @media (prefers-reduced-motion: reduce) {
+    .xx-atom, .xx-ring-spin, .xx-tari-coin-spin { animation: none; }
+  }
 </style>
 </head>
 <body>
+  <div class="xx-bg" aria-hidden="true">
+    <svg class="xx-atom" viewBox="0 0 260 260" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <filter id="xx-electron-glow" x="-200%" y="-200%" width="500%" height="500%">
+          <feGaussianBlur stdDeviation="2.2"/>
+        </filter>
+        <linearGradient id="xx-halo-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" stop-color="var(--orange)"/>
+          <stop offset="100%" stop-color="var(--tari)"/>
+        </linearGradient>
+        <filter id="xx-halo-blur" x="-150%" y="-150%" width="400%" height="400%">
+          <feGaussianBlur stdDeviation="3.5"/>
+        </filter>
+        <radialGradient id="xx-tari-coin-grad" cx="35%" cy="30%" r="75%">
+          <stop offset="0%" stop-color="#eafff0"/>
+          <stop offset="45%" stop-color="var(--tari)"/>
+          <stop offset="100%" stop-color="#0f6b3a"/>
+        </radialGradient>
+      </defs>
+
+      <!-- orbit rings, spinning around the coin's fixed local center (130,130) at different rates/angles -->
+      <g class="xx-ring-spin" style="animation-duration: 22s;">
+        <ellipse cx="130" cy="130" rx="120" ry="46" fill="none" stroke="var(--orange)" stroke-width="1.6" opacity="0.8"/>
+        <circle r="3.6" fill="var(--orange)" filter="url(#xx-electron-glow)">
+          <animateMotion dur="22s" repeatCount="indefinite"
+            path="M 250 130 A 120 46 0 1 1 10 130 A 120 46 0 1 1 250 130"/>
+        </circle>
+      </g>
+      <g class="xx-ring-spin" style="animation-duration: 30s; animation-direction: reverse; transform: rotate(60deg);">
+        <ellipse cx="130" cy="130" rx="120" ry="46" fill="none" stroke="var(--tari)" stroke-width="1.6" opacity="0.8" transform="rotate(60 130 130)"/>
+        <g filter="url(#xx-electron-glow)">
+          <g class="xx-tari-coin-spin">
+            <circle r="7.5" fill="url(#xx-tari-coin-grad)" stroke="#0b0d10" stroke-width="1"/>
+            <clipPath id="xx-tari-orbit-clip"><circle r="6.2"/></clipPath>
+            <g clip-path="url(#xx-tari-orbit-clip)">
+              <image href="img/tari-icon.png" x="-6.2" y="-6.2" width="12.4" height="12.4"/>
+            </g>
+          </g>
+          <animateMotion dur="30s" repeatCount="indefinite"
+            path="M 250 130 A 120 46 0 1 1 10 130 A 120 46 0 1 1 250 130" rotate="0"
+            keyPoints="0;1" keyTimes="0;1"/>
+        </g>
+      </g>
+      <g class="xx-ring-spin" style="animation-duration: 38s; transform: rotate(-60deg);">
+        <ellipse cx="130" cy="130" rx="120" ry="46" fill="none" stroke="#ffd24d" stroke-width="1.2" opacity="0.6" transform="rotate(-60 130 130)"/>
+        <circle r="2.6" fill="#ffd24d" filter="url(#xx-electron-glow)">
+          <animateMotion dur="38s" repeatCount="indefinite"
+            path="M 250 130 A 120 46 0 1 1 10 130 A 120 46 0 1 1 250 130"/>
+        </circle>
+      </g>
+
+      <!-- halo: a distinct orange corona fully encircling the Monero coin, set far
+           enough outside the coin's own border stroke that it reads as its own
+           glowing ring rather than blending into that border. -->
+      <circle cx="130" cy="130" r="72" fill="none" stroke="var(--orange)" stroke-width="7"
+        opacity="0.9" filter="url(#xx-halo-blur)"/>
+
+      <!-- nucleus: the Monero app icon alone, static. Tari now orbits it as its own
+           coin instead of being merged into the disc. -->
+      <g class="xx-coin-glow">
+        <circle cx="130" cy="130" r="62" fill="#14161a" stroke="var(--orange)" stroke-width="3"/>
+        <clipPath id="xx-coin-clip"><circle cx="130" cy="130" r="58"/></clipPath>
+        <g clip-path="url(#xx-coin-clip)">
+          <image href="img/xx-monero-appicon.png" x="72" y="72" width="116" height="116"/>
+        </g>
+      </g>
+    </svg>
+  </div>
   <div class="v1-wrap">
     <div class="pv-app-header">
       <div class="pv-app-header-top">
@@ -981,13 +1096,6 @@
             machine over SSH, and restart it - skipping a full network sync on a new install. Requires the app
             container to have Docker socket access (see docker-compose.yml); that's real control over the host, so
             this stays off and hidden until you turn it on here. Off by default.</div>
-        </div>
-        <div class="field">
-          <label class="checkbox-label"><input type="checkbox" id="pv-settings-auto-minotari-enabled" /> Automatically stop Minotari (XTM) when unused</label>
-          <div class="hint warn">Minotari has no pruning mode - it always syncs and stores the complete Tari
-            blockchain, using real disk/CPU even if you've never set a Tari address. When on, this stops the
-            minotari-node and minotari-wallet containers whenever no Tari address is configured, and starts them
-            back up the moment you set one. Same Docker socket requirement as Blockchain Import above. Off by default.</div>
         </div>
       </div>
 
