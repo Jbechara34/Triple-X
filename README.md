@@ -165,7 +165,7 @@ others, the former using Tari's own official image):
 ## Quick start — plain Docker Compose
 
 ```bash
-git clone https://github.com/SIlver765/Triple-X
+git clone https://github.com/Silver765/Triple-X
 cd Triple-X
 docker compose up -d --build
 ```
@@ -185,7 +185,7 @@ publishing step:
    and `umbrel-app-store.yml`'s `id: TripleX` are placeholders — pick your
    own store id, rename the folder to `<your-id>-monero-p2pool`, and update
    `id:` inside `TripleX-triple-x/umbrel-app.yml` to match. Replace
-   every `SIlver765` in both `umbrel-app.yml` and
+   every `Silver765` in both `umbrel-app.yml` and
    `docker-compose.yml` under that folder with wherever you'll host images
    (see next step).
 2. **Publish the five images.** Push a version tag (e.g. `git tag
