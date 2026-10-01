@@ -110,6 +110,7 @@ function attachTailStream(res, filePath) {
   let stopped = false;
   let offset = 0;
   let timer = null;
+  let heartbeatTimer = null;
   let resolvedPath = filePath;
 
   function send(event, data) {
@@ -155,11 +156,25 @@ function attachTailStream(res, filePath) {
       offset = 0;
     }
     timer = setInterval(poll, POLL_MS);
+    // Reverse proxies in front of this app (confirmed: 5tratumOS routes
+    // through one at /apps/<id>/ even though docker-compose.yml's own
+    // comments assumed there wasn't one) tend to kill a chunked response
+    // that's gone quiet for a while, surfacing client-side as
+    // net::ERR_INCOMPLETE_CHUNKED_ENCODING - a real new log line can be
+    // minutes apart on an idle node, so a silent SSE connection isn't rare.
+    // A periodic comment line keeps bytes flowing without affecting the
+    // actual event stream (SSE comments start with ":" and are ignored by
+    // EventSource).
+    heartbeatTimer = setInterval(() => {
+      if (stopped) return;
+      res.write(':heartbeat\n\n');
+    }, 15000);
   })();
 
   return () => {
     stopped = true;
     if (timer) clearInterval(timer);
+    if (heartbeatTimer) clearInterval(heartbeatTimer);
   };
 }
 

@@ -10,7 +10,16 @@ set -e
 
 if [ "$(id -u)" = "0" ]; then
   mkdir -p /home/monero/.bitmonero /var/log/monerod 2>/dev/null || true
-  chown monero:monero /home/monero/.bitmonero /var/log/monerod 2>/dev/null || true
+  # -R matters here: a non-recursive chown only fixes the top-level
+  # .bitmonero directory, not the lmdb/ subfolder (data.mdb/lock.mdb) inside
+  # it - and that subfolder is exactly what monerod fails to open with
+  # "Permission denied" when the bind-mounted volume's ownership gets reset
+  # (e.g. by the host platform during an app update/restart), confirmed
+  # directly from a user's logs: a ~26-minute restart-loop of "Failed to open
+  # lmdb environment: Permission denied" that only cleared once whatever
+  # external process finished reconciling ownership on its own. LMDB's own
+  # on-disk format is just 1-2 files, so recursing here costs nothing.
+  chown -R monero:monero /home/monero/.bitmonero /var/log/monerod 2>/dev/null || true
   # setpriv only changes the process's UID/GID - unlike `su`/`sudo -i`, it
   # does NOT reset HOME, so monerod would otherwise still see HOME=/root
   # (inherited from this root shell) and try to use /root/.bitmonero as its

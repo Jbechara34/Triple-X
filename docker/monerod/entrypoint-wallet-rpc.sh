@@ -12,7 +12,18 @@ set -e
 
 if [ "$(id -u)" = "0" ]; then
   mkdir -p /home/monero/wallet-data /var/log/monero-wallet-rpc 2>/dev/null || true
-  chown monero:monero /home/monero/wallet-data /var/log/monero-wallet-rpc 2>/dev/null || true
+  # -R matters here - see docker/monerod/entrypoint.sh for why a non-recursive
+  # chown isn't enough once wallet files already exist underneath.
+  chown -R monero:monero /home/monero/wallet-data /var/log/monero-wallet-rpc 2>/dev/null || true
+  # setpriv only changes UID/GID, not HOME - without this, monero-wallet-rpc
+  # inherits HOME=/root from this root shell and tries to use
+  # /root/.shared-ringdb for its ring signature cache, which the monero user
+  # can't access. This is the real cause of the "Failed to initialize ringdb:
+  # ... Permission denied: /root/.shared-ringdb" error that otherwise repeats
+  # on every RPC call - confirmed via a user's live logs. Same fix already
+  # applied in docker/monerod/entrypoint.sh for the equivalent
+  # /root/.bitmonero problem.
+  export HOME=/home/monero
   exec setpriv --reuid=monero --regid=monero --init-groups monero-wallet-rpc "$@"
 fi
 
