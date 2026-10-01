@@ -3,6 +3,9 @@
 **Status: Alpha (`v1.0-AlphaN`).** Past the numbered `Dev` builds now — the
 app is feature-complete enough for wider testing, but still expect rough
 edges. The on-screen version badge always shows exactly what's running.
+**Current build `v1.0-Alpha16` is confirmed stable** — deployed and verified
+on a live 5tratumOS install, no known crash loops or degraded-status issues.
+See the [release notes](https://github.com/Silver765/Triple-X/releases/tag/v1.0-Alpha16).
 
 A self-hosted Monero full node + [P2Pool](https://github.com/SChernykh/p2pool)
 node, built from source, with optional Tari (XTM) merge-mining, Monero/Tari
@@ -26,6 +29,14 @@ P2Pool directly.
 
 ## Recent additions
 
+- **v1.0-Alpha16 confirmed stable: fixed recurring "degraded" status** —
+  removed the "Automatically stop Minotari (XTM) when unused" Settings
+  toggle entirely. With that toggle on and no Tari address configured, it ran
+  a real `docker stop` on minotari-node/minotari-wallet every 60s, and
+  `minotari_node` doesn't exit cleanly on SIGTERM, so Docker force-killed it
+  (exit 137) every time — read by the platform as a repeating crash, not the
+  intentional stop it was. Confirmed fixed on a live install. Also adds a
+  purely decorative animated background to the dashboard.
 - **5tratumOS app-store: dashboard port now published directly** — 5tratumOS
   runs no `app_proxy` container (unlike umbrelOS, which injects one per app
   from the environment stanza this app's compose file used to declare), so
