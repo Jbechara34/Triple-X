@@ -17,12 +17,12 @@ version: "3.7"
 
 services:
   web:
-    # Pinned to the v1.0-Alpha15 build's exact digest (not :latest) so the
+    # Pinned to the v1.0-Alpha16 build's exact digest (not :latest) so the
     # platform is forced to pull this specific image instead of reusing
     # whatever it already has cached under a floating tag. Update this
     # digest (see ../.github/workflows/publish-images.yml) every time a new
     # version is published.
-    image: ghcr.io/silver765/triple-x-app@sha256:4968b5ce361c23bd7157c0b0c74b6885d07f3ecd7141a1dc146c93523a0c5799
+    image: ghcr.io/silver765/triple-x-app@sha256:fc3d3ad6c076962ac428789f6f9e4689aefe15c1db31c19924265a92354d9860
     restart: unless-stopped
     stop_grace_period: 1m
     # 5tratumOS runs no app_proxy - publish the manifest's `port:` (3000)
