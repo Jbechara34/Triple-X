@@ -42,6 +42,7 @@ const STATE_DIR = process.env.STATE_DIR || '/data/state';
 const STATE_FILE = path.join(STATE_DIR, 'blocks-state.json');
 
 const MAX_BLOCKS = 200;
+const MAX_SHARES = 200;
 const WORKER_STALE_MS = 24 * 60 * 60 * 1000; // drop workers not seen in 24h from the "active" view
 const WORKER_PRUNE_MS = 90 * 24 * 60 * 60 * 1000; // forget workers not seen in 90 days entirely, so state.workers doesn't grow forever over a long-running install
 const MIN_SAVE_INTERVAL_MS = 60 * 1000; // during active mining almost every 15s poll tick has new shares - rewriting the whole state file (all blocks + all workers) that often is wasted disk I/O for a cache that only needs to survive a restart, so batch writes to at most once/minute (a found block still flushes immediately, see maybeSaveState)
@@ -67,12 +68,21 @@ const SHARE_FOUND_RE = /SHARE FOUND[^\n]*?user[:\s]+([^\s,]+)/i;
 // "record share vs network difficulty" concept p2pool's own bestShare stats
 // already use pool-wide (see p2poolApi.js currentEffort/averageEffort).
 const SHARE_DIFF_RE = /SHARE FOUND[^\n]*?diff[:\s]+(\d+)/i;
+const SHARE_SIDECHAIN_HEIGHT_RE = /sidechain height[:\s]+(\d+)/i;
+const SHARE_EFFORT_RE = /effort[:\s]+([\d.]+)%/i;
 const TIMESTAMP_PREFIX_RE = /^(\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2})/;
 
 let state = {
   offset: 0,
   blocks: [], // { height, hash, detectedAt, raw }
   workers: {}, // { [name]: { shares, firstSeen, lastSeen } }
+  shares: [], // newest first: { detectedAt, name, difficulty, sidechainHeight, effort }
+  // True from each p2pool (re)start until p2pool logs "SYNCHRONIZED". While
+  // the sidechain is still syncing (always the case right after switching
+  // pool type), p2pool judges stratum shares against a bootstrap difficulty
+  // and prints "SHARE FOUND" for ordinary low-difficulty shares that were
+  // never real sidechain shares - so those lines are ignored.
+  syncing: false,
 };
 
 async function loadState() {
@@ -130,6 +140,15 @@ function parseLine(line) {
   const tsMatch = line.match(TIMESTAMP_PREFIX_RE);
   const detectedAt = tsMatch ? tsMatch[1] : new Date().toISOString();
 
+  if (/\[entrypoint\] starting: p2pool/i.test(line)) {
+    state.syncing = true;
+    return;
+  }
+  if (/\bSYNCHRONIZED\b/.test(line)) {
+    state.syncing = false;
+    return;
+  }
+
   if (/BLOCK FOUND/i.test(line)) {
     if (!BLOCK_FOUND_BY_YOU_RE.test(line)) return; // someone else's block - not this node's payout address
     const heightMatch = line.match(BLOCK_FOUND_RE) || line.match(HEIGHT_ONLY_RE);
@@ -147,6 +166,7 @@ function parseLine(line) {
   }
 
   if (/SHARE FOUND/i.test(line)) {
+    if (state.syncing) return;
     const userMatch = line.match(SHARE_FOUND_RE);
     const name = userMatch ? userMatch[1] : 'unknown';
     const diffMatch = line.match(SHARE_DIFF_RE);
@@ -166,6 +186,19 @@ function parseLine(line) {
       entry.currentDifficulty = diff;
     }
     state.workers[name] = entry;
+
+    const heightMatch = line.match(SHARE_SIDECHAIN_HEIGHT_RE);
+    const effortMatch = line.match(SHARE_EFFORT_RE);
+    state.shares = [
+      {
+        detectedAt,
+        name,
+        difficulty: diff,
+        sidechainHeight: heightMatch ? Number(heightMatch[1]) : null,
+        effort: effortMatch ? Number(effortMatch[1]) : null,
+      },
+      ...(state.shares || []),
+    ].slice(0, MAX_SHARES);
 
     if (config.readSettings().discordNotifyShares) {
       discordNotify.send(`🟡 **P2Pool share found!** Worker \`${name}\`${diff ? ` (difficulty ${diff})` : ''} - counts toward your next PPLNS payout.`);
@@ -202,7 +235,7 @@ async function pollOnce() {
     for (const line of lines) {
       if (!line.trim()) continue;
       if (/BLOCK FOUND/i.test(line)) blockFound = true;
-      if (/BLOCK FOUND|SHARE FOUND/i.test(line)) {
+      if (/BLOCK FOUND|SHARE FOUND|\[entrypoint\] starting: p2pool|\bSYNCHRONIZED\b/i.test(line)) {
         parseLine(line);
         dirty = true;
       }
@@ -232,6 +265,10 @@ function getBlocks() {
   return state.blocks;
 }
 
+function getShares() {
+  return state.shares || [];
+}
+
 function getWorkers() {
   const now = Date.now();
   return Object.entries(state.workers).map(([name, w]) => ({
@@ -245,4 +282,4 @@ function getWorkers() {
   }));
 }
 
-module.exports = { start, getBlocks, getWorkers, LOG_FILE };
+module.exports = { start, getBlocks, getShares, getWorkers, LOG_FILE };

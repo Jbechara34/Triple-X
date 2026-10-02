@@ -268,18 +268,20 @@ async function refreshAll() {
   let settings = null;
   let tariBlocksData = null;
   let poolHistoryData = null;
+  let sharesLogData = null;
   try {
     // XTM blocks fetched here too (in parallel, not after) - it used to be
     // a second, sequential await further down, adding a full extra
     // round-trip to every poll tick before anything below it could render.
     // Its own .catch keeps a failure non-fatal, same as before.
-    [status, pool, blocksData, settings, tariBlocksData, poolHistoryData] = await Promise.all([
+    [status, pool, blocksData, settings, tariBlocksData, poolHistoryData, sharesLogData] = await Promise.all([
       getJSON('/api/status'),
       getJSON('/api/pool'),
       getJSON('/api/blocks'),
       getJSON('/api/settings'),
       getJSON('/api/blocks?coin=xtm').catch(() => null),
       getJSON('/api/pool/history').catch(() => null),
+      getJSON('/api/shares').catch(() => null),
     ]);
   } catch (err) {
     console.error('[preview] refresh failed', err);
@@ -551,6 +553,19 @@ async function refreshAll() {
 
   setText('pv-blocks-shares-found', fmtDifficulty(pool.shares?.found));
   setText('pv-blocks-shares-failed', fmtDifficulty(pool.shares?.failed));
+
+  const sharesLogBody = document.getElementById('pv-shares-log-body');
+  if (sharesLogBody) {
+    const shareList = (sharesLogData?.shares || []).slice(0, 50);
+    sharesLogBody.innerHTML = shareList.length
+      ? shareList
+          .map((s) => {
+            const label = s.name && s.name.lastIndexOf('.') > 0 ? s.name.slice(s.name.lastIndexOf('.') + 1) : s.name;
+            return `<tr><td>${fmtTime(s.detectedAt)}</td><td>${escapeHtml(label || '—')}</td><td>${s.difficulty != null ? fmtDifficulty(s.difficulty) : '—'}</td><td>${s.effort != null ? s.effort.toFixed(1) + '%' : '—'}</td><td>${s.sidechainHeight ?? '—'}</td></tr>`;
+          })
+          .join('')
+      : '<tr><td colspan="5" class="pv-empty">No shares found yet.</td></tr>';
+  }
 
   const blocksBody = document.getElementById('pv-blocks-body');
   if (blocksBody) {

@@ -70,6 +70,7 @@
     .pv-app-header-tabs { display: none; }
     .pv-tab-select { display: block; }
     #pv-header-status { position: absolute; top: 16px; right: 16px; }
+    .pv-app-title-row { padding-right: 96px; }
   }
   .v1-bento {
     display: grid;
@@ -131,6 +132,8 @@
   .v1-hero .mining-scene-combined { width: 100%; max-width: none; height: 200px; display: block; }
   .v1-stat-row { display: flex; gap: 24px; margin-top: 4px; }
   .v1-stat-row > div { flex: 1; }
+  .v1-stat-row.pv-stat-wrap { flex-wrap: wrap; gap: 14px 18px; }
+  .v1-stat-row.pv-stat-wrap > div { flex: 1 1 70px; min-width: 70px; }
   table.v1-table { width: 100%; border-collapse: collapse; font-size: 12px; }
   table.v1-table th { text-align: left; color: var(--muted); font-weight: 600; padding: 4px 6px; border-bottom: 1px solid var(--border); }
   table.v1-table td { padding: 5px 6px; border-bottom: 1px solid var(--border); color: var(--text); }
@@ -674,7 +677,7 @@
         </div>
         <div>
           <div class="v1-label">Your P2Pool Stats</div>
-          <div class="v1-stat-row">
+          <div class="v1-stat-row pv-stat-wrap">
             <div><div class="v1-big" style="font-size:18px" id="pv-net-miners">—</div><div class="v1-sub">Your Miners</div></div>
             <div><div class="v1-big" style="font-size:18px" id="pv-net-shares">—</div><div class="v1-sub">Your Shares (PPLNS)</div></div>
             <div><div class="v1-big" style="font-size:18px" id="pv-net-blocks">—</div><div class="v1-sub">Your Blocks Found</div></div>
@@ -749,6 +752,19 @@
         <div class="v1-stat-row">
           <div><div class="v1-big" style="font-size:18px" id="pv-blocks-shares-found">—</div><div class="v1-sub">Your Shares</div></div>
           <div><div class="v1-big" style="font-size:18px" id="pv-blocks-shares-failed">—</div><div class="v1-sub">Failed Shares</div></div>
+        </div>
+      </div>
+
+      <!-- Log of each P2Pool share this node found, newest first - parsed
+           from p2pool's "SHARE FOUND" log lines, so only shares found since
+           this feature shipped appear. -->
+      <div class="v1-full">
+        <div class="v1-label">P2Pool Share Log</div>
+        <div style="overflow-x:auto;">
+          <table class="v1-table">
+            <thead><tr><th>Found</th><th>Worker</th><th>Difficulty</th><th>Effort</th><th>Sidechain Height</th></tr></thead>
+            <tbody id="pv-shares-log-body"><tr><td colspan="5" class="pv-empty">No shares found yet.</td></tr></tbody>
+          </table>
         </div>
       </div>
 

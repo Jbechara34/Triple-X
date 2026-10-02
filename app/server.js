@@ -60,7 +60,7 @@ const PORT = process.env.PORT || 3000;
 // hardcoded string baked into the HTML and got left on "Alpha-9" through
 // this entire Alpha-10 release since nothing pointed back at it as a step to
 // update. Bump this, not the HTML, on every release.
-const APP_VERSION = 'v1.0-Alpha17';
+const APP_VERSION = 'v1.0-Alpha18';
 
 // Sync-speed-derived ETA for the Overview tab's blockchain cards - neither
 // monerod nor minotari_node's RPC exposes an ETA directly, so this tracks
@@ -513,6 +513,10 @@ app.get('/api/blocks', (req, res) => {
       : null,
   }));
   res.json({ blocks: list, explorerBaseUrl: EXPLORER_BASE_URL });
+});
+
+app.get('/api/shares', (req, res) => {
+  res.json({ shares: blocks.getShares() });
 });
 
 // ---------------------------------------------------------------------------
